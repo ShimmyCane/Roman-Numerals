@@ -702,6 +702,23 @@
     return { text: `${toRoman(a)} ${adding ? '+' : '-'} ${toRoman(b)}`, value: adding ? a + b : a - b };
   }
 
+  // Add & Subtract: a random equation. Two in three have two numerals (the easier ones). The rest have three, with
+  // additions and subtractions mixed, so they take several steps. The sum never goes below one.
+  function randomEquation(rand = Math.random) {
+    if (rand() < 2 / 3) return randomSum(rand);
+    for (;;) {
+      const a = randomInt(10, 99, rand);
+      const ops = [rand() < 0.5 ? '+' : '-', rand() < 0.5 ? '+' : '-'];
+      const b = randomInt(1, 60, rand);
+      const c = randomInt(1, 60, rand);
+      let value = ops[0] === '+' ? a + b : a - b;
+      if (value < 1) continue;
+      value = ops[1] === '+' ? value + c : value - c;
+      if (value < 1 || value > 150) continue;
+      return { text: `${toRoman(a)} ${ops[0]} ${toRoman(b)} ${ops[1]} ${toRoman(c)}`, value };
+    }
+  }
+
   // Fix It: a bad numeral made by writing each subtractive pair as its pieces (XL becomes XXXX).
   // Only numbers with a pair are used, so the bad numeral is always wrong and the answer is always the simplest form.
   function disarrange(s) {
@@ -743,6 +760,6 @@
   return {
     VALUE, PAIR_PIECES, TRADE, MAX, LETTER_LIMIT, QUIZ_MAX_TYPES, TRUE_FALSE, DISARRANGEABLE, RANDOM_NUMERALS,
     lenientValue, eqOf, toRoman, words, chunks, check, calculate, repairPlan, regroupPlan, addEquation, takeAwayEquation, firstRepair, parse, disarrange,
-    randomNumeral, randomSum, randomDisarranged,
+    randomNumeral, randomSum, randomEquation, randomDisarranged,
   };
 });

@@ -22,18 +22,18 @@
   </header>
 
   <nav class="tabs" role="tablist">
-    <button class="tab-btn active" role="tab" data-tab="letters">Letters</button>
-    <button class="tab-btn" role="tab" data-tab="rules">Rules</button>
-    <button class="tab-btn" role="tab" data-tab="regroup">Regroup</button>
-    <button class="tab-btn" role="tab" data-tab="fix">Fix It</button>
+    <button class="tab-btn active" role="tab" data-tab="fix">Fix It</button>
     <button class="tab-btn" role="tab" data-tab="addsub">Add &amp; Subtract</button>
     <button class="tab-btn" role="tab" data-tab="quiz">Quiz</button>
+    <button class="tab-btn" role="tab" data-tab="letters">Letters</button>
+    <button class="tab-btn" role="tab" data-tab="rules">Rules</button>
+    <button class="tab-btn" role="tab" data-tab="regroup">Regroup</button>
     <button class="tab-btn" role="tab" data-tab="history">Long Ago</button>
   </nav>
 
   <main>
     <!-- LETTERS: the letters, then the pairs straight away -->
-    <section class="tab active" id="tab-letters">
+    <section class="tab" id="tab-letters">
       <div class="layout single">
         <div class="play">
           <h2>The seven letters</h2>
@@ -71,12 +71,6 @@
           <div class="ladder" id="ladder"></div>
 
           <div class="pattern-box">
-            <h3>The pattern: five, then two, then five, then two</h3>
-            <div class="pattern-chain" id="pattern-chain"></div>
-            <p class="note">Two steps up the chain is always ten: ten I's make an X, ten X's make a C, ten C's make an M.</p>
-          </div>
-
-          <div class="pattern-box">
             <h3>Too many in a row? Use the short form</h3>
             <div class="short-forms" id="short-forms"></div>
           </div>
@@ -84,7 +78,7 @@
           <h2>Try it: add by regrouping</h2>
           <p class="note">Put all the letters together, open any short forms, put them in order, regroup, then write the short forms.</p>
           <div class="workbench">
-            <button class="big-btn" type="button" data-random="regroup">🎲 Random sum</button>
+            <button class="big-btn" type="button" data-random="regroup" id="regroup-random" hidden>🎲 Random sum</button>
             <form class="entry" data-entry="regroup">
               <input id="regroup-input" type="text" autocomplete="off" placeholder="Or type your own, like XXVII + XVIII" maxlength="40" aria-label="Type a sum to regroup">
               <button class="big-btn" type="submit">Regroup it</button>
@@ -102,7 +96,7 @@
     </section>
 
     <!-- FIX IT: start with a bad numeral; rules broken sit above the steps -->
-    <section class="tab" id="tab-fix">
+    <section class="tab active" id="tab-fix">
       <div class="layout single">
         <div class="play">
           <div class="workbench">
@@ -134,13 +128,14 @@
       <div class="layout single">
         <div class="play">
           <div class="workbench">
-            <button class="big-btn" type="button" data-random="addsub">🎲 Random sum</button>
+            <button class="big-btn" type="button" data-random="addsub">🎲 Random equation</button>
             <form class="entry" data-entry="addsub">
               <input id="addsub-input" type="text" autocomplete="off" placeholder="Or type your own, like XLI + XIX" maxlength="40" aria-label="Type your own sum">
               <button class="big-btn" type="submit">Work it out</button>
               <button class="big-btn ghost" type="button" data-undo="addsub">Undo</button>
             </form>
           </div>
+          <p class="think" id="addsub-think" hidden>Think first: what would you do next? Then press Next step.</p>
           <div class="ledger" id="addsub-ledger" aria-live="polite"></div>
           <div class="controls">
             <button class="big-btn ghost" data-step="addsub" data-dir="-1">Back</button>
@@ -266,6 +261,32 @@
         </article>
 
         <article class="rule-card wide">
+          <h3>Multiplying with letters</h3>
+          <p>Adding and taking away are easy with letters, but multiplying is much harder. Nobody has found a Roman paper method for it. Most historians think Romans multiplied on the counting board, using pebbles and beads, and perhaps by doubling and halving.</p>
+          <p>Our place-value numbers changed that. Each column holds one digit, so you can write the whole method on paper, column by column.</p>
+          <p class="note">Historians still argue about exactly how Romans multiplied. The board is the best evidence; doubling is a likely guess.</p>
+        </article>
+
+        <article class="rule-card wide">
+          <h3>From the Roman way to our way</h3>
+          <table class="compare">
+            <tr><th></th><th>Counting board (Roman)</th><th>Place value (ours)</th></tr>
+            <tr><td>Where it was done</td><td>On a board, with pebbles</td><td>On paper, with digits</td></tr>
+            <tr><td>Empty place</td><td>A blank line on the board</td><td>Zero</td></tr>
+            <tr><td>Multiplying</td><td>Pebble by pebble, or by doubling</td><td>A grid of small products (the lattice method)</td></tr>
+          </table>
+          <p>The Indian system with zero reached Europe through Arabic mathematicians. Fibonacci's book of 1202 helped spread it. The grid for multiplying (the lattice method) came the same way, from India through Arab and Persian mathematicians. Fibonacci's book did not start it.</p>
+        </article>
+
+        <article class="rule-card">
+          <h3>Other ways to write numbers</h3>
+          <ul class="facts">
+            <li><strong>The Maya (Central America).</strong> They counted in twenties, with a dot for one, a bar for five, and a shell for zero. Some say their zero was invented before the Indian one, but the dates are uncertain.</li>
+            <li><strong>China.</strong> Counting rods were laid out on a board, and a place on the board gave the value. A blank space meant zero. They were used from long before Christ into the 1600s.</li>
+          </ul>
+        </article>
+
+        <article class="rule-card wide">
           <h3>Read more (for grown-ups)</h3>
           <ul class="sources">
             <li><a href="https://en.wikipedia.org/wiki/Salamis_Tablet" target="_blank" rel="noopener">Salamis Tablet (Wikipedia)</a>: a Greek counting board of about 300 BCE, with its photograph</li>
@@ -277,8 +298,12 @@
             <li><a href="https://www.mentalfloss.com/article/24578/why-do-some-clocks-use-roman-numeral-iiii" target="_blank" rel="noopener">Why do some clocks use IIII? (Mental Floss)</a></li>
             <li><a href="https://doaj.org/article/a5e95ef46d4f4d79a282905f75a0bf1e" target="_blank" rel="noopener">Roman accounting terms (2023 article)</a></li>
             <li><a href="https://en.wikipedia.org/wiki/History_of_the_Hindu%E2%80%93Arabic_numeral_system" target="_blank" rel="noopener">History of the Hindu–Arabic numeral system (Wikipedia)</a></li>
+            <li><a href="https://thenakedscientists.com/articles/questions/how-did-romans-multiply-their-numerals" target="_blank" rel="noopener">How did the Romans multiply their numerals? (Naked Scientists)</a>: doubling, and the counting board</li>
+            <li><a href="https://en.wikipedia.org/wiki/Lattice_multiplication" target="_blank" rel="noopener">Lattice multiplication (Wikipedia)</a>: the grid method, and where it came from</li>
+            <li><a href="https://en.wikipedia.org/wiki/Counting_rods" target="_blank" rel="noopener">Counting rods (Wikipedia)</a>: Chinese place value on a board</li>
+            <li><a href="https://mayan.org/civilization/mayan-mathematics/" target="_blank" rel="noopener">Mayan mathematics (mayan.org)</a>: dot, bar and shell</li>
           </ul>
-          <p class="note">Some dates above come from popular web pages. Check them against a history book before quoting them in class.</p>
+          <p class="note">Some dates and claims above come from popular web pages. Check them against a history book before quoting them in class. The Roman multiplication methods and the origin of the Maya zero are still uncertain.</p>
         </article>
       </div>
     </section>
@@ -324,17 +349,23 @@
         <option value="board">Counting board (by place)</option>
       </select>
     </label>
-    <h4>Ideas to try</h4>
-    <p class="note">Turn these on to see if they help. Tell me which to keep.</p>
-    <label class="toggle"><input type="checkbox" id="opt-aloud"> Read each step aloud</label>
-    <label class="toggle"><input type="checkbox" id="opt-bigtiles"> Bigger tiles</label>
-    <label class="toggle"><input type="checkbox" id="opt-one"> Show only the current step</label>
-    <h4>Help</h4>
-    <label class="toggle"><input type="checkbox" id="opt-sound" checked> Sounds</label>
-    <label class="toggle"><input type="checkbox" id="opt-pictures" checked> Pictures on steps</label>
-    <label class="toggle"><input type="checkbox" id="opt-errors"> Show errors</label>
-    <button class="big-btn" id="forget">Forget my mistakes</button>
-    <p class="note" id="forget-note" aria-live="polite"></p>
+    <label class="toggle"><input type="checkbox" id="opt-showall"> Show all steps at once (off: step one first, then Next step)</label>
+    <h4>Regroup</h4>
+    <label class="toggle"><input type="checkbox" id="opt-regroup-random"> Show the random sum button</label>
+    <details class="more-options">
+      <summary>Show more options</summary>
+      <h4>Ideas to try</h4>
+      <p class="note">Turn these on to see if they help. Tell me which to keep.</p>
+      <label class="toggle"><input type="checkbox" id="opt-aloud"> Read each step aloud</label>
+      <label class="toggle"><input type="checkbox" id="opt-bigtiles"> Bigger tiles</label>
+      <label class="toggle"><input type="checkbox" id="opt-one"> Show only the current step</label>
+      <h4>Help</h4>
+      <label class="toggle"><input type="checkbox" id="opt-sound" checked> Sounds</label>
+      <label class="toggle"><input type="checkbox" id="opt-pictures" checked> Pictures on steps</label>
+      <label class="toggle"><input type="checkbox" id="opt-errors"> Show errors</label>
+      <button class="big-btn" id="forget">Forget my mistakes</button>
+      <p class="note" id="forget-note" aria-live="polite"></p>
+    </details>
     <button class="big-btn ghost" id="drawer-close">Close</button>
   </div>
 

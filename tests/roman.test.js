@@ -346,4 +346,26 @@ test('Counting board: every row carries the whole equation, and the last row has
   assert.equal(board.steps[board.steps.length - 1].eq.result, 'LI');
 });
 
+test('Random equation: most have two numerals, some have three with mixed + and −; every one works out', () => {
+  let three = 0;
+  for (let i = 0; i < 1000; i++) {
+    const r = Roman.randomEquation();
+    const p = Roman.parse(r.text);
+    assert.equal(p.error, undefined, r.text);
+    if (p.terms.length === 3) {
+      three++;
+      assert.ok(p.ops.includes('+') || p.ops.includes('-'));
+    }
+    let cur = p.terms[0];
+    for (let k = 1; k < p.terms.length; k++) {
+      const v = p.ops[k - 1] === '+' ? Roman.lenientValue(cur) + Roman.lenientValue(p.terms[k]) : Roman.lenientValue(cur) - Roman.lenientValue(p.terms[k]);
+      assert.ok(v >= 1, r.text);
+      cur = Roman.toRoman(v);
+    }
+    assert.equal(Roman.lenientValue(cur), r.value, r.text);
+  }
+  // About a third have three numerals.
+  assert.ok(three > 250 && three < 420, `three-numeral share ${three}`);
+});
+
 console.log(`\n${passed} tests passed`);

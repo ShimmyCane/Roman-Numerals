@@ -694,3 +694,12 @@ html[data-tiles="big"] { --big: 1.25; }
 .eq-full .made { margin-bottom: 0; padding-bottom: 9px; }
 .eq-full .side { padding-bottom: 6px; }
 .eq-full.piles .eq-num.pile, .eq-full.piles .pile .made { flex-wrap: wrap; row-gap: 6px; }
+
+/* Add & Subtract: a prompt to think before the next step. It is only shown while steps are left to reveal. */
+.think { margin: 0 0 10px; padding: 10px 14px; border: 2px dashed var(--ink); border-radius: 14px; font-weight: bold; }
+.think[hidden] { display: none; }
+
+/* Settings: less-used options sit under a disclosure, so the first groups stay short */
+.more-options { margin: 10px 0 6px; }
+.more-options > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: bold; }
+.big-btn[hidden] { display: none; }
