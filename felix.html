@@ -13,44 +13,40 @@
   </header>
 
   <nav class="tabs" role="tablist">
-    <button class="tab-btn active" role="tab" data-tab="purpose">Start</button>
+    <button class="tab-btn active" role="tab" data-tab="start">Start</button>
     <button class="tab-btn" role="tab" data-tab="spiral">Spiral</button>
     <button class="tab-btn" role="tab" data-tab="steps">Steps</button>
-    <button class="tab-btn" role="tab" data-tab="tiles">Squares</button>
+    <button class="tab-btn" role="tab" data-tab="shake">Shake</button>
     <button class="tab-btn" role="tab" data-tab="rods">Rods</button>
     <button class="tab-btn" role="tab" data-tab="resources">Grown-ups</button>
   </nav>
 
   <main>
-    <!-- START: a picture of the pattern -->
-    <section class="tab active" id="tab-purpose">
+    <!-- START: what the letters are, each one as a square to scale -->
+    <section class="tab active" id="tab-start">
       <div class="layout single">
         <div class="play">
-          <h2>Look for the pattern</h2>
-          <p class="big-value">I → V → X → L → C → D → M</p>
-          <p class="big-value">1 → 5 → 10 → 50 → 100 → 500 → 1000</p>
-          <p>Times 5, times 2, times 5, times 2.</p>
-          <p class="note">Next tab: Spiral.</p>
+          <h2>Letters</h2>
+          <p>Each letter is a square. Bigger value, bigger square.</p>
+          <div class="tile-row" id="tile-row" aria-label="Squares, bigger for bigger numbers"></div>
         </div>
       </div>
     </section>
 
-    <!-- SPIRAL: one full turn for each times ten -->
+    <!-- SPIRAL: one spiral, scroll to travel along it -->
     <section class="tab" id="tab-spiral">
       <div class="layout single">
         <div class="play">
           <h2>Round and round</h2>
-          <div class="field">
-            <label for="spiral-n">Show</label>
-            <input id="spiral-n" type="range" min="1" max="7" value="7" aria-describedby="spiral-caption">
+          <div class="spiral-box" id="spiral-box" tabindex="0" role="slider" aria-label="Scroll along the spiral" aria-valuemin="1" aria-valuemax="3999" aria-valuenow="1">
+            <svg class="felix-art" id="spiral-svg" viewBox="-40 -40 480 480" aria-hidden="true"></svg>
           </div>
-          <svg class="felix-art" id="spiral-svg" viewBox="0 0 400 400" role="img" aria-label="A spiral of the letters"></svg>
-          <p class="big-value" id="spiral-caption" aria-live="polite"></p>
+          <p class="note">Scroll or drag.</p>
         </div>
       </div>
     </section>
 
-    <!-- STEPS: a staircase -->
+    <!-- STEPS: a staircase (to be rethought, see the proposal) -->
     <section class="tab" id="tab-steps">
       <div class="layout single">
         <div class="play">
@@ -65,74 +61,49 @@
       </div>
     </section>
 
-    <!-- SQUARES: bigger value, bigger square -->
-    <section class="tab" id="tab-tiles">
+    <!-- SHAKE: a random number of stones falls into the bucket -->
+    <section class="tab" id="tab-shake">
       <div class="layout single">
         <div class="play">
-          <h2>Bigger number, bigger square</h2>
-          <div class="tile-row" id="tile-row" aria-label="Squares, bigger for bigger numbers"></div>
+          <h2>Shake</h2>
+          <canvas class="bucket" id="bucket" aria-label="Stones falling into a bucket"></canvas>
+          <p class="big-value" id="bucket-caption" aria-live="polite"></p>
+          <div class="controls">
+            <button class="big-btn" type="button" id="pour">Pour</button>
+            <button class="big-btn ghost" type="button" id="shake-on">Shake to pour</button>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- RODS: type a number, see its parts -->
+    <!-- RODS: tap the beads, see the raw beads and the organized numeral -->
     <section class="tab" id="tab-rods">
       <div class="layout single">
         <div class="play">
           <h2>Counting board</h2>
-          <form class="entry" id="rods-form">
-            <input id="rods-input" type="text" inputmode="numeric" autocomplete="off" placeholder="like 47" maxlength="4" aria-label="Type a number from 1 to 3999">
-            <button class="big-btn" type="submit">Go</button>
-            <button class="big-btn ghost" type="button" id="rods-random">🎲</button>
-          </form>
-          <div class="rods" id="rods" aria-live="polite"></div>
-          <div class="rods-parts" id="rods-parts" aria-live="polite"></div>
+          <div class="rods" id="rods"></div>
+          <div class="controls">
+            <button class="big-btn" type="button" id="rods-random">🎲</button>
+          </div>
+          <div class="rods-parts">
+            <p class="big-value"><span class="label">Raw</span> <span id="rods-raw"></span></p>
+            <p class="big-value"><span class="label">Organized</span> <span id="rods-organized"></span></p>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- GROWN-UPS: links to existing work, kept out of the way -->
+    <!-- GROWN-UPS: a few links, kept out of the way -->
     <section class="tab" id="tab-resources">
       <div class="history-grid">
         <article class="rule-card wide">
           <h2>For grown-ups</h2>
-          <p class="note">Links from web searches. Not all opened yet: check licence and suitability first.</p>
-        </article>
-
-        <article class="rule-card">
-          <h3>Counting boards</h3>
+          <p class="note">Links from web searches. Check licence and suitability first.</p>
           <ul class="sources">
-            <li><a href="https://www.mathematik.uni-marburg.de/~thormae/lectures/ti1/code/abacus/soroban.html" target="_blank" rel="noopener">Soroban and suanpan simulator (Marburg)</a></li>
-            <li><a href="https://github.com/bocaletto-luca/abacus" target="_blank" rel="noopener">Abacus web app (GitHub)</a></li>
-            <li><a href="https://flathub.org/apps/org.sugarlabs.AbacusActivity" target="_blank" rel="noopener">Sugar Labs Abacus Activity</a></li>
-            <li><a href="https://medium.com/chronicles-of-computation/roman-counting-boards-e2ddb15c7d2f" target="_blank" rel="noopener">Roman counting boards (article)</a></li>
-          </ul>
-        </article>
-
-        <article class="rule-card">
-          <h3>Spirals</h3>
-          <ul class="sources">
+            <li><a href="https://www.mathematik.uni-marburg.de/~thormae/lectures/ti1/code/abacus/soroban.html" target="_blank" rel="noopener">Soroban and suanpan simulator</a></li>
             <li><a href="https://observablehq.com/@jrus/drawing-logarithmic-spirals-with-bezplot" target="_blank" rel="noopener">Logarithmic spirals (Observable)</a></li>
-            <li><a href="https://num8ers.com/?p=9022" target="_blank" rel="noopener">Spiral generator (num8ers)</a></li>
-            <li><a href="https://codepen.io/fractalkitty/pen/MYwzROr" target="_blank" rel="noopener">Spiral pen (CodePen)</a></li>
-            <li><a href="https://demonstrations.wolfram.com/LogarithmicSpiral/" target="_blank" rel="noopener">Logarithmic spiral (Wolfram)</a></li>
-          </ul>
-        </article>
-
-        <article class="rule-card">
-          <h3>For children</h3>
-          <ul class="sources">
             <li><a href="https://www.splashlearn.com/tools/roman-numeral-cards" target="_blank" rel="noopener">Roman numeral cards (SplashLearn)</a></li>
-            <li><a href="https://www.twinkl.com/resource/t-t-2635-roman-numeral-visual-aids" target="_blank" rel="noopener">Visual aids (Twinkl)</a></li>
-          </ul>
-        </article>
-
-        <article class="rule-card">
-          <h3>Animation</h3>
-          <ul class="sources">
             <li><a href="https://www.alternativeto.net/software/anime-js/" target="_blank" rel="noopener">Anime.js (AlternativeTo)</a></li>
-            <li><a href="https://alternativeto.net/software/popmotion" target="_blank" rel="noopener">Popmotion (AlternativeTo)</a></li>
-            <li><a href="https://www.alternativeto.net/software/animate-css/" target="_blank" rel="noopener">Animate.css (AlternativeTo)</a></li>
           </ul>
         </article>
       </div>

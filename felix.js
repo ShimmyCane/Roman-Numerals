@@ -30,79 +30,15 @@
     });
     return e;
   };
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
-  // ---------- tabs and settings ----------
+  // ---------- tabs ----------
   function showTab(name) {
     $$('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
     $$('.tab').forEach((s) => s.classList.toggle('active', s.id === `tab-${name}`));
   }
 
-  // ---------- Spiral: t = log10(value) turns, so one full turn is times ten ----------
-  const CENTER = 200;
-  const BASE = 24;
-  const GROWTH = 42;
-  const polar = (t) => {
-    const angle = 2 * Math.PI * t - Math.PI / 2; // start at the top
-    const r = BASE + GROWTH * t;
-    return { x: CENTER + r * Math.cos(angle), y: CENTER + r * Math.sin(angle) };
-  };
-
-  function renderSpiral(n) {
-    const svg = $('#spiral-svg');
-    svg.replaceChildren();
-    // Dashed rings: one for each times-ten
-    [0, 1, 2, 3].forEach((k) => {
-      svg.appendChild(svgEl('circle', { cx: CENTER, cy: CENTER, r: BASE + GROWTH * k, fill: 'none', stroke: 'var(--dots)', 'stroke-width': 2, 'stroke-dasharray': '6 8' }));
-    });
-    // The path up to the last letter shown
-    const tEnd = Math.log10(LETTERS[n - 1].value);
-    const points = [];
-    for (let i = 0; i <= 120; i++) {
-      const p = polar((tEnd * i) / 120);
-      points.push(`${p.x.toFixed(1)},${p.y.toFixed(1)}`);
-    }
-    svg.appendChild(svgEl('polyline', { points: points.join(' '), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
-    // Each letter, with a dot and its label pushed out a little
-    LETTERS.slice(0, n).forEach(({ letter, value }) => {
-      const p = polar(Math.log10(value));
-      // Push the label straight out from the centre, away from the dot
-      const dx = p.x - CENTER;
-      const dy = p.y - CENTER;
-      const len = Math.hypot(dx, dy) || 1;
-      const lx = p.x + (dx / len) * 20;
-      const ly = p.y + (dy / len) * 20;
-      svg.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: 13, fill: `var(--t-${letter})`, stroke: 'var(--ink)', 'stroke-width': 3 }));
-      // A halo in the card colour keeps each label readable where the spiral passes behind it
-      const label = svgEl('text', { x: lx, y: ly + 6, 'text-anchor': 'middle', 'font-size': 18, 'font-weight': 900, fill: 'var(--ink)', stroke: 'var(--card)', 'stroke-width': 5, 'paint-order': 'stroke' });
-      label.textContent = `${letter} ${value}`;
-      svg.appendChild(label);
-    });
-    svg.appendChild(svgEl('circle', { cx: CENTER, cy: CENTER, r: 4, fill: 'var(--ink)' }));
-
-    const cur = LETTERS[n - 1];
-    const prev = LETTERS[n - 2];
-    $('#spiral-caption').textContent = prev ? `${cur.letter} ${cur.value}  ×${cur.value / prev.value}` : `${cur.letter} ${cur.value}`;
-  }
-
-  // ---------- Steps: a staircase with the times-five and times-two steps marked ----------
-  function renderStairs(n) {
-    const box = $('#stairs');
-    box.replaceChildren();
-    LETTERS.slice(0, n).forEach(({ letter, value }, i) => {
-      if (i > 0) {
-        const ratio = value / LETTERS[i - 1].value;
-        box.appendChild(el('div', 'stair-step', `×${ratio}`));
-      }
-      const col = el('div', 'stair-col');
-      col.style.height = `${40 + 40 * Math.log10(value)}px`;
-      col.appendChild(el('div', `tile ${letter}`, letter));
-      box.appendChild(col);
-    });
-    const cur = LETTERS[n - 1];
-    $('#steps-caption').textContent = `${cur.letter} ${cur.value}`;
-  }
-
-  // ---------- Tiles: each square's area is its value, so the sides are the square roots ----------
+  // ---------- Start: squares to scale, the area is the value ----------
   function renderTiles() {
     const row = $('#tile-row');
     row.replaceChildren();
@@ -120,88 +56,312 @@
     });
   }
 
-  // ---------- Rods: parts first, then the numeral they make ----------
-  // Each rod is a column with one bead worth five (top) and four beads worth one (bottom).
-  const ROD_LETTERS = [
-    { name: 'thousands', one: 'M', five: null },
-    { name: 'hundreds', one: 'C', five: 'D' },
-    { name: 'tens', one: 'X', five: 'L' },
-    { name: 'ones', one: 'I', five: 'V' },
-  ];
+  // ---------- Spiral: one spiral from I onward. Each turn is times ten. V sits at the top. ----------
+  const CX = 200;
+  const CY = 200;
+  const BASE = 16;
+  const GROWTH = 50;
+  const LOG5 = Math.log10(5);
+  const TMAX = Math.log10(MAX);
+  let spiralN = 1;
 
-  function rodParts(digit, rod) {
-    const fives = digit >= 5 ? 1 : 0;
-    const ones = digit % 5;
-    return (fives ? rod.five : '') + rod.one.repeat(ones);
+  // Position of number n. Radius grows with log10(n); the angle is one turn per times ten, rotated so 5 is at the top.
+  function spiralAt(n, extra = 0) {
+    const t = Math.log10(n);
+    const r = BASE + GROWTH * t + extra;
+    const angle = 2 * Math.PI * (t - LOG5) - Math.PI / 2;
+    return { x: CX + r * Math.cos(angle), y: CY + r * Math.sin(angle), angle };
   }
 
-  function renderRods(n) {
-    const digits = [Math.floor(n / 1000), Math.floor((n % 1000) / 100), Math.floor((n % 100) / 10), n % 10];
+  // The biggest letter in a numeral is the one to underline. Underline its first run: IX underlines the X.
+  function underlineSpans(text) {
+    const biggest = text.split('').reduce((a, c) => (VALUE[c] > VALUE[a] ? c : a), text[0]);
+    const start = text.indexOf(biggest);
+    let end = start;
+    while (end < text.length && text[end] === biggest) end++;
+    return text.split('').map((ch, i) => ({ ch, underline: i >= start && i < end }));
+  }
+
+  function buildSpiralStatic() {
+    const svg = $('#spiral-svg');
+    svg.replaceChildren();
+    const path = [];
+    for (let i = 0; i <= 600; i++) {
+      const p = spiralAt(Math.pow(10, (TMAX * i) / 600));
+      path.push(`${p.x.toFixed(1)},${p.y.toFixed(1)}`);
+    }
+    svg.appendChild(svgEl('polyline', { points: path.join(' '), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.45 }));
+    // Every number as a small dot on the spiral
+    for (let n = 1; n <= MAX; n++) {
+      const p = spiralAt(n);
+      svg.appendChild(svgEl('circle', { cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: 1.8, fill: 'var(--ink)' }));
+    }
+    svg.appendChild(svgEl('g', { id: 'spiral-window' }));
+  }
+
+  // The numbers around the current one, with their numerals. The biggest letter is underlined.
+  function renderSpiralWindow() {
+    const group = $('#spiral-window');
+    group.replaceChildren();
+    for (let n = spiralN - 5; n <= spiralN + 5; n++) {
+      if (n < 1 || n > MAX) continue;
+      const current = n === spiralN;
+      const p = spiralAt(n, current ? 16 : 0);
+      const lp = spiralAt(n, current ? 40 : 30);
+      group.appendChild(svgEl('circle', { cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: current ? 7 : 3.5, fill: current ? 'var(--t-M)' : 'var(--card)', stroke: 'var(--ink)', 'stroke-width': 2 }));
+      const label = svgEl('text', {
+        x: lp.x.toFixed(1), y: (lp.y + 6).toFixed(1), 'text-anchor': 'middle', 'font-size': current ? 26 : 16,
+        'font-weight': 900, fill: 'var(--ink)', stroke: 'var(--card)', 'stroke-width': 5, 'paint-order': 'stroke',
+      });
+      underlineSpans(toRoman(n)).forEach(({ ch, underline }) => {
+        const span = svgEl('tspan', underline ? { 'text-decoration': 'underline' } : {});
+        span.textContent = ch;
+        label.appendChild(span);
+      });
+      group.appendChild(label);
+    }
+    $('#spiral-box').setAttribute('aria-valuenow', String(spiralN));
+  }
+
+  function moveSpiral(step) {
+    spiralN = clamp(spiralN + step, 1, MAX);
+    renderSpiralWindow();
+  }
+
+  function wireSpiral() {
+    const box = $('#spiral-box');
+    box.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      moveSpiral(e.deltaY > 0 ? 1 : -1);
+    }, { passive: false });
+
+    let lastY = null;
+    let carry = 0;
+    box.addEventListener('pointerdown', (e) => {
+      lastY = e.clientY;
+      carry = 0;
+      box.setPointerCapture(e.pointerId);
+    });
+    box.addEventListener('pointermove', (e) => {
+      if (lastY === null) return;
+      carry += lastY - e.clientY;
+      lastY = e.clientY;
+      const steps = Math.trunc(carry / 12);
+      if (steps) {
+        carry -= steps * 12;
+        moveSpiral(steps);
+      }
+    });
+    const endDrag = () => { lastY = null; };
+    box.addEventListener('pointerup', endDrag);
+    box.addEventListener('pointercancel', endDrag);
+
+    box.addEventListener('keydown', (e) => {
+      const keys = { ArrowUp: 1, ArrowDown: -1, PageUp: 10, PageDown: -10 };
+      if (!(e.key in keys)) return;
+      e.preventDefault();
+      moveSpiral(keys[e.key]);
+    });
+  }
+
+  // ---------- Steps: a staircase with the times-five and times-two steps marked (to be rethought) ----------
+  function renderStairs(n) {
+    const box = $('#stairs');
+    box.replaceChildren();
+    LETTERS.slice(0, n).forEach(({ letter, value }, i) => {
+      if (i > 0) {
+        const ratio = value / LETTERS[i - 1].value;
+        box.appendChild(el('div', 'stair-step', `×${ratio}`));
+      }
+      const col = el('div', 'stair-col');
+      col.style.height = `${40 + 40 * Math.log10(value)}px`;
+      col.appendChild(el('div', `tile ${letter}`, letter));
+      box.appendChild(col);
+    });
+    const cur = LETTERS[n - 1];
+    $('#steps-caption').textContent = `${cur.letter} ${cur.value}`;
+  }
+
+  // ---------- Shake: a random number of stones falls into a bucket ----------
+  const bucket = $('#bucket');
+  const STONE = 6;
+  const PITCH = STONE + 1;
+  let pourFrame = 0;
+
+  function drawBucketOutline(ctx, W, H) {
+    ctx.beginPath();
+    ctx.moveTo(8, 8);
+    ctx.lineTo(W - 8, 8);
+    ctx.lineTo(W - 30, H - 8);
+    ctx.lineTo(30, H - 8);
+    ctx.closePath();
+    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#2b2540';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+
+  function pour() {
+    const n = 1 + Math.floor(Math.random() * 999);
+    const dpr = window.devicePixelRatio || 1;
+    const W = bucket.clientWidth;
+    const H = bucket.clientHeight;
+    bucket.width = W * dpr;
+    bucket.height = H * dpr;
+    const ctx = bucket.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const css = getComputedStyle(document.documentElement);
+    const fill = css.getPropertyValue('--t-X').trim() || '#a7dbff';
+    const ink = css.getPropertyValue('--ink').trim() || '#2b2540';
+
+    // Stones settle in rows from the bottom of the bucket, one per number
+    const cols = Math.max(1, Math.floor((W - 72) / PITCH));
+    const stones = Array.from({ length: n }, (_, i) => {
+      const row = Math.floor(i / cols);
+      const col = i % cols;
+      return {
+        x: 36 + col * PITCH,
+        y: H - 14 - row * PITCH - STONE,
+        delay: i * 2,
+      };
+    });
+
+    $('#bucket-caption').textContent = toRoman(n);
+    cancelAnimationFrame(pourFrame);
+    const t0 = performance.now();
+    const FALL = 450;
+    const frame = (now) => {
+      ctx.clearRect(0, 0, W, H);
+      drawBucketOutline(ctx, W, H);
+      let done = true;
+      ctx.fillStyle = fill;
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = 1.5;
+      stones.forEach((s) => {
+        const p = clamp((now - t0 - s.delay) / FALL, 0, 1);
+        if (p < 1) done = false;
+        const y = -STONE + (s.y + STONE) * p * p;
+        ctx.fillRect(s.x, y, STONE, STONE);
+        ctx.strokeRect(s.x, y, STONE, STONE);
+      });
+      if (!done) pourFrame = requestAnimationFrame(frame);
+    };
+    pourFrame = requestAnimationFrame(frame);
+  }
+
+  // Shaking the phone pours. iPhones ask permission first, so the button asks for it.
+  function wireShake() {
+    const button = $('#shake-on');
+    if (!('DeviceMotionEvent' in window)) {
+      button.disabled = true;
+      return;
+    }
+    let last = 0;
+    const onMotion = (e) => {
+      const a = e.accelerationIncludingGravity;
+      if (!a) return;
+      const force = Math.abs(Math.hypot(a.x || 0, a.y || 0, a.z || 0) - 9.81);
+      const now = performance.now();
+      if (force > 14 && now - last > 1500) {
+        last = now;
+        pour();
+      }
+    };
+    button.addEventListener('click', async () => {
+      if (typeof DeviceMotionEvent.requestPermission === 'function') {
+        const answer = await DeviceMotionEvent.requestPermission().catch(() => 'denied');
+        if (answer !== 'granted') return;
+      }
+      window.addEventListener('devicemotion', onMotion);
+      button.setAttribute('aria-pressed', 'true');
+    });
+  }
+
+  // ---------- Rods: tap the beads. Raw = the beads as letters. Organized = the numeral. ----------
+  const RODS = [
+    { name: 'thousands', one: 'M', five: null, max: 3 },
+    { name: 'hundreds', one: 'C', five: 'D', max: 9 },
+    { name: 'tens', one: 'X', five: 'L', max: 9 },
+    { name: 'ones', one: 'I', five: 'V', max: 9 },
+  ];
+  let digits = [0, 0, 4, 7];
+
+  function valueOfDigits() {
+    return digits.reduce((acc, d) => acc * 10 + d, 0);
+  }
+
+  function rawLetters() {
+    return RODS.map((rod, i) => {
+      const d = digits[i];
+      return (d >= 5 && rod.five ? rod.five : '') + rod.one.repeat(d % 5);
+    }).join('');
+  }
+
+  function renderRods() {
     const rods = $('#rods');
     rods.replaceChildren();
-    ROD_LETTERS.forEach((rod, i) => {
-      const digit = digits[i];
+    RODS.forEach((rod, i) => {
+      const d = digits[i];
       const col = el('div', 'rod');
-      col.setAttribute('aria-label', `${rod.name}: ${digit}`);
-      // Top bead: five
-      const top = el('div', 'bead five');
-      top.classList.toggle('on', digit >= 5 && rod.five !== null);
-      if (rod.five) top.textContent = rod.five;
-      col.appendChild(top);
+      if (rod.five) {
+        const heaven = el('button', 'bead five', rod.five);
+        heaven.type = 'button';
+        heaven.setAttribute('aria-pressed', String(d >= 5));
+        heaven.classList.toggle('on', d >= 5);
+        heaven.setAttribute('aria-label', `${rod.name} five`);
+        heaven.addEventListener('click', () => {
+          digits[i] = d >= 5 ? d - 5 : d + 5;
+          renderRods();
+        });
+        col.appendChild(heaven);
+      }
       col.appendChild(el('div', 'rod-bar'));
-      // Bottom beads: one each
-      for (let k = 0; k < 4; k++) {
-        const bead = el('div', 'bead one', rod.one);
-        bead.classList.toggle('on', k < digit % 5);
+      const earthCount = rod.max === 3 ? 3 : 4;
+      for (let k = 0; k < earthCount; k++) {
+        const bead = el('button', 'bead one', rod.one);
+        bead.type = 'button';
+        bead.classList.toggle('on', k < d % 5);
+        bead.setAttribute('aria-label', `${rod.name} ${k + 1}`);
+        bead.addEventListener('click', () => {
+          const fives = d >= 5 && rod.five ? 5 : 0;
+          const count = k < d % 5 ? k : k + 1;
+          digits[i] = fives + count;
+          renderRods();
+        });
         col.appendChild(bead);
       }
       col.appendChild(el('div', 'rod-name', rod.name));
       rods.appendChild(col);
     });
 
-    const parts = ROD_LETTERS.map((rod, i) => rodParts(digits[i], rod)).join('');
-    $('#rods-parts').replaceChildren(
-      el('p', 'big-value', `Parts: ${parts}`),
-      el('p', 'big-value', `Short: ${toRoman(n)}`),
-    );
+    const n = valueOfDigits();
+    $('#rods-raw').textContent = n > 0 ? rawLetters() : '—';
+    $('#rods-organized').textContent = n > 0 ? toRoman(n) : '—';
   }
 
-  function readNumber(text) {
-    const n = Number(text.trim());
-    if (!Number.isInteger(n) || n < 1 || n > MAX) return null;
-    return n;
-  }
-
-  function showRods(text) {
-    const n = readNumber(text);
-    if (n === null) {
-      $('#rods').replaceChildren();
-      $('#rods-parts').replaceChildren(el('p', 'note', `1 to ${MAX}`));
-      return;
+  function randomRods() {
+    let n = 0;
+    while (n < 1) {
+      digits = RODS.map((rod) => Math.floor(Math.random() * (rod.max + 1)));
+      n = valueOfDigits();
     }
-    renderRods(n);
+    renderRods();
   }
 
   // ---------- wiring ----------
   function init() {
-    renderSpiral(7);
-    renderStairs(7);
     renderTiles();
-    showRods('47');
-    $('#rods-input').value = '47';
+    buildSpiralStatic();
+    renderSpiralWindow();
+    wireSpiral();
+    renderStairs(7);
+    wireShake();
+    renderRods();
 
     $$('.tab-btn').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
-    $('#spiral-n').addEventListener('input', (e) => renderSpiral(Number(e.target.value)));
     $('#steps-n').addEventListener('input', (e) => renderStairs(Number(e.target.value)));
-    $('#rods-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      showRods($('#rods-input').value);
-    });
-    $('#rods-random').addEventListener('click', () => {
-      const n = 1 + Math.floor(Math.random() * 999);
-      $('#rods-input').value = String(n);
-      showRods(String(n));
-    });
+    $('#pour').addEventListener('click', pour);
+    $('#rods-random').addEventListener('click', randomRods);
 
     const drawer = $('#drawer');
     $('#gear').addEventListener('click', () => {
