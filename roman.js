@@ -217,7 +217,7 @@
           })),
       }) && boxes.forEach((bx) => bx.items.forEach((it) => { delete it.fresh; }));
 
-      snap('Line up the places, like the columns of a counting board. Work from the ones up.');
+      snap('Line up the columns. Start with the ones.');
       const order = boxes.slice().reverse();
       order.forEach((bx, idx) => {
         const up = order[idx + 1];
@@ -261,7 +261,7 @@
           const short = oldCur ? `${oldCur} is less than ${neg.text}` : `there is nothing here to take ${neg.text} from`;
           const fromSrc = posItem(src) ? `${oldSrc} becomes ${posItem(src).text}` : `${oldSrc} is used up`;
           const toCur = oldCur ? `${oldCur} becomes ${posItem(bx).text}` : `the ${lower(bx)} get ${posItem(bx).text}`;
-          snap(`${bx.label}: ${short}. Borrow one ${src.one} from the ${lower(src)}: ${fromSrc}${middle}, and ${toCur}.`, changed);
+          snap(`${bx.label}: ${short}. Get one ${src.one} from the ${lower(src)}: ${fromSrc}${middle}, and ${toCur}.`, changed);
         }
         const was = copyItems(bx.items);
         const top = posItem(bx).text;
@@ -273,7 +273,7 @@
 
       const parts = boxes.filter((bx) => bx.items.length).map((bx) => bx.items[0].text);
       const joined = parts.join('');
-      line(parts.length > 1 ? `Put the places together: ${parts.join(' + ')} = ${joined}.` : `That gives ${joined}.`, plain(joined), total);
+      line(parts.length > 1 ? `Put the columns together: ${parts.join(' + ')} = ${joined}.` : `That gives ${joined}.`, plain(joined), total);
       if (joined !== result) line(`Write it in the simplest form: ${result}.`, plain(result), total);
       return { result };
     };
@@ -328,7 +328,7 @@
     };
 
     // The equation sits on top of every row, so these rows need no working of their own.
-    line(`Full sum: ${terms.map((t, k) => (k ? `${signOf(ops[k - 1])} ${t}` : t)).join(' ')}.`, []);
+    line(`The whole problem: ${terms.map((t, k) => (k ? `${signOf(ops[k - 1])} ${t}` : t)).join(' ')}.`, []);
 
     let current = terms[0];
     for (let k = 1; k < terms.length; k++) {
@@ -469,11 +469,11 @@
         const offset = parts.slice(0, k).join('').length + m.index;
         const open = PAIR_PIECES[m[0]];
         parts[k] = parts[k].slice(0, m.index) + open + parts[k].slice(m.index + 2);
-        r.change(offset, offset + 2, open, `${m[0]} is a short way to write ${open}. Open it up.`);
+        r.change(offset, offset + 2, open, `${m[0]} is a short way to write ${open}. Write it the long way.`);
       }
     });
     const sorted = r.cur.split('').sort((x, y) => VALUE[y] - VALUE[x]).join('');
-    if (sorted !== r.cur) r.change(0, r.cur.length, sorted, 'Put the letters in order, biggest first.');
+    if (sorted !== r.cur) r.change(0, r.cur.length, sorted, 'Put the biggest letters first.');
     r.finish();
 
     const ok = total >= 1 && total <= MAX && r.cur === toRoman(total);
@@ -546,12 +546,12 @@
         for (let i = right.findIndex((t) => PAIR_PIECES[t.ch]); i >= 0; i = right.findIndex((t) => isOpen(t) && PAIR_PIECES[t.ch])) {
           const pair = right[i].ch;
           replace(right, i, i + 1, PAIR_PIECES[pair].split(''));
-          snap(`${pair} is a short way to write ${PAIR_PIECES[pair]}. Open it up.`);
+          snap(`${pair} is a short way to write ${PAIR_PIECES[pair]}. Write it the long way.`);
         }
         const sorted = right.map((t) => t.ch).sort((x, y) => VALUE[y] - VALUE[x]);
         if (sorted.join('') !== joined()) {
           replace(right, 0, right.length, sorted);
-          snap('Put the letters in order, biggest first.');
+          snap('Put the biggest letters first.');
         }
       }
       for (let grew = true; grew;) {
@@ -613,7 +613,7 @@
       if (PAIR_PIECES[big.ch]) {
         const i = B.indexOf(big);
         w.replace(B, i, i + 1, PAIR_PIECES[big.ch].split(''));
-        w.snap(`${big.ch} is the same as ${PAIR_PIECES[big.ch]}. Open it up, so each letter can be taken away.`);
+        w.snap(`${big.ch} is the same as ${PAIR_PIECES[big.ch]}. Write it the long way, so each letter can be taken away.`);
         continue;
       }
       const pairA = A.find((x) => isOpen(x) && PAIR_PIECES[x.ch] && PAIR_PIECES[x.ch].includes(big.ch));
@@ -630,7 +630,7 @@
       if (!opening) break;
       const i = A.indexOf(opening);
       w.replace(A, i, i + 1, PAIR_PIECES[opening.ch].split(''));
-      w.snap(`${opening.ch} is a short way to write ${PAIR_PIECES[opening.ch]}. Open it up.`);
+      w.snap(`${opening.ch} is a short way to write ${PAIR_PIECES[opening.ch]}. Write it the long way.`);
     }
     // The left side is done. What is left goes after the = sign, in order, and is regrouped there.
     w.state.right = A.filter(isOpen).map((t) => tile(t.ch, 'new')).sort((x, y) => lenientValue(y.ch) - lenientValue(x.ch));
@@ -656,7 +656,7 @@
         for (let i = list.findIndex((t) => PAIR_PIECES[t.ch]); i >= 0; i = list.findIndex((t) => isOpen(t) && PAIR_PIECES[t.ch])) {
           const pair = list[i].ch;
           w.replace(list, i, i + 1, PAIR_PIECES[pair].split(''));
-          w.snap(`${pair} is a short way to write ${PAIR_PIECES[pair]}. Open it up.`);
+          w.snap(`${pair} is a short way to write ${PAIR_PIECES[pair]}. Write it the long way.`);
         }
       });
     }
@@ -702,10 +702,10 @@
     return { text: `${toRoman(a)} ${adding ? '+' : '-'} ${toRoman(b)}`, value: adding ? a + b : a - b };
   }
 
-  // Add & Subtract: a random equation. Two in three have two numerals (the easier ones). The rest have three, with
-  // additions and subtractions mixed, so they take several steps. The sum never goes below one.
-  function randomEquation(rand = Math.random) {
-    if (rand() < 2 / 3) return randomSum(rand);
+  // Add & Subtract: a random equation. The easy one has two numerals. The harder one (the chili button) has three,
+  // with additions and subtractions mixed, so it takes several steps. The sum never goes below one.
+  function randomEquation(harder = false, rand = Math.random) {
+    if (!harder) return randomSum(rand);
     for (;;) {
       const a = randomInt(10, 99, rand);
       const ops = [rand() < 0.5 ? '+' : '-', rand() < 0.5 ? '+' : '-'];
