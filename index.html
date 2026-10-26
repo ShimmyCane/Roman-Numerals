@@ -24,6 +24,7 @@
   <nav class="tabs" role="tablist">
     <button class="tab-btn active" role="tab" data-tab="letters">Letters</button>
     <button class="tab-btn" role="tab" data-tab="rules">Rules</button>
+    <button class="tab-btn" role="tab" data-tab="regroup">Regroup</button>
     <button class="tab-btn" role="tab" data-tab="fix">Fix It</button>
     <button class="tab-btn" role="tab" data-tab="addsub">Add &amp; Subtract</button>
     <button class="tab-btn" role="tab" data-tab="quiz">Quiz</button>
@@ -49,16 +50,55 @@
 
     <!-- RULES: five rules on the left, examples on the right -->
     <section class="tab" id="tab-rules">
-      <p class="note-box">The rule wording is from the ORMC unit notes. Rule 4 comes later.</p>
+      <p class="note-box">The rule wording is from the ORMC unit notes. Rule IV comes later.</p>
       <div class="split">
         <nav class="rule-list" id="rule-list" aria-label="Rules"></nav>
         <section class="play rule-panel" aria-live="polite">
-          <h2 id="rule-title">Rule 1</h2>
+          <h2 id="rule-title">Rule I</h2>
           <p id="rule-text"></p>
           <div id="rule-examples"></div>
         </section>
       </div>
-      <p class="rules-foot">Letters: I = 1 · V = 5 · X = 10 · L = 50 · C = 100 · D = 500 · M = 1000</p>
+      <p class="rules-foot">I one · V five · X ten · L fifty · C one hundred · D five hundred · M one thousand</p>
+    </section>
+
+    <!-- REGROUP: trading many small letters for one bigger one -->
+    <section class="tab" id="tab-regroup">
+      <div class="layout single">
+        <div class="play">
+          <h2>Regrouping: trade many small letters for one bigger letter</h2>
+          <p>Tap a card to watch the letters come together.</p>
+          <div class="ladder" id="ladder"></div>
+
+          <div class="pattern-box">
+            <h3>The pattern: five, then two, then five, then two</h3>
+            <div class="pattern-chain" id="pattern-chain"></div>
+            <p class="note">Two steps up the chain is always ten: ten I's make an X, ten X's make a C, ten C's make an M.</p>
+          </div>
+
+          <div class="pattern-box">
+            <h3>Too many in a row? Use the short form</h3>
+            <div class="short-forms" id="short-forms"></div>
+          </div>
+
+          <h2>Try it: add by regrouping</h2>
+          <p class="note">Put all the letters together, open any short forms, put them in order, regroup, then write the short forms.</p>
+          <div class="workbench">
+            <button class="big-btn" type="button" data-random="regroup">🎲 Random sum</button>
+            <form class="entry" data-entry="regroup">
+              <input id="regroup-input" type="text" autocomplete="off" placeholder="Or type your own, like XXVII + XVIII" maxlength="40" aria-label="Type a sum to regroup">
+              <button class="big-btn" type="submit">Regroup it</button>
+              <button class="big-btn ghost" type="button" data-undo="regroup">Undo</button>
+            </form>
+          </div>
+          <div class="ledger" id="regroup-ledger" aria-live="polite"></div>
+          <div class="controls">
+            <button class="big-btn ghost" data-step="regroup" data-dir="-1">Back</button>
+            <button class="big-btn ghost" data-play="regroup">Play steps</button>
+            <button class="big-btn" data-step="regroup" data-dir="1">Next step</button>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- FIX IT: start with a bad numeral; rules broken sit above the steps -->
@@ -88,7 +128,7 @@
       </div>
     </section>
 
-    <!-- ADD & SUBTRACT: the whole sum on one line, with the = row once it is worked out -->
+    <!-- ADD & SUBTRACT: one change per row; places lined up like a counting board -->
     <section class="tab" id="tab-addsub">
       <div class="layout">
         <div class="play">
@@ -109,8 +149,9 @@
         </div>
         <aside class="ref">
           <h3>How to read this</h3>
-          <p>The whole sum stays on one line. Parts that are done are crossed out. A part that is opened shows an arrow to what it became.</p>
-          <p>After the = sign, the answer is written unsorted. Then it is grouped and written in order.</p>
+          <p><strong>Regrouping</strong> (the usual way): put the letters together, open short forms, take away or put in order, then regroup (five I's make a V) and write the short forms.</p>
+          <p><strong>Counting board</strong> (in settings): line up the places, ones, tens, hundreds, and work one place at a time.</p>
+          <p class="note">Both are teaching models. Switch between them in settings.</p>
         </aside>
       </div>
     </section>
@@ -120,7 +161,7 @@
       <div class="layout">
         <div class="play">
           <div class="quiz-head">
-            <span id="quiz-round">Round 1</span>
+            <span id="quiz-round">Round I</span>
             <span id="quiz-left"></span>
           </div>
           <div class="prompt" id="quiz-prompt"></div>
@@ -274,6 +315,13 @@
       </select>
     </label>
     <label class="toggle"><input type="checkbox" id="opt-calm"> Calm motion (no bouncing)</label>
+    <h4>Add &amp; Subtract</h4>
+    <label class="field">Method
+      <select id="opt-method">
+        <option value="regroup" selected>Regrouping (letters together)</option>
+        <option value="board">Counting board (by place)</option>
+      </select>
+    </label>
     <h4>Ideas to try</h4>
     <p class="note">Turn these on to see if they help. Tell me which to keep.</p>
     <label class="toggle"><input type="checkbox" id="opt-aloud"> Read each step aloud</label>
