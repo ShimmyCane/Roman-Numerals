@@ -1,0 +1,44 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+/* Candy: big rounded type, pill buttons, chunky outlines and shadows, bright tiles. */
+:root, html {
+  --font: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --font-head: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+  --font-size: 22px;
+  --paper: #ffe9f5;
+  --paper-image: radial-gradient(circle, #ff8fc044 4px, transparent 5px);
+  --card: #ffffff;
+  --card-ink: #4a1d4f;
+  --ink: #4a1d4f;
+  --ink-soft: #7a4a80;
+  --edge: 5px;
+  --edge-style: solid;
+  --r-card: 28px;
+  --r-btn: 999px;
+  --r-tile: 36px;
+  --r-tab: 999px;
+  --shadow: 0 7px 0 #4a1d4f;
+  --shadow-tile: 0 6px 0 #4a1d4f;
+  --btn-h: 70px;
+  --btn-fs: 1.2rem;
+  --tile-w: 76px;
+  --tile-h: 84px;
+  --tile-fs: 2.3rem;
+  --tile-ink: #4a1d4f;
+  --t-I: #7ee8fa; --t-V: #ffd166; --t-X: #b8f2a1; --t-L: #ff9f9f;
+  --t-C: #c9b6ff; --t-D: #ffc2e0; --t-M: #ffe066;
+  --accent: #ffd166;
+  --good: #8be9b0;
+  --bad: #ff8fa3;
+  --mark-good: #1fa35c;
+  --mark-bad: #e0304f;
+  --link: #c2185b;
+  --dots: #ff8fc033;
+  --input-bg: #ffffff;
+  --filter: none;
+  --line-gap: 16px;
+  --gutter: 20px;
+}
+.big-btn, .tab-btn, .rule-btn { text-transform: uppercase; letter-spacing: 0.04em; }
+.tile { border-width: 4px; }
+.tok { border-width: 3px; border-radius: 999px; }
+.rule-btn b { border-width: 3px; }

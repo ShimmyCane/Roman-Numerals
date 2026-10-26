@@ -33,13 +33,13 @@ Jimmy's model, restated:
 | # | Tab | MVP? | What it does |
 |---|---|---|---|
 | 1 | **Letters** | Yes | Learn I, V, X, L, C, D, M and their values. Tap a letter to hear its value. Learn only, no quiz. |
-| 1b | **Quiz** | Yes | Letters both ways and true / false / ambiguous items. Misses come back as similar questions. Misses last until refresh or Forget my mistakes. |
-| 2 | **Build & Break** | Yes | Random numeral or typed numeral. Decomposes into pieces, then recomposes into the simplest form. Back / Play / Next steps. |
-| 3 | **Add & Subtract** | Yes | Random sum or typed sum. Pieces move onto a board, pairs cancel (subtract) or merge (add), then the result regroups and recomposes. |
-| 4 | **Fix It** | Yes | Like Build & Break. Random good numeral or random bad numeral (e.g., IIII), or type your own. A bad numeral names each rule it breaks, then is rebuilt in steps. |
-| 5 | **Rules** | Yes | Rules 1–5 as short picture cards with one worked example each. Wording from ORC. |
-| 6 | **Problem Lab** | Later | Child or teacher types a sample problem (e.g., XL − XX). Step-by-step guidance with "next step" hints and an optional check. Future tab per Jimmy. |
-| 7 | **Explain & Playback** | Later | Child records their explanation of a problem (voice, stays on the device), then plays it back to practice. Needs microphone permission, so hosted on GitHub Pages (not an Artifact). |
+| 2 | **Rules** | Yes | Five rules on the left, examples of each on the right. Rule 4 shows its pairs until its wording arrives. |
+| 3 | **Fix It** | Yes | Starts from a random bad numeral. Each repair greys out the bad part and puts the fix beside it. Rules broken are listed on the right. |
+| 4 | **Add & Subtract** | Yes | The sum stays on a line. Parts cross off as they are done. Pieces go on a board, then regroup one step at a time. |
+| 5 | **Quiz** | Yes | Letters both ways and true / false / ambiguous items. Misses come back as similar questions. Misses last until refresh or Forget my mistakes. |
+| 6 | **Long Ago** | Yes | Counting board, addition and subtraction examples, zero, negative numbers, IV and IX, trivia, and Hindu-Arabic numerals. |
+| 7 | **Problem Lab** | Later | Child or teacher types a sample problem (e.g., XL − XX). Step-by-step guidance with "next step" hints and an optional check. Future tab per Jimmy. |
+| 8 | **Explain & Playback** | Later | Child records their explanation of a problem (voice, stays on the device), then plays it back to practice. Needs microphone permission, so hosted on GitHub Pages (not an Artifact). |
 
 ## 4. Screen layout (iPad first)
 
@@ -88,6 +88,7 @@ See `convo/convo v0.1.md`. Key ones: ORC Rules 1–5 wording, the number range, 
 
 - 2026-10-26: Schematic draft v0.1 created from the first conversation. Awaiting Jimmy's review.
 - 2026-10-26: Jimmy answered convo v0.1. MVP built: `roman.js` (logic), `app.js`, `index.html`, `styles.css`, `tests/roman.test.js` (14 tests pass). Browser smoke test: no page errors, phone width has no horizontal scroll.
+- 2026-10-26: Jimmy's third round (convo v0.7). Four whole looks in looks/ (Sunny, Chalk, Notebook, Candy) that change fonts, borders, shapes and sizes, not just colours. Tabs: Letters, Rules (split), Fix It (bad numerals, one repair at a time), Add & Subtract (sum on a line, board below), Quiz, Long Ago. Build & Break removed. 22 logic tests pass.
 - 2026-10-26: Jimmy's second round (convo v0.6). Four looks in settings. Serif font (Merriweather). Build & Break, Add & Subtract and Fix It show steps as a stacked ledger, one change per step. Fix It has random good and bad numerals, with no quiz. Rules have more examples and check and X marks. Long Ago adds counting-board demos, trivia and a Hindu-Arabic section. 26 logic tests pass.
 - 2026-10-26: Jimmy's first look (convo v0.5). Dark mode removed for legibility on iPads. Quiz split into its own tab, mistakes cleared by a settings button. Build & Break and Add & Subtract gained Random and type-your-own. Fix It became a quiz. Long Ago rewritten with sources. 21 logic tests pass.
 - 2026-10-26: Convo v0.2–v0.3 answers applied (convo v0.4). Pair rule (Rule 4) no longer named in messages. Range capped at MD (1500). Quick check gives two answers per question, shows the right answer at once, and repeats misses as similar questions. Quick mode dropped. Trades break only the piece needed.

@@ -16,6 +16,15 @@
     return e;
   };
 
+  const CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  const X_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>';
+  const mark = (good) => {
+    const m = el('span', `mark ${good ? 'good' : 'bad'}`);
+    m.innerHTML = good ? CHECK_SVG : X_SVG;
+    m.setAttribute('aria-label', good ? 'right' : 'wrong');
+    return m;
+  };
+
   // ---------- sound (synthesized, no files) ----------
   let audio = null;
   function beep(freqs, step = 0.09) {
@@ -63,7 +72,7 @@
   }
 
   function boardEl(tiles) {
-    const board = el('div', 'board');
+    const board = el('div', tiles.length ? 'board' : 'board empty-board');
     board.append(...tiles.map(tileEl));
     return board;
   }
@@ -87,38 +96,43 @@
     tallyEl.innerHTML = rows.join('');
   }
 
-  // ---------- ledger steppers: every shown step stays on screen, one under the other ----------
-  // Next adds one row at the bottom. Back takes the last row away. Play steps adds a row every second and a half.
+  // ---------- ledger steppers ----------
+  // Rows are added and removed at the end only. A row that is already on screen is never rebuilt,
+  // so its tiles do not replay their animation when the user presses Play steps or Next.
   const steppers = {};
-  function makeStepper(name, tallyEl) {
+  function makeStepper(name, { renderRow, onShow, tallyEl }) {
     const ledger = $(`#${name}-ledger`);
     const playBtn = $(`[data-play="${name}"]`);
     let steps = [];
     let shown = 0;
     let timer = null;
     let emptyText = '';
+    const rows = [];
 
-    function stepRow(s, i, current) {
-      const row = el('div', `step-row${current ? ' current' : ''}`);
-      const body = el('div');
-      body.append(
-        el('p', 'caption', s.text),
-        boardEl(s.tiles),
-        el('p', 'value', s.value === null ? '' : `Worth ${s.value}`),
-      );
-      row.append(el('div', 'step-num', String(i + 1)), body);
-      return row;
+    function clearRows() {
+      rows.splice(0).forEach((r) => r.remove());
+      ledger.querySelectorAll('.empty').forEach((e) => e.remove());
     }
 
-    function render() {
+    function sync() {
       if (!steps.length) {
+        clearRows();
         ledger.replaceChildren(el('p', 'empty', emptyText));
         if (tallyEl) tallyEl.replaceChildren();
+        if (onShow) onShow([]);
         return;
       }
-      ledger.replaceChildren(...steps.slice(0, shown).map((s, i) => stepRow(s, i, i === shown - 1)));
+      ledger.querySelectorAll('.empty').forEach((e) => e.remove());
+      while (rows.length < shown) {
+        const row = renderRow(steps[rows.length], rows.length);
+        rows.push(row);
+        ledger.append(row);
+      }
+      while (rows.length > shown) rows.pop().remove();
+      rows.forEach((r, i) => r.classList.toggle('current', i === shown - 1));
       ledger.scrollTop = ledger.scrollHeight;
-      drawTally(tallyEl, steps[shown - 1].tiles);
+      if (tallyEl) drawTally(tallyEl, steps[shown - 1].board || []);
+      if (onShow) onShow(steps.slice(0, shown));
     }
 
     function stop() {
@@ -130,30 +144,34 @@
     return {
       load(newSteps, message = '') {
         stop();
+        clearRows();
         steps = newSteps;
         emptyText = message;
         shown = steps.length ? 1 : 0;
-        render();
+        sync();
       },
       move(d) {
         if (!steps.length) return;
         stop();
         shown = Math.min(steps.length, Math.max(1, shown + d));
         sfx.tap();
-        render();
+        sync();
       },
       togglePlay() {
         if (timer) return stop();
         if (!steps.length) return;
-        if (shown >= steps.length) shown = 1;
+        if (shown >= steps.length) {
+          clearRows();
+          shown = 1;
+        }
         playBtn.textContent = 'Stop';
-        render();
+        sync();
         timer = setInterval(() => {
           if (shown >= steps.length) return stop();
           shown++;
           sfx.tap();
-          render();
-        }, 1500);
+          sync();
+        }, 1600);
       },
       stop,
     };
@@ -161,37 +179,45 @@
 
   // ---------- undo: each entry box remembers the inputs it ran before ----------
   const lastRun = {};
-  const undoStack = { build: [], addsub: [], fix: [] };
+  const undoStack = { addsub: [], fix: [] };
   function remember(name, text) {
     if (lastRun[name] !== undefined && lastRun[name] !== text) undoStack[name].push(lastRun[name]);
     lastRun[name] = text;
   }
 
-  // ---------- Build & Break ----------
-  function runBuild(text) {
-    const s = text.trim().toUpperCase();
-    if (!s) return;
-    const r = Roman.check(s);
-    if (r.issues.some((i) => i.rule === null)) {
-      setError(r.issues[0].text);
-      steppers.build.load([], 'Type letters I V X L C D M only.');
-      return;
-    }
-    if (!r.ok) {
-      setError('');
-      steppers.build.load([], `"${s}": ${r.issues[0].text} Try the Fix It tab.`);
-      return;
-    }
-    setError('');
-    steppers.build.load(Roman.calculate([s], []).steps);
+  // ---------- Add & Subtract: the line of the sum, with the board below ----------
+  function eqLine(tokens) {
+    const line = el('div', 'eq-line');
+    tokens.forEach((t) => {
+      if (t.op) {
+        line.append(el('span', 'eq-op', t.text));
+      } else if (t.res) {
+        line.append(el('span', 'tok res', t.text));
+      } else if (t.focus && t.becomes) {
+        line.append(el('span', 'tok focus', t.text), el('span', 'eq-arrow', '→'), el('span', 'tok new', t.becomes));
+      } else if (t.focus) {
+        line.append(el('span', 'tok focus', t.text));
+      } else {
+        line.append(el('span', `tok${t.st === 'done' ? ' done' : ''}`, t.text));
+      }
+    });
+    return line;
   }
 
-  // ---------- Add & Subtract ----------
+  function addsubRow(s, i, current) {
+    const row = el('div', `step-row${current ? ' current' : ''}`);
+    const inner = el('div');
+    inner.append(el('p', 'caption', s.text), eqLine(s.line), boardEl(s.board));
+    if (s.value !== null) inner.append(el('p', 'value', `Worth ${s.value}`));
+    row.append(el('div', 'step-num', String(i + 1)), inner);
+    return row;
+  }
+
   function runAddSub(text) {
     const p = Roman.parse(text);
     if (p.error) {
       setError(p.error);
-      steppers.addsub.load([], 'Press Random, or type a sum like XL + XX - IX.');
+      steppers.addsub.load([], 'Press Random, or type a sum like XLI + XIX.');
       return;
     }
     const wrong = p.terms.find((t) => !Roman.check(t).ok);
@@ -205,14 +231,51 @@
     steppers.addsub.load(out.steps);
   }
 
-  // ---------- Fix It: good or bad numerals, one step at a time ----------
+  // ---------- Fix It: a bad numeral, one repair at a time ----------
+  function fixRow(s, i) {
+    const row = el('div', 'step-row');
+    const inner = el('div');
+    if (s.kind === 'start') {
+      inner.append(el('p', 'caption', 'Written as typed.'), boardEl(s.tiles));
+    } else if (s.kind === 'repair') {
+      inner.append(el('p', 'caption', s.label));
+      const pair = el('div', 'repair-pair');
+      pair.append(boardEl(s.before), el('span', 'arrow', '→'), boardEl(s.after));
+      inner.append(pair);
+    } else {
+      inner.append(el('p', 'caption', s.ok ? `Right form: ${s.result}.` : `Simplest form: ${s.result}.`), boardEl(s.tiles));
+      const status = el('p', 'value');
+      status.append(mark(s.ok), ' ', s.ok ? 'Done' : 'Still not right');
+      inner.append(status);
+    }
+    row.append(el('div', 'step-num', String(i + 1)), inner);
+    return row;
+  }
+
+  // The right-hand list: each rule that has come up so far, in the order it was broken.
+  function showFixRules(shownSteps) {
+    const list = $('#fix-rules');
+    const found = shownSteps.filter((s) => s.kind === 'repair');
+    if (!shownSteps.length) {
+      list.replaceChildren(el('li', 'none', 'Type or pick a numeral.'));
+      return;
+    }
+    if (!found.length) {
+      const finished = shownSteps[shownSteps.length - 1].kind === 'done';
+      list.replaceChildren(el('li', 'none', finished ? 'None. This numeral follows the rules.' : 'None yet.'));
+      return;
+    }
+    list.replaceChildren(...found.map((s) => {
+      const li = el('li');
+      li.append(mark(false), el('span', '', s.label));
+      return li;
+    }));
+  }
+
   function runFix(text) {
     const s = text.trim().toUpperCase();
     if (!s) return;
     const verdict = $('#fix-verdict');
-    const issuesEl = $('#fix-issues');
-    issuesEl.replaceChildren();
-
     const r = Roman.check(s);
     if (r.issues.some((i) => i.rule === null)) {
       verdict.textContent = '';
@@ -222,36 +285,25 @@
       return;
     }
     setError('');
-
+    const plan = Roman.repairPlan(s);
     if (r.ok) {
       verdict.textContent = `Looks right! ${s} = ${r.value}`;
       verdict.className = 'verdict good';
       sfx.good();
     } else {
-      verdict.textContent = r.simplest === s
-        ? `${s} = ${r.value}. Right form, but it is longer than ${Roman.LETTER_LIMIT} letters.`
-        : `Not quite. ${s} = ${r.value}. The simplest form is ${r.simplest}.`;
+      verdict.textContent = `Not quite. ${s} = ${r.value}. The simplest form is ${plan.result}.`;
       verdict.className = 'verdict bad';
       sfx.oops();
-      r.issues.forEach((issue) => {
-        const box = el('div', 'issue');
-        const label = el('b', '', typeof issue.rule === 'number' ? `Rule ${issue.rule}` : 'Note');
-        box.append(label, ` ${issue.text}`);
-        issuesEl.append(box);
-      });
     }
-    steppers.fix.load(Roman.fixSteps(s).steps);
+    steppers.fix.load(plan.steps);
   }
 
   // ---------- Random: each button makes a numeral or sum, then runs it like a typed one ----------
-  // Each random button fills one entry box. Fix It has two buttons: a good numeral and a bad one.
   const randomMakers = {
-    build: { entry: 'build', make: () => Roman.randomNumeral() },
     addsub: { entry: 'addsub', make: () => Roman.randomSum().text },
-    fixgood: { entry: 'fix', make: () => Roman.randomNumeral() },
     fixbad: { entry: 'fix', make: () => Roman.randomDisarranged().numeral },
   };
-  const runners = { build: runBuild, addsub: runAddSub, fix: runFix };
+  const runners = { addsub: runAddSub, fix: runFix };
 
   function runRandom(key) {
     const { entry, make } = randomMakers[key];
@@ -382,11 +434,66 @@
     $('#forget-note').textContent = 'Mistakes forgotten.';
   }
 
-  // ---------- Look: four styles, picked in settings ----------
+  // ---------- Look: each look is a whole stylesheet in looks/, swapped by the settings buttons ----------
+  const LOOKS = ['sunny', 'chalk', 'notebook', 'candy'];
   function setLook(name) {
-    if (name === 'sunny') document.documentElement.removeAttribute('data-style');
-    else document.documentElement.dataset.style = name;
-    $$('[data-style-choice]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.styleChoice === name)));
+    if (!LOOKS.includes(name)) name = 'sunny';
+    $('#look-css').href = `looks/${name}.css`;
+    $$('[data-look]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.look === name)));
+  }
+
+  // ---------- Rules: five rules on the left, examples on the right ----------
+  const ok = (numeral, note) => ({ good: true, numeral, note });
+  const bad = (numeral, fix, note) => ({ good: false, numeral, fix, note });
+  const RULES = {
+    1: {
+      title: 'Rule 1',
+      text: 'Equal letters in a row are added. No more than three in a row.',
+      examples: [ok('III', '= 3'), ok('XXX', '= 30'), bad('IIII', 'IV'), bad('XXXX', 'XL')],
+    },
+    2: {
+      title: 'Rule 2',
+      text: 'A smaller letter on the right of a bigger one is added. No more than three.',
+      examples: [ok('VI', '= 6'), ok('XVIII', '= 18'), bad('VIIII', 'IX')],
+    },
+    3: {
+      title: 'Rule 3',
+      text: 'A smaller letter on the left of a bigger one is taken away. Only one, never a few.',
+      examples: [ok('IV', '= 4'), ok('XL', '= 40'), ok('CM', '= 900'), bad('IIX', 'X', 'only one I before the X')],
+    },
+    4: {
+      title: 'Rule 4',
+      text: 'Wording not supplied yet. These are the pairs the tool uses; the rule wording comes from the ORC unit.',
+      examples: [ok('IV', '= 4'), ok('IX', '= 9'), ok('XL', '= 40'), ok('XC', '= 90'), ok('CD', '= 400'), ok('CM', '= 900')],
+    },
+    5: {
+      title: 'Rule 5',
+      text: 'Always write it in the simplest form.',
+      examples: [bad('VV', 'X'), bad('LL', 'C'), bad('IIII', 'IV')],
+    },
+  };
+
+  function showRule(n) {
+    const rule = RULES[n];
+    $$('.rule-btn').forEach((b) => {
+      const on = Number(b.dataset.rule) === n;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    $('#rule-title').textContent = rule.title;
+    $('#rule-text').textContent = rule.text;
+    const box = $('#rule-examples');
+    box.replaceChildren(...rule.examples.map((ex) => {
+      const line = el('div', 'example');
+      line.append(el('span', 'strip', ex.numeral));
+      if (ex.good) {
+        line.append(el('span', 'equals', ex.note), mark(true));
+      } else {
+        line.append(mark(false), el('span', 'arrow', '→'), el('span', 'strip', ex.fix), mark(true));
+      }
+      if (ex.note && !ex.good) line.append(el('span', 'note', ex.note));
+      return line;
+    }));
   }
 
   // ---------- Long Ago: counting board pictures ----------
@@ -398,7 +505,7 @@
       + '<g stroke="#2b2540" stroke-width="3" stroke-linecap="round">'
       + '<line x1="90" y1="16" x2="90" y2="200"/><line x1="210" y1="16" x2="210" y2="200"/><line x1="40" y1="204" x2="260" y2="204"/></g>'
       + column(90, tens) + column(210, ones)
-      + '<g font-family="Merriweather, Georgia, serif" font-size="17" font-weight="bold" fill="#2b2540" text-anchor="middle">'
+      + '<g font-family="Georgia, serif" font-size="17" font-weight="bold" fill="#2b2540" text-anchor="middle">'
       + '<text x="90" y="218">10s</text><text x="210" y="218">1s</text></g></svg>';
   }
 
@@ -459,16 +566,16 @@
   }
 
   function init() {
-    steppers.build = makeStepper('build', $('#build-tally'));
-    steppers.addsub = makeStepper('addsub', $('#addsub-tally'));
-    steppers.fix = makeStepper('fix', null);
-    steppers.build.load([], 'Press Random, or type a numeral.');
-    steppers.addsub.load([], 'Press Random, or type a sum like XL + XX - IX.');
-    steppers.fix.load([], 'Press a Random button, or type a numeral.');
+    steppers.addsub = makeStepper('addsub', { renderRow: addsubRow, tallyEl: $('#addsub-tally') });
+    steppers.fix = makeStepper('fix', { renderRow: fixRow, onShow: showFixRules });
+    steppers.addsub.load([], 'Press Random, or type a sum like XLI + XIX.');
+    steppers.fix.load([], 'Press Random bad numeral, or type your own.');
     buildLetterRow();
     renderDemos();
+    showRule(1);
 
     $$('.tab-btn').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+    $$('.rule-btn').forEach((b) => b.addEventListener('click', () => showRule(Number(b.dataset.rule))));
 
     $$('form[data-entry]').forEach((form) => {
       form.addEventListener('submit', (e) => {
@@ -509,7 +616,7 @@
     });
     $('#drawer-close').addEventListener('click', () => { drawer.hidden = true; });
     $('#forget').addEventListener('click', forgetMistakes);
-    $$('[data-style-choice]').forEach((b) => b.addEventListener('click', () => setLook(b.dataset.styleChoice)));
+    $$('[data-look]').forEach((b) => b.addEventListener('click', () => setLook(b.dataset.look)));
     $('#opt-sound').addEventListener('change', (e) => { soundOn = e.target.checked; });
     $('#opt-errors').addEventListener('change', (e) => {
       showErrors = e.target.checked;
