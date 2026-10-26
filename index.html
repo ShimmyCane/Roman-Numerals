@@ -22,6 +22,7 @@
 
   <nav class="tabs" role="tablist">
     <button class="tab-btn active" role="tab" data-tab="letters">Letters</button>
+    <button class="tab-btn" role="tab" data-tab="quiz">Quiz</button>
     <button class="tab-btn" role="tab" data-tab="build">Build &amp; Break</button>
     <button class="tab-btn" role="tab" data-tab="addsub">Add &amp; Subtract</button>
     <button class="tab-btn" role="tab" data-tab="fix">Fix It</button>
@@ -30,27 +31,46 @@
   </nav>
 
   <main>
-    <!-- LETTERS -->
+    <!-- LETTERS: learn only -->
     <section class="tab active" id="tab-letters">
       <div class="layout">
         <div class="play">
-          <h2>Learn the letters</h2>
-          <p class="hint" id="letter-hint">Tap a tile to hear its value.</p>
+          <h2>Tap a letter</h2>
           <div class="letter-row" id="letter-row"></div>
+          <p class="big-value" id="letter-hint" aria-live="polite">Tap a letter to see what it is worth.</p>
+        </div>
+        <aside class="ref">
+          <h3>The seven letters</h3>
+          <table class="letter-table">
+            <tr><td class="I">I</td><td>1</td></tr>
+            <tr><td class="V">V</td><td>5</td></tr>
+            <tr><td class="X">X</td><td>10</td></tr>
+            <tr><td class="L">L</td><td>50</td></tr>
+            <tr><td class="C">C</td><td>100</td></tr>
+            <tr><td class="D">D</td><td>500</td></tr>
+            <tr><td class="M">M</td><td>1000</td></tr>
+          </table>
+        </aside>
+      </div>
+    </section>
 
-          <h2>Quiz</h2>
+    <!-- QUIZ: letters and true / false / ambiguous -->
+    <section class="tab" id="tab-quiz">
+      <div class="layout">
+        <div class="play">
           <div class="quiz-head">
             <span id="quiz-round">Round 1</span>
             <span id="quiz-left"></span>
           </div>
           <div class="prompt" id="quiz-prompt"></div>
           <div class="options" id="quiz-options"></div>
+          <p class="feedback" id="quiz-feedback" aria-live="polite"></p>
           <button class="big-btn" id="quiz-next" hidden>Next round</button>
         </div>
         <aside class="ref">
-          <h3>Quick check</h3>
-          <p>Tap the answer. Five in a round. Misses come back until they are right.</p>
-          <p id="quiz-feedback" class="feedback" aria-live="polite"></p>
+          <h3>How it works</h3>
+          <p>Tap the answer. Five in a round. A miss comes back in a later round as a similar question.</p>
+          <p class="note">Misses are kept only until you refresh the page, or until you press <strong>Forget my mistakes</strong> in settings.</p>
         </aside>
       </div>
     </section>
@@ -59,13 +79,16 @@
     <section class="tab" id="tab-build">
       <div class="layout">
         <div class="play">
-          <form class="entry" data-entry="build">
-            <input id="build-input" type="text" inputmode="text" autocomplete="off" placeholder="Type a numeral, like XL" maxlength="20">
-            <button class="big-btn" type="submit">Break it</button>
-            <button class="big-btn ghost" type="button" data-undo="build">Undo</button>
-          </form>
+          <div class="workbench">
+            <button class="big-btn" type="button" data-random="build">🎲 Random numeral</button>
+            <form class="entry" data-entry="build">
+              <input id="build-input" type="text" inputmode="text" autocomplete="off" placeholder="Or type your own, like XL" maxlength="20" aria-label="Type your own numeral">
+              <button class="big-btn" type="submit">Break it</button>
+              <button class="big-btn ghost" type="button" data-undo="build">Undo</button>
+            </form>
+          </div>
           <div class="board" id="build-board"></div>
-          <p class="caption" id="build-caption">Type a numeral to begin.</p>
+          <p class="caption" id="build-caption">Press Random, or type a numeral.</p>
           <p class="value" id="build-value"></p>
           <div class="controls">
             <button class="big-btn ghost" data-step="build" data-dir="-1">Back</button>
@@ -86,13 +109,16 @@
     <section class="tab" id="tab-addsub">
       <div class="layout">
         <div class="play">
-          <form class="entry" data-entry="addsub">
-            <input id="addsub-input" type="text" autocomplete="off" placeholder="XL + XX - IX" maxlength="40">
-            <button class="big-btn" type="submit">Work it out</button>
-            <button class="big-btn ghost" type="button" data-undo="addsub">Undo</button>
-          </form>
+          <div class="workbench">
+            <button class="big-btn" type="button" data-random="addsub">🎲 Random sum</button>
+            <form class="entry" data-entry="addsub">
+              <input id="addsub-input" type="text" autocomplete="off" placeholder="Or type your own, like XL - XX" maxlength="40" aria-label="Type your own sum">
+              <button class="big-btn" type="submit">Work it out</button>
+              <button class="big-btn ghost" type="button" data-undo="addsub">Undo</button>
+            </form>
+          </div>
           <div class="board" id="addsub-board"></div>
-          <p class="caption" id="addsub-caption">Try XL - XX, or XL + XX - IX.</p>
+          <p class="caption" id="addsub-caption">Press Random, or type a sum like XL + XX - IX.</p>
           <p class="value" id="addsub-value"></p>
           <div class="controls">
             <button class="big-btn ghost" data-step="addsub" data-dir="-1">Back</button>
@@ -108,12 +134,26 @@
       </div>
     </section>
 
-    <!-- FIX IT -->
+    <!-- FIX IT: quiz, plus check your own -->
     <section class="tab" id="tab-fix">
       <div class="layout">
         <div class="play">
+          <h2>Quiz: fix the numeral</h2>
+          <div class="quiz-head">
+            <span id="fixq-count">Question 1</span>
+            <span id="fixq-score"></span>
+          </div>
+          <div class="prompt" id="fixq-prompt"></div>
+          <form class="entry" id="fixq-form">
+            <input id="fixq-input" type="text" autocomplete="off" placeholder="Type the fix" maxlength="20" aria-label="Type the fixed numeral">
+            <button class="big-btn" type="submit" id="fixq-check">Check</button>
+            <button class="big-btn" type="button" id="fixq-next" hidden>Next</button>
+          </form>
+          <p class="feedback" id="fixq-feedback" aria-live="polite"></p>
+
+          <h2>Check your own</h2>
           <form class="entry" data-entry="fix">
-            <input id="fix-input" type="text" autocomplete="off" placeholder="Type a numeral, like IIII" maxlength="20">
+            <input id="fix-input" type="text" autocomplete="off" placeholder="Type a numeral, like IIII" maxlength="20" aria-label="Type a numeral to check">
             <button class="big-btn" type="submit">Check it</button>
             <button class="big-btn ghost" type="button" data-undo="fix">Undo</button>
           </form>
@@ -130,6 +170,7 @@
         </div>
         <aside class="ref">
           <h3>How to read this</h3>
+          <p>Each question shows a numeral written the wrong way. Type it the simplest way.</p>
           <p>The checker names each rule the numeral breaks. The steps show how it gets repaired.</p>
         </aside>
       </div>
@@ -138,6 +179,7 @@
     <!-- RULES -->
     <section class="tab" id="tab-rules">
       <div class="rules">
+        <p class="note-box">Rule wording here is a working summary. It will be replaced with the ORC wording once it is supplied.</p>
         <article class="rule-card">
           <h3>Rule 1</h3>
           <p>Equal letters in a row are added. No more than three in a row.</p>
@@ -171,25 +213,70 @@
     <!-- LONG AGO -->
     <section class="tab" id="tab-history">
       <div class="rules">
-        <article class="rule-card">
-          <h3>Did Romans use Roman numerals?</h3>
-          <p>Yes. They wrote numbers on buildings, tombs and monuments with these letters.</p>
+        <article class="rule-card big-answer">
+          <h3>So is this app how the Romans did it?</h3>
+          <p>Not exactly. Breaking numbers into single letters and cancelling them is a <strong>teaching model</strong>. It helps you see what each letter is worth. The Romans mostly did their sums on a counting board and wrote only the answer in letters.</p>
         </article>
+
         <article class="rule-card">
-          <h3>How did they do math?</h3>
-          <p>Mostly on a counting board, moving small pebbles (<em>calculi</em>, Latin for "little pebbles") in columns. The numerals were used to write down the answer.</p>
+          <h3>How did they count?</h3>
+          <p>On a counting board or a hand abacus, moving small stones called <em>calculi</em> (Latin for "little stones") across columns. Each column stood for a place: ones, tens, hundreds. The answer was written down in numerals at the end.</p>
+          <svg class="board-art" viewBox="0 0 300 220" role="img" aria-labelledby="board-art-title">
+            <title id="board-art-title">A counting board showing 47: four pebbles in the tens column and seven in the ones column</title>
+            <g stroke="#2b2540" stroke-width="3" stroke-linecap="round">
+              <line x1="80" y1="20" x2="80" y2="180"/>
+              <line x1="160" y1="20" x2="160" y2="180"/>
+              <line x1="240" y1="20" x2="240" y2="180"/>
+              <line x1="40" y1="184" x2="280" y2="184"/>
+            </g>
+            <g fill="#ffe69a" stroke="#2b2540" stroke-width="3">
+              <circle cx="160" cy="164" r="12"/>
+              <circle cx="160" cy="140" r="12"/>
+              <circle cx="160" cy="116" r="12"/>
+              <circle cx="160" cy="92" r="12"/>
+              <circle cx="240" cy="164" r="12"/>
+              <circle cx="240" cy="140" r="12"/>
+              <circle cx="240" cy="116" r="12"/>
+              <circle cx="240" cy="92" r="12"/>
+              <circle cx="240" cy="68" r="12"/>
+              <circle cx="240" cy="44" r="12"/>
+              <circle cx="240" cy="20" r="12"/>
+            </g>
+            <g font-family="Trebuchet MS, sans-serif" font-size="18" font-weight="bold" fill="#2b2540" text-anchor="middle">
+              <text x="80" y="206">100s</text>
+              <text x="160" y="206">10s</text>
+              <text x="240" y="206">1s</text>
+            </g>
+          </svg>
+          <p class="caption-small">Illustration of 47 on a counting board: 4 pebbles in the tens column, 7 in the ones column.</p>
         </article>
-        <article class="rule-card">
-          <h3>Did they write IV and IX?</h3>
-          <p>Sometimes. But IIII and VIIII are also found on Roman inscriptions and clock faces. The IV and IX style became the usual form much later.</p>
-        </article>
+
         <article class="rule-card">
           <h3>Did they have zero?</h3>
-          <p>No zero letter. There was no Roman numeral for zero.</p>
+          <p>No. Roman numerals had no symbol for zero. In tables they wrote the Latin word <em>nulla</em> ("none") instead. In 525 Dionysius Exiguus used <em>nulla</em> this way in his Easter tables.</p>
         </article>
+
         <article class="rule-card">
-          <h3>So is this app how Romans did it?</h3>
-          <p>Not exactly. Breaking numbers into pieces is a <strong>teaching model</strong> to see what each letter is worth. It helps you learn the numbers, even if it is not the way the Romans worked them out.</p>
+          <h3>Did they have negative numbers?</h3>
+          <p>No. Roman arithmetic had no negative numbers, so a sum that would go below zero had no Roman answer. Roman accounts kept money <em>received</em> (<em>acceptum</em>) and money <em>spent</em> (<em>expensum</em>) as separate lists. Scholars still debate how far they balanced these.</p>
+        </article>
+
+        <article class="rule-card">
+          <h3>Did they write IV and IX?</h3>
+          <p>Both forms appear. The Colosseum's numbered gates use <strong>IIII</strong> for 4 but <strong>XL</strong> for 40, so gate 44 is XLIIII. Clock faces still use IIII today. The IV and IX style became the usual form much later.</p>
+        </article>
+
+        <article class="rule-card">
+          <h3>Read more</h3>
+          <ul class="sources">
+            <li><a href="https://en.wikipedia.org/wiki/Roman_numerals" target="_blank" rel="noopener">Roman numerals (Wikipedia)</a>: IIII on the Colosseum gates, and the history of IV</li>
+            <li><a href="https://en.wikipedia.org/wiki/Roman_abacus" target="_blank" rel="noopener">Roman abacus (Wikipedia)</a>: the hand abacus and the counting board</li>
+            <li><a href="https://arxiv.org/pdf/1206.4349" target="_blank" rel="noopener">Ancient Computers (arXiv)</a>: the seven columns of the hand abacus, four beads and one in each</li>
+            <li><a href="https://cacm.acm.org/blogcacm/how-did-the-romans-calculate" target="_blank" rel="noopener">How did the Romans calculate? (ACM)</a>: an overview for non-specialists</li>
+            <li><a href="https://historyofinformation.com/detail.php?id=14" target="_blank" rel="noopener">Computus (History of Information)</a>: how <em>nulla</em> stood for zero in Easter tables</li>
+            <li><a href="https://www.mentalfloss.com/article/24578/why-do-some-clocks-use-roman-numeral-iiii" target="_blank" rel="noopener">Why do some clocks use IIII? (Mental Floss)</a>: the clock-face story and its explanations</li>
+            <li><a href="https://doaj.org/article/a5e95ef46d4f4d79a282905f75a0bf1e" target="_blank" rel="noopener">Roman accounting terms (2023 article)</a>: the words for money received and spent</li>
+          </ul>
         </article>
       </div>
     </section>
@@ -207,6 +294,8 @@
     <label class="toggle"><input type="checkbox" id="opt-sound" checked> Sounds</label>
     <label class="toggle"><input type="checkbox" id="opt-pictures" checked> Picture steps</label>
     <label class="toggle"><input type="checkbox" id="opt-errors"> Show errors</label>
+    <button class="big-btn" id="forget">Forget my mistakes</button>
+    <p class="note" id="forget-note" aria-live="polite"></p>
     <button class="big-btn ghost" id="drawer-close">Close</button>
   </div>
 
