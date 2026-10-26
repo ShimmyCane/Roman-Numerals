@@ -52,7 +52,7 @@
       const cell = el('div', 'letter-cell');
       const b = el('button', `tile ${letter}`, letter);
       b.addEventListener('click', () => {
-        $('#letter-hint').textContent = `${letter} is worth ${Roman.words(value)} (${value}).`;
+        $('#letter-hint').textContent = `${letter} is worth ${value}.`;
       });
       cell.append(b, el('span', 'letter-num', String(value)));
       row.append(cell);
@@ -216,6 +216,7 @@
   const RISES = LETTERS.map(({ value }, i) => (i === 0 ? 1 : value / LETTERS[i - 1].value));
   const MORE = [5, 2, 5]; // the stairs carry on past M, fading out
   let stepsShown = 1;
+  let stepsMode = 'roman'; // the big label on each step: a letter, or its Arabic value
 
   function renderStairs() {
     const svg = $('#stairs-svg');
@@ -225,17 +226,16 @@
     let y = base;
     RISES.forEach((rise) => { y -= rise * unit; treads.push(y); });
 
-    // The stair line, open at the top so it reads as going on
-    const pts = [[0, base], [x0, base]];
+    // One solid outline of the stairs, then a lighter run of steps that carries on past M
+    const pts = [[x0, base]];
     treads.forEach((t, i) => pts.push([x0 + i * w, t], [x0 + (i + 1) * w, t]));
     const end = x0 + treads.length * w;
-    svg.appendChild(svgEl('polygon', { points: [...pts, [end, base]].map((p) => p.join(',')).join(' '), fill: 'var(--card)', stroke: 'none' }));
-    svg.appendChild(svgEl('polyline', { points: pts.map((p) => p.join(',')).join(' '), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2.5, 'stroke-dasharray': '7 5', 'stroke-linejoin': 'round' }));
+    svg.appendChild(svgEl('polygon', { points: [...pts, [end, base]].map((p) => p.join(',')).join(' '), fill: 'var(--card)', stroke: 'var(--ink)', 'stroke-width': 2.5, 'stroke-linejoin': 'round' }));
     let mx = end;
     let my = treads[treads.length - 1];
     MORE.forEach((rise, k) => {
       const ny = my - rise * unit;
-      svg.appendChild(svgEl('polyline', { points: `${mx},${my} ${mx},${ny} ${mx + w},${ny}`, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2.5, 'stroke-dasharray': '7 5', opacity: 0.5 - k * 0.15 }));
+      svg.appendChild(svgEl('polyline', { points: `${mx},${my} ${mx},${ny} ${mx + w},${ny}`, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2.5, opacity: 0.45 - k * 0.12 }));
       mx += w;
       my = ny;
     });
@@ -247,12 +247,16 @@
       if (i >= stepsShown) return;
       const g = svgEl('g', { class: i === stepsShown - 1 ? 'block-new' : '' });
       g.appendChild(svgEl('rect', { x: x0 + i * w + 2, y: tread - block, width: w - 4, height: block, rx: 6, fill: `var(--t-${letter})`, stroke: 'var(--ink)', 'stroke-width': i === stepsShown - 1 ? 3.5 : 2 }));
-      g.appendChild(svgEl('text', { x: cx, y: tread - block / 2 + 2, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 900, fill: '#2b2540' }, letter));
-      g.appendChild(svgEl('text', { x: cx, y: tread - 6, 'text-anchor': 'middle', 'font-size': 10, 'font-weight': 700, fill: '#2b2540' }, String(value)));
+      const big = stepsMode === 'roman' ? letter : String(value);
+      const small = stepsMode === 'roman' ? String(value) : letter;
+      g.appendChild(svgEl('text', { x: cx, y: tread - block / 2 + 2, 'text-anchor': 'middle', 'font-size': stepsMode === 'roman' ? 17 : (big.length > 3 ? 10 : 13), 'font-weight': 900, fill: '#2b2540' }, big));
+      g.appendChild(svgEl('text', { x: cx, y: tread - 6, 'text-anchor': 'middle', 'font-size': 10, 'font-weight': 700, fill: '#2b2540' }, small));
       svg.appendChild(g);
     });
     $('#steps-back').disabled = stepsShown <= 1;
     $('#steps-next').disabled = stepsShown >= LETTERS.length;
+    $('#steps-roman').setAttribute('aria-pressed', String(stepsMode === 'roman'));
+    $('#steps-arabic').setAttribute('aria-pressed', String(stepsMode === 'arabic'));
   }
 
   // ---------- Shake: pick a number; its pieces drop into a narrow cup and float about like ice cubes ----------
@@ -260,6 +264,7 @@
   let bodies = []; // { el, x, y, vx, vy, s }
   const gravity = { x: 0, y: 0.35 };
   let physicsOn = false;
+  let agitation = 0; // how hard the cup is being shaken; it decays after each violent shake
 
   function clearBodies() {
     bodies.forEach((b) => b.el.remove());
@@ -279,7 +284,8 @@
     const W = box.clientWidth;
     Roman.chunks(toRoman(shakeN)).forEach((c, i) => {
       const value = Roman.lenientValue(c.text);
-      const s = clamp(5 * Math.sqrt(value), 30, 120);
+      // Log scale: each times-ten is the same extra size, so 1 and 1000 both fit the cup
+      const s = 14 + 22 * Math.log10(value);
       const token = el('div', `token tile-sq ${c.text[c.text.length - 1]}`, c.text);
       token.style.width = `${s}px`;
       token.style.height = `${s}px`;
@@ -291,19 +297,32 @@
     startPhysics();
   }
 
-  function jiggle() {
+  // A violent shake throws the pieces quickly; the agitation then decays while they settle
+  function jiggle(force = 20) {
+    const strength = clamp(force / 30, 0.3, 1);
+    agitation = Math.max(agitation, strength);
     bodies.forEach((b) => {
-      b.vx += (Math.random() - 0.5) * 12;
-      b.vy -= 4 + Math.random() * 6;
+      b.vx += (Math.random() - 0.5) * 36 * strength;
+      b.vy -= (8 + Math.random() * 14) * strength;
     });
     startPhysics();
   }
+
+  // Sensitivity from the settings: 1 needs a hard shake, 3 a light one
+  const shakeThreshold = () => 36 / Number($('#opt-shake').value);
 
   // A small, soft physics: gravity, walls, and squares that push each other apart
   function physicsStep() {
     const box = $('#bucket-box');
     const W = box.clientWidth;
     const H = box.clientHeight;
+    if (agitation > 0.01) {
+      bodies.forEach((b) => {
+        b.vx += (Math.random() - 0.5) * agitation * 3;
+        b.vy -= Math.random() * agitation * 0.8;
+      });
+      agitation *= 0.97;
+    }
     bodies.forEach((b) => {
       b.vx = (b.vx + gravity.x) * 0.985;
       b.vy = (b.vy + gravity.y) * 0.985;
@@ -370,9 +389,9 @@
       if (!a) return;
       const force = Math.hypot(a.x || 0, a.y || 0, a.z || 0);
       const now = performance.now();
-      if (force > 12 && now - last > 600) {
+      if (force > shakeThreshold() && now - last > 500) {
         last = now;
-        jiggle();
+        jiggle(force);
       }
     };
     let listening = false;
@@ -722,6 +741,8 @@
     renderStairs();
     $('#steps-next').addEventListener('click', () => { stepsShown = Math.min(LETTERS.length, stepsShown + 1); renderStairs(); });
     $('#steps-back').addEventListener('click', () => { stepsShown = Math.max(1, stepsShown - 1); renderStairs(); });
+    $('#steps-roman').addEventListener('click', () => { stepsMode = 'roman'; renderStairs(); });
+    $('#steps-arabic').addEventListener('click', () => { stepsMode = 'arabic'; renderStairs(); });
 
     pickShake();
     wireShake();
