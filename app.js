@@ -800,7 +800,7 @@
   const pairChip = (p) => {
     const chip = el('div', 'pair-chip ok');
     const v = Roman.lenientValue(p);
-    chip.append(el('b', '', p), el('span', '', `= ${Roman.words(v)} (${v})`));
+    chip.append(el('b', '', p), el('span', '', `= ${v}`));
     return chip;
   };
   const neverChip = (p) => {
@@ -847,7 +847,7 @@
       const cell = el('div', 'letter-cell');
       const b = el('button', `tile ${ch}`, ch);
       b.addEventListener('click', () => {
-        $('#letter-hint').textContent = `${ch} is worth ${Roman.words(VALUE[ch])} (${VALUE[ch]}).`;
+        $('#letter-hint').textContent = `${ch} is worth ${VALUE[ch]}.`;
         beep([VALUE[ch] > 100 ? 392 : 523 + VALUE[ch] / 10]);
       });
       cell.append(b, el('span', 'letter-num', String(VALUE[ch])));

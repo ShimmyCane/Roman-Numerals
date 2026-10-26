@@ -120,3 +120,11 @@ These came from the conversation that built Felix's page: the F button, the art 
 4. **Phones: tall buttons, no double-tap zoom.** Quick taps on iPhone zoomed the page. `touch-action: manipulation` on buttons, and twice-height buttons where a child taps repeatedly.
 5. **Let things move like things.** The shake pieces float, bump and settle in a narrow cup, following the tilt of the phone, instead of being placed in sorted rows.
 6. **Pause on ideas that do not land yet.** Halve and double is liked but not yet clear; it waits for a different approach.
+
+### Round F7
+
+1. **Scale the picture to the idea.** Shake pieces are sized on a log scale, so 1 and 1000 both fit. The stairs already multiply, so they match.
+2. **Let the child switch the progression.** Roman and Arabic labels on the same stairs let a student compare the two directly.
+3. **Put the tuning in settings.** Shake sensitivity is a setting, not a hard-coded number, because phones and hands differ.
+4. **Shorten words that repeat the number.** "X is worth ten (10)" became "X is worth 10". The word is in the Letters tab's other text; the number alone is clearer for a young reader.
+5. **Keep a todo list.** Ideas that are not designed yet (the merging game) go to `TODO.md`, not into the tool.
