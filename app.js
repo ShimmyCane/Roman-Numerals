@@ -72,11 +72,109 @@
     return el('div', `tile ${biggest} ${t.st}${t.ch.length > 1 ? ' pair' : ''}`, t.ch);
   }
 
+  // Letters that were just put in, side by side, sit together over one underline, so it is clear which
+  // letters are the replacement. makeTile draws one letter; letters with st 'new' are grouped.
+  function grouped(tiles, makeTile) {
+    const out = [];
+    let made = null;
+    tiles.forEach((t) => {
+      if (t.st !== 'new') {
+        made = null;
+        out.push(makeTile(t));
+        return;
+      }
+      if (!made) {
+        made = el('span', 'made');
+        out.push(made);
+      }
+      made.append(makeTile(t));
+    });
+    return out;
+  }
+
+  // Letters of the same kind sit in one run (XXXX), so a very long pile that must break over two lines
+  // breaks only where the letter changes, never in the middle of a run.
+  function runsOf(tiles) {
+    const runs = [];
+    tiles.forEach((t) => {
+      const last = runs[runs.length - 1];
+      if (last && last.dataset.ch === t.ch) return last.append(tileEl(t));
+      const run = el('span', 'run');
+      run.dataset.ch = t.ch;
+      run.append(tileEl(t));
+      runs.push(run);
+    });
+    return runs;
+  }
+
+  // The letters just put in (st 'new') sit together over one underline.
   function boardEl(tiles) {
-    const board = el('div', tiles.length ? 'board' : 'board empty-board');
-    board.append(...tiles.map(tileEl));
+    const board = el('div', tiles.length ? 'board fit' : 'board empty-board');
+    for (let i = 0; i < tiles.length;) {
+      let j = i;
+      while (j < tiles.length && (tiles[j].st === 'new') === (tiles[i].st === 'new')) j++;
+      const runs = runsOf(tiles.slice(i, j));
+      if (tiles[i].st === 'new') {
+        const made = el('span', 'made');
+        made.append(...runs);
+        board.append(made);
+      } else board.append(...runs);
+      i = j;
+    }
     return board;
   }
+
+  // ---------- fit: a numeral is never split over two lines ----------
+  // Each line of working (.fit) keeps its letters on one line. When the screen is too narrow, the letters and
+  // bubbles on that line get smaller (--fit) until it fits. Before → after pairs that would get too small stack
+  // instead, one numeral under the other.
+  const MIN_FIT = 0.35;
+  const EQ_MIN_FIT = 0.65;
+  const WRAP_FIT = 0.6; // size of a line that has had to break, so it stays compact
+  function fitOne(line, start = 1, min = MIN_FIT) {
+    let f = start;
+    line.style.setProperty('--fit', String(f));
+    // How much room there is for the widest part: the line itself, or a board inside it.
+    const room = () => Math.min(...[line, ...line.querySelectorAll('.board')].map((b) => b.clientWidth / b.scrollWidth));
+    for (let k = 0; k < 6 && room() < 0.995; k++) {
+      f = Math.max(min, f * room() * 0.97);
+      line.style.setProperty('--fit', String(f));
+      if (f === min) break;
+    }
+    return f;
+  }
+  function fitAll(root = document) {
+    const tooWide = (line) => [line, ...line.querySelectorAll('.board')].some((b) => b.scrollWidth > b.clientWidth + 1);
+    root.querySelectorAll('.repair-pair').forEach((pair) => {
+      pair.classList.remove('stacked');
+      pair.querySelectorAll('.board').forEach((b) => b.classList.remove('wrap'));
+      if (fitOne(pair) < 0.7) {
+        pair.classList.add('stacked');
+        // Last resort for a very long pile: it breaks where the letter changes.
+        if (fitOne(pair) === MIN_FIT && tooWide(pair)) {
+          pair.querySelectorAll('.board').forEach((b) => b.classList.add('wrap'));
+          fitOne(pair, WRAP_FIT);
+        }
+      }
+    });
+    root.querySelectorAll('.fit').forEach((line) => {
+      if (line.closest('.repair-pair')) return;
+      line.classList.remove('wrap');
+      // Last resort: a long equation puts its numbers on more than one line, each number still whole;
+      // a long pile breaks where the letter changes.
+      // The equation keeps a readable size: it breaks between numbers before its letters get very small.
+      const min = line.matches('.eq-full') ? EQ_MIN_FIT : MIN_FIT;
+      if (fitOne(line, 1, min) === min && line.matches('.eq-full, .board') && tooWide(line)) {
+        line.classList.add('wrap');
+        fitOne(line, WRAP_FIT);
+      }
+    });
+  }
+  let fitTimer = null;
+  const refitSoon = () => {
+    clearTimeout(fitTimer);
+    fitTimer = setTimeout(() => fitAll(), 60);
+  };
 
   // ---------- read aloud (a setting; uses the browser's speech if it has any) ----------
   function speak(text) {
@@ -90,7 +188,8 @@
   // so its tiles do not replay their animation when the user presses Play steps or Next.
   const steppers = {};
   const stepSpeed = () => Number($('#opt-speed').value) || 1600;
-  function makeStepper(name, { renderRow, onShow }) {
+  // showAll: a new set of steps appears whole, every row at once. Back, Next and Play still step through it.
+  function makeStepper(name, { renderRow, onShow, showAll = false }) {
     const ledger = $(`#${name}-ledger`);
     const playBtn = $(`[data-play="${name}"]`);
     let steps = [];
@@ -118,6 +217,7 @@
         ledger.append(row);
       }
       while (rows.length > shown) rows.pop().remove();
+      fitAll(ledger);
       rows.forEach((r, i) => r.classList.toggle('current', i === shown - 1));
       ledger.scrollTop = ledger.scrollHeight;
       speak(steps[shown - 1].text);
@@ -136,7 +236,14 @@
         clearRows();
         steps = newSteps;
         emptyText = message;
-        shown = steps.length ? 1 : 0;
+        shown = steps.length ? (showAll ? steps.length : 1) : 0;
+        sync();
+        if (showAll) ledger.scrollTop = 0;
+      },
+      all() {
+        if (!steps.length) return;
+        stop();
+        shown = steps.length;
         sync();
       },
       move(d) {
@@ -183,7 +290,7 @@
   }
 
   function lineEl(tokens) {
-    const line = el('div', 'eq-line');
+    const line = el('div', 'eq-line fit');
     line.append(...tokens.map(tokenEl));
     return line;
   }
@@ -194,7 +301,13 @@
     if (!items.length) wrap.append(el('span', 'place-empty', 'nothing'));
     items.forEach((it, k) => {
       if (k || it.sign < 0) wrap.append(el('span', 'eq-op', it.sign < 0 ? '−' : '+'));
-      wrap.append(el('span', `tok${it.fresh ? ' focus' : ''}`, it.text));
+      const tok = el('span', `tok${it.fresh ? ' focus' : ''}`, it.text);
+      // A letter that just moved up from the place below sits over an underline.
+      if (it.fresh) {
+        const made = el('span', 'made');
+        made.append(tok);
+        wrap.append(made);
+      } else wrap.append(tok);
     });
     return wrap;
   }
@@ -203,11 +316,14 @@
     const row = el('div', 'place-row');
     boxes.forEach((b) => {
       const box = el('div', `place-box${b.focus ? ' focus' : ''}`);
-      const body = el('div', 'place-body');
+      const body = el('div', 'place-body fit');
       if (b.focus && b.was) {
         const was = itemsEl(b.was);
         was.classList.add('was');
-        body.append(was, el('span', 'eq-arrow', '→'), itemsEl(b.items));
+        // What the place holds now is the replacement, so it sits over an underline.
+        const now = el('span', 'made');
+        now.append(itemsEl(b.items));
+        body.append(was, el('span', 'eq-arrow', '→'), now);
       } else {
         body.append(itemsEl(b.items));
       }
@@ -217,14 +333,38 @@
     return row;
   }
 
+  // The whole equation, on its own line at the top of a row. Parts already taken away are crossed out,
+  // and the last row adds = and the answer.
+  function eqEl(eq) {
+    const line = el('div', 'eq-full fit');
+    eq.items.forEach((it) => {
+      if (it.kind === 'op') return line.append(el('span', 'eq-op', it.text));
+      const num = el('span', 'eq-num');
+      num.append(...grouped(it.tiles, (t) => el('span', `tok${t.st === 'cross' ? ' done' : ''}${t.st === 'new' ? ' focus' : ''}`, t.ch)));
+      line.append(num);
+    });
+    if (eq.result) line.append(el('span', 'eq-op', '='), el('span', 'tok res', eq.result));
+    return line;
+  }
+
+  // A caption with more than one sentence gets one line per sentence.
+  function captionEl(text) {
+    const cap = el('div', 'caption');
+    text.split(/(?<=\.)\s+(?=[A-Z])/).forEach((line) => cap.append(el('p', '', line)));
+    return cap;
+  }
+
   function addsubRow(s, i) {
     if (s.kind === 'start' || s.kind === 'repair' || s.kind === 'done') return fixRow(s, i);
     const row = el('div', 'step-row');
     const inner = el('div');
-    // The caption sits outside. The working sits in its own window, so the two never blend.
+    // The caption sits outside. The working sits in its own window, under the whole equation, so the two never blend.
     const work = el('div', 'work');
-    work.append(s.kind === 'places' ? placesEl(s.boxes) : lineEl(s.tokens));
-    inner.append(el('p', 'caption', s.text), work);
+    if (s.eq) work.append(eqEl(s.eq));
+    // A row whose only job is to show the equation has no working under it.
+    if (s.kind === 'places') work.append(placesEl(s.boxes));
+    else if (s.tokens.length) work.append(lineEl(s.tokens));
+    inner.append(captionEl(s.text), work);
     row.append(el('div', 'step-num', Roman.toRoman(i + 1)), inner);
     return row;
   }
@@ -258,6 +398,16 @@
       if (total === 0) return steppers.addsub.load(steps, 'Nothing is left. Romans had no zero.');
       if (total > Roman.MAX) return steppers.addsub.load(steps, `That is more than ${Roman.toRoman(Roman.MAX)}, the biggest this tool writes.`);
       const plan = p.ops[k - 1] === '+' ? Roman.regroupPlan([current, term]) : Roman.takeAwayPlan(current, term);
+      // Each row shows the whole equation still to work: this pair, then the numbers after it.
+      const rest = Roman.eqOf(['', ...p.terms.slice(k + 1)], p.ops.slice(k)).items.slice(1);
+      plan.steps.forEach((st) => {
+        if (st.kind !== 'done') st.eq = { ...st.eq, items: st.eq.items.concat(rest) };
+        else if (rest.length) {
+          const next = Roman.eqOf([plan.result, ...p.terms.slice(k + 1)], p.ops.slice(k));
+          next.items[0].tiles = [{ ch: plan.result, st: 'new' }];
+          st.eq = next;
+        } else st.eq = Roman.eqOf(p.terms, p.ops, plan.result);
+      });
       steps = steps.concat(plan.steps);
       current = plan.result;
     }
@@ -269,15 +419,24 @@
   function fixRow(s, i) {
     const row = el('div', 'step-row');
     const inner = el('div');
+    // With an equation (Add & Subtract), the equation sits on top and the working goes under it in one window.
+    const work = s.eq ? el('div', 'work') : inner;
+    const caption = (text) => (s.eq ? captionEl(text) : el('p', 'caption', text));
+    if (s.eq) work.append(eqEl(s.eq));
     if (s.kind === 'start') {
-      inner.append(el('p', 'caption', s.label || 'Written as typed.'), boardEl(s.tiles));
+      inner.append(caption(s.label || 'Written as typed.'));
+      work.append(boardEl(s.tiles));
     } else if (s.kind === 'repair') {
-      inner.append(el('p', 'caption', s.label));
+      inner.append(caption(s.label));
       const pair = el('div', 'repair-pair');
       pair.append(boardEl(s.before), el('span', 'arrow', '→'), boardEl(s.after));
-      inner.append(pair);
+      work.append(pair);
     } else {
-      inner.append(el('p', 'caption', s.ok ? `Right form: ${s.result}.` : `Simplest form: ${s.result}.`), boardEl(s.tiles));
+      inner.append(caption(s.ok ? `Right form: ${s.result}.` : `Simplest form: ${s.result}.`));
+      work.append(boardEl(s.tiles));
+    }
+    if (work !== inner) inner.append(work);
+    if (s.kind === 'done') {
       const status = el('p', 'value');
       status.append(mark(s.ok), ' ', s.ok ? 'Done' : 'Still not right');
       inner.append(status);
@@ -542,6 +701,7 @@
   function setLook(name) {
     if (!LOOKS.includes(name)) name = 'sunny';
     $('#look-css').href = `looks/${name}.css`;
+    $('#look-css').addEventListener('load', refitSoon, { once: true });
     $$('[data-look]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.look === name)));
   }
 
@@ -778,10 +938,12 @@
     $$('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
     $$('.tab').forEach((s) => s.classList.toggle('active', s.id === `tab-${name}`));
     sfx.tap();
+    refitSoon();
   }
 
   function init() {
-    steppers.addsub = makeStepper('addsub', { renderRow: addsubRow });
+    window.addEventListener('resize', refitSoon);
+    steppers.addsub = makeStepper('addsub', { renderRow: addsubRow, showAll: true });
     steppers.fix = makeStepper('fix', { renderRow: fixRow, onShow: showFixRules });
     steppers.regroup = makeStepper('regroup', { renderRow: fixRow });
     steppers.regroup.load([], 'Press Random, or type a sum like XXVII + XVIII.');
@@ -824,6 +986,9 @@
     $$('[data-step]').forEach((b) => b.addEventListener('click', () => {
       steppers[b.dataset.step].move(Number(b.dataset.dir));
     }));
+    $$('[data-all]').forEach((b) => b.addEventListener('click', () => {
+      steppers[b.dataset.all].all();
+    }));
     $$('[data-play]').forEach((b) => b.addEventListener('click', () => {
       steppers[b.dataset.play].togglePlay();
     }));
@@ -858,12 +1023,18 @@
     $('#opt-pictures').addEventListener('change', (e) => {
       document.body.classList.toggle('no-pictures', !e.target.checked);
     });
-    $('#opt-size').addEventListener('change', (e) => { document.documentElement.dataset.size = e.target.value; });
+    $('#opt-size').addEventListener('change', (e) => {
+      document.documentElement.dataset.size = e.target.value;
+      refitSoon();
+    });
     $('#opt-method').addEventListener('change', () => {
       if (lastRun.addsub !== undefined) runAddSub(lastRun.addsub);
     });
     $('#opt-calm').addEventListener('change', (e) => { document.documentElement.dataset.calm = e.target.checked ? 'on' : ''; });
-    $('#opt-bigtiles').addEventListener('change', (e) => { document.documentElement.dataset.tiles = e.target.checked ? 'big' : ''; });
+    $('#opt-bigtiles').addEventListener('change', (e) => {
+      document.documentElement.dataset.tiles = e.target.checked ? 'big' : '';
+      refitSoon();
+    });
     $('#opt-one').addEventListener('change', (e) => { document.documentElement.dataset.one = e.target.checked ? 'on' : ''; });
     setLook('sunny');
   }

@@ -130,7 +130,8 @@
 
     <!-- ADD & SUBTRACT: one change per row; places lined up like a counting board -->
     <section class="tab" id="tab-addsub">
-      <div class="layout">
+      <!-- One column: the working gets the full width, and How to read this sits below it. -->
+      <div class="layout single">
         <div class="play">
           <div class="workbench">
             <button class="big-btn" type="button" data-random="addsub">🎲 Random sum</button>
@@ -144,6 +145,7 @@
           <div class="controls">
             <button class="big-btn ghost" data-step="addsub" data-dir="-1">Back</button>
             <button class="big-btn ghost" data-play="addsub">Play steps</button>
+            <button class="big-btn ghost" data-all="addsub">Show all</button>
             <button class="big-btn" data-step="addsub" data-dir="1">Next step</button>
           </div>
         </div>
