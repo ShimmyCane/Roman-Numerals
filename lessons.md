@@ -111,3 +111,12 @@ These came from the conversation that built Felix's page: the F button, the art 
 2. **Say when a page was not opened.** The page-reading tool could not reach Wikipedia and other sites from here, so facts for the new tabs came from search results and the links are labelled as not opened (round F5).
 3. **Credit the inspiration on the tab itself.** Each source-inspired tab ends with a small "Inspired by" line, and the Grown-ups tab lists all sources by tab (round F5).
 4. **Keep the doubt.** Nobody is sure why clocks use IIII, and historians are not sure Romans multiplied by doubling. The tabs say so (round F5).
+
+### Round F6
+
+1. **Make the size carry the meaning.** A ×5 step is a big step (five units up) and a ×2 step a small one (two units up). Equal steps hid the pattern.
+2. **Leave the picture open when there is more.** The stairs carry on past M, fading, instead of closing off.
+3. **Direct touch beats buttons.** Drag the clock hands rather than tapping ±5 minutes.
+4. **Phones: tall buttons, no double-tap zoom.** Quick taps on iPhone zoomed the page. `touch-action: manipulation` on buttons, and twice-height buttons where a child taps repeatedly.
+5. **Let things move like things.** The shake pieces float, bump and settle in a narrow cup, following the tilt of the phone, instead of being placed in sorted rows.
+6. **Pause on ideas that do not land yet.** Halve and double is liked but not yet clear; it waits for a different approach.

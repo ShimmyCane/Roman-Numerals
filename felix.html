@@ -92,11 +92,11 @@
             </div>
           </div>
           <div class="bucket-box" id="bucket-box" aria-label="Bucket">
-            <svg class="bucket-outline" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M2 2 L98 2 L90 98 L10 98 Z"/></svg>
+            <svg class="bucket-outline" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M2 0 L2 94 Q2 98 8 98 L92 98 Q98 98 98 94 L98 0"/></svg>
           </div>
           <div class="controls">
             <button class="big-btn" type="button" id="pour">Pour</button>
-            <button class="big-btn ghost" type="button" id="shake-on">Shake to pour</button>
+            <button class="big-btn ghost" type="button" id="shake-on">Shake</button>
           </div>
         </div>
       </div>
@@ -149,14 +149,13 @@
       <div class="layout single">
         <div class="play">
           <h2>Clock</h2>
-          <svg class="felix-art" id="clock-svg" viewBox="0 0 360 360" role="img" aria-label="A clock with Roman numerals"></svg>
+          <p class="note">Drag the hands.</p>
+          <svg class="felix-art clock-drag" id="clock-svg" viewBox="0 0 360 360" role="img" aria-label="A clock with Roman numerals. Drag to move the hands."></svg>
           <div class="pair-lines center" aria-live="polite">
             <div class="counter-roman" id="clock-roman"></div>
             <div class="counter-arabic" id="clock-arabic"></div>
           </div>
           <div class="controls">
-            <button class="big-btn ghost" type="button" id="clock-back" aria-label="Five minutes back">◀ 5</button>
-            <button class="big-btn" type="button" id="clock-next" aria-label="Five minutes on">5 ▶</button>
             <button class="big-btn ghost" type="button" id="clock-four" aria-pressed="true">IIII</button>
           </div>
           <p class="source-note">Inspired by:
@@ -182,9 +181,9 @@
             </div>
           </div>
           <div class="controls">
-            <button class="big-btn ghost" type="button" id="maya-back" aria-label="One less">−</button>
-            <button class="big-btn" type="button" id="maya-next" aria-label="One more">+</button>
-            <button class="big-btn ghost" type="button" id="maya-random" aria-label="Random number">🎲</button>
+            <button class="big-btn ghost tall" type="button" id="maya-back" aria-label="One less">−</button>
+            <button class="big-btn tall" type="button" id="maya-next" aria-label="One more">+</button>
+            <button class="big-btn ghost tall" type="button" id="maya-random" aria-label="Random number">🎲</button>
           </div>
           <p class="source-note">Inspired by:
             <a href="https://math.libretexts.org/Courses/Chabot_College/Math_in_Society_(Zhang)/03%3A_Historical_Counting_Systems/3.05%3A_The_Mayan_Numeral_System" target="_blank" rel="noopener">The Mayan numeral system (LibreTexts)</a>,
@@ -205,9 +204,9 @@
             <div class="counter-arabic" id="china-arabic"></div>
           </div>
           <div class="controls">
-            <button class="big-btn ghost" type="button" id="china-back" aria-label="One less">−</button>
-            <button class="big-btn" type="button" id="china-next" aria-label="One more">+</button>
-            <button class="big-btn ghost" type="button" id="china-random" aria-label="Random number">🎲</button>
+            <button class="big-btn ghost tall" type="button" id="china-back" aria-label="One less">−</button>
+            <button class="big-btn tall" type="button" id="china-next" aria-label="One more">+</button>
+            <button class="big-btn ghost tall" type="button" id="china-random" aria-label="Random number">🎲</button>
           </div>
           <p class="source-note">Inspired by:
             <a href="https://en.wikipedia.org/wiki/Counting_rods" target="_blank" rel="noopener">Counting rods (Wikipedia)</a>,

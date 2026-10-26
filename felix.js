@@ -210,114 +210,181 @@
     $('#zoom-out').addEventListener('click', () => { zoomIndex = Math.min(ZOOMS.length - 1, zoomIndex + 1); renderSpiral(); });
   }
 
-  // ---------- Steps: the staircase is sketched first, then a block climbs onto each step ----------
-  const ST = { x0: 12, base: 290, w: 48, rise: 32, block: 44 };
+  // ---------- Steps: a ×5 step is a big step (five units up), a ×2 step a small one (two units up) ----------
+  const ST = { x0: 8, base: 292, w: 40, unit: 9, block: 40 };
+  // The first step is one unit; after that each step rises by its own times number
+  const RISES = LETTERS.map(({ value }, i) => (i === 0 ? 1 : value / LETTERS[i - 1].value));
+  const MORE = [5, 2, 5]; // the stairs carry on past M, fading out
   let stepsShown = 1;
 
   function renderStairs() {
     const svg = $('#stairs-svg');
     svg.replaceChildren();
-    const { x0, base, w, rise, block } = ST;
-    // The sketch of all seven steps
-    const pts = [[x0, base]];
-    LETTERS.forEach((_, i) => {
-      pts.push([x0 + i * w, base - (i + 1) * rise], [x0 + (i + 1) * w, base - (i + 1) * rise]);
+    const { x0, base, w, unit, block } = ST;
+    const treads = [];
+    let y = base;
+    RISES.forEach((rise) => { y -= rise * unit; treads.push(y); });
+
+    // The stair line, open at the top so it reads as going on
+    const pts = [[0, base], [x0, base]];
+    treads.forEach((t, i) => pts.push([x0 + i * w, t], [x0 + (i + 1) * w, t]));
+    const end = x0 + treads.length * w;
+    svg.appendChild(svgEl('polygon', { points: [...pts, [end, base]].map((p) => p.join(',')).join(' '), fill: 'var(--card)', stroke: 'none' }));
+    svg.appendChild(svgEl('polyline', { points: pts.map((p) => p.join(',')).join(' '), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2.5, 'stroke-dasharray': '7 5', 'stroke-linejoin': 'round' }));
+    let mx = end;
+    let my = treads[treads.length - 1];
+    MORE.forEach((rise, k) => {
+      const ny = my - rise * unit;
+      svg.appendChild(svgEl('polyline', { points: `${mx},${my} ${mx},${ny} ${mx + w},${ny}`, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2.5, 'stroke-dasharray': '7 5', opacity: 0.5 - k * 0.15 }));
+      mx += w;
+      my = ny;
     });
-    pts.push([x0 + LETTERS.length * w, base]);
-    svg.appendChild(svgEl('polygon', { points: pts.map((p) => p.join(',')).join(' '), fill: 'var(--card)', stroke: 'var(--ink)', 'stroke-width': 2.5, 'stroke-dasharray': '7 5', 'stroke-linejoin': 'round' }));
 
     LETTERS.forEach(({ letter, value }, i) => {
-      const tread = base - (i + 1) * rise;
-      // What this step multiplies by, written inside the stair below the tread
-      if (i > 0) {
-        svg.appendChild(svgEl('text', { x: x0 + i * w + w / 2, y: tread + 22, 'text-anchor': 'middle', 'font-size': 14, 'font-weight': 900, fill: 'var(--link)' }, `×${value / LETTERS[i - 1].value}`));
-      }
+      const tread = treads[i];
+      const cx = x0 + i * w + w / 2;
+      if (i > 0) svg.appendChild(svgEl('text', { x: cx, y: tread + 16, 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 900, fill: 'var(--link)' }, `×${RISES[i]}`));
       if (i >= stepsShown) return;
       const g = svgEl('g', { class: i === stepsShown - 1 ? 'block-new' : '' });
       g.appendChild(svgEl('rect', { x: x0 + i * w + 2, y: tread - block, width: w - 4, height: block, rx: 6, fill: `var(--t-${letter})`, stroke: 'var(--ink)', 'stroke-width': i === stepsShown - 1 ? 3.5 : 2 }));
-      g.appendChild(svgEl('text', { x: x0 + i * w + w / 2, y: tread - block / 2 + 1, 'text-anchor': 'middle', 'font-size': 19, 'font-weight': 900, fill: '#2b2540' }, letter));
-      g.appendChild(svgEl('text', { x: x0 + i * w + w / 2, y: tread - 7, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: '#2b2540' }, String(value)));
+      g.appendChild(svgEl('text', { x: cx, y: tread - block / 2 + 2, 'text-anchor': 'middle', 'font-size': 17, 'font-weight': 900, fill: '#2b2540' }, letter));
+      g.appendChild(svgEl('text', { x: cx, y: tread - 6, 'text-anchor': 'middle', 'font-size': 10, 'font-weight': 700, fill: '#2b2540' }, String(value)));
       svg.appendChild(g);
     });
     $('#steps-back').disabled = stepsShown <= 1;
     $('#steps-next').disabled = stepsShown >= LETTERS.length;
   }
 
-  // ---------- Shake: pick a number, then its pieces pour into the bucket, biggest first ----------
+  // ---------- Shake: pick a number; its pieces drop into a narrow cup and float about like ice cubes ----------
   let shakeN = 1;
+  let bodies = []; // { el, x, y, vx, vy, s }
+  const gravity = { x: 0, y: 0.35 };
+  let physicsOn = false;
+
+  function clearBodies() {
+    bodies.forEach((b) => b.el.remove());
+    bodies = [];
+  }
 
   function pickShake() {
     shakeN = randomInt(1, 999);
     showPair('shake', shakeN);
-    $$('#bucket-box .token').forEach((t) => t.remove());
+    clearBodies();
   }
 
+  // The pieces of the numeral, pairs like IX kept whole, each a square that grows with its value
   function pour() {
+    clearBodies();
     const box = $('#bucket-box');
-    $$('#bucket-box .token').forEach((t) => t.remove());
+    const W = box.clientWidth;
+    Roman.chunks(toRoman(shakeN)).forEach((c, i) => {
+      const value = Roman.lenientValue(c.text);
+      const s = clamp(5 * Math.sqrt(value), 30, 120);
+      const token = el('div', `token tile-sq ${c.text[c.text.length - 1]}`, c.text);
+      token.style.width = `${s}px`;
+      token.style.height = `${s}px`;
+      token.style.fontSize = `${Math.min(28, s * 0.42)}px`;
+      box.appendChild(token);
+      // They come in from the top right, one after another
+      bodies.push({ el: token, s, x: W - s - 6, y: -s - i * 70, vx: -1 - Math.random() * 1.5, vy: 0 });
+    });
+    startPhysics();
+  }
+
+  function jiggle() {
+    bodies.forEach((b) => {
+      b.vx += (Math.random() - 0.5) * 12;
+      b.vy -= 4 + Math.random() * 6;
+    });
+    startPhysics();
+  }
+
+  // A small, soft physics: gravity, walls, and squares that push each other apart
+  function physicsStep() {
+    const box = $('#bucket-box');
     const W = box.clientWidth;
     const H = box.clientHeight;
-    // The pieces of the numeral, each a square whose size grows with its value. XL and IV come as one piece.
-    const pieces = Roman.chunks(toRoman(shakeN))
-      .map((c) => ({ text: c.text, value: Roman.lenientValue(c.text), side: clamp(5 * Math.sqrt(Roman.lenientValue(c.text)), 30, 140) }))
-      .sort((a, b) => b.side - a.side);
-
-    // Stack them in rows from the bottom of the bucket
-    const left = W * 0.13;
-    const right = W * 0.87;
-    let x = left;
-    let rowBottom = H - H * 0.03 - 4;
-    let rowHeight = 0;
-    pieces.forEach((p, i) => {
-      if (x + p.side > right && x > left) {
-        rowBottom -= rowHeight + 4;
-        x = left;
-        rowHeight = 0;
-      }
-      const token = el('div', `token tile-sq ${p.text[p.text.length - 1]}`, p.text);
-      token.style.width = `${p.side}px`;
-      token.style.height = `${p.side}px`;
-      token.style.fontSize = `${Math.min(28, p.side * 0.42)}px`;
-      // Each piece starts at the spout in the top right corner
-      token.style.left = `${W - p.side - 6}px`;
-      token.style.top = `${-p.side - 10}px`;
-      token.style.transitionDelay = `${i * 220}ms`;
-      box.appendChild(token);
-      const target = { left: x, top: rowBottom - p.side };
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        token.style.left = `${target.left}px`;
-        token.style.top = `${target.top}px`;
-      }));
-      x += p.side + 4;
-      rowHeight = Math.max(rowHeight, p.side);
+    bodies.forEach((b) => {
+      b.vx = (b.vx + gravity.x) * 0.985;
+      b.vy = (b.vy + gravity.y) * 0.985;
+      b.x += b.vx;
+      b.y += b.vy;
     });
+    for (let pass = 0; pass < 4; pass++) {
+      bodies.forEach((b) => {
+        if (b.y + b.s > H - 5) { b.y = H - 5 - b.s; b.vy *= -0.25; b.vx *= 0.92; }
+        if (b.x < 5) { b.x = 5; b.vx *= -0.4; }
+        if (b.x + b.s > W - 5) { b.x = W - 5 - b.s; b.vx *= -0.4; }
+      });
+      for (let i = 0; i < bodies.length; i++) {
+        for (let j = i + 1; j < bodies.length; j++) {
+          const a = bodies[i];
+          const b = bodies[j];
+          const ox = Math.min(a.x + a.s, b.x + b.s) - Math.max(a.x, b.x);
+          const oy = Math.min(a.y + a.s, b.y + b.s) - Math.max(a.y, b.y);
+          if (ox <= 0 || oy <= 0) continue;
+          const ma = a.s * a.s;
+          const mb = b.s * b.s;
+          const share = mb / (ma + mb);
+          if (ox < oy) {
+            const dir = a.x < b.x ? -1 : 1;
+            a.x += dir * ox * share;
+            b.x -= dir * ox * (1 - share);
+            const v = (ma * a.vx + mb * b.vx) / (ma + mb);
+            a.vx = v;
+            b.vx = v;
+          } else {
+            const dir = a.y < b.y ? -1 : 1;
+            a.y += dir * oy * share;
+            b.y -= dir * oy * (1 - share);
+            const v = (ma * a.vy + mb * b.vy) / (ma + mb);
+            a.vy = v;
+            b.vy = v;
+          }
+        }
+      }
+    }
+    bodies.forEach((b) => { b.el.style.transform = `translate(${b.x.toFixed(1)}px, ${b.y.toFixed(1)}px)`; });
   }
 
-  // Shaking the phone pours. iPhones ask permission first, so the button asks for it.
+  function startPhysics() {
+    if (physicsOn) return;
+    physicsOn = true;
+    const frame = () => {
+      if (!bodies.length) { physicsOn = false; return; }
+      physicsStep();
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }
+
+  // Shake: tilting the phone moves gravity, a hard shake throws the pieces. iPhones ask permission first.
   function wireShake() {
-    const button = $('#shake-on');
-    if (!('DeviceMotionEvent' in window)) {
-      button.disabled = true;
-      return;
-    }
     let last = 0;
+    const onTilt = (e) => {
+      if (e.gamma === null) return;
+      gravity.x = 0.35 * Math.sin((clamp(e.gamma, -60, 60) * Math.PI) / 180);
+    };
     const onMotion = (e) => {
-      const a = e.accelerationIncludingGravity;
+      const a = e.acceleration;
       if (!a) return;
-      const force = Math.abs(Math.hypot(a.x || 0, a.y || 0, a.z || 0) - 9.81);
+      const force = Math.hypot(a.x || 0, a.y || 0, a.z || 0);
       const now = performance.now();
-      if (force > 14 && now - last > 1500) {
+      if (force > 12 && now - last > 600) {
         last = now;
-        pour();
+        jiggle();
       }
     };
-    button.addEventListener('click', async () => {
-      if (typeof DeviceMotionEvent.requestPermission === 'function') {
-        const answer = await DeviceMotionEvent.requestPermission().catch(() => 'denied');
-        if (answer !== 'granted') return;
+    let listening = false;
+    $('#shake-on').addEventListener('click', async () => {
+      jiggle();
+      if (listening) return;
+      for (const Ev of [window.DeviceOrientationEvent, window.DeviceMotionEvent]) {
+        if (Ev && typeof Ev.requestPermission === 'function') await Ev.requestPermission().catch(() => 'denied');
       }
+      window.addEventListener('deviceorientation', onTilt);
       window.addEventListener('devicemotion', onMotion);
-      button.setAttribute('aria-pressed', 'true');
+      listening = true;
     });
   }
 
@@ -509,9 +576,32 @@
     $('#clock-four').textContent = fourStyle;
   }
 
-  function moveClock(step) {
-    clockMinutes = (clockMinutes + step + 720) % 720;
-    renderClock();
+  // Drag anywhere on the clock: the minute hand follows the finger, and the hour moves on as it passes XII
+  function wireClock() {
+    const svg = $('#clock-svg');
+    let dragging = false;
+    const minuteAt = (e) => {
+      const r = svg.getBoundingClientRect();
+      let deg = (Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180) / Math.PI + 90;
+      if (deg < 0) deg += 360;
+      return Math.round(deg / 6) % 60;
+    };
+    const setMinute = (m) => {
+      const old = clockMinutes % 60;
+      let hourStart = clockMinutes - old;
+      if (old >= 45 && m < 15) hourStart += 60;
+      else if (old < 15 && m >= 45) hourStart -= 60;
+      clockMinutes = (hourStart + m + 720) % 720;
+      renderClock();
+    };
+    svg.addEventListener('pointerdown', (e) => {
+      dragging = true;
+      svg.setPointerCapture(e.pointerId);
+      setMinute(minuteAt(e));
+    });
+    svg.addEventListener('pointermove', (e) => { if (dragging) setMinute(minuteAt(e)); });
+    svg.addEventListener('pointerup', () => { dragging = false; });
+    svg.addEventListener('pointercancel', () => { dragging = false; });
   }
 
   // ---------- Maya: dot is one, bar is five, each place up is times twenty ----------
@@ -646,8 +736,7 @@
     $('#board-random').addEventListener('click', () => setBoard(randomInt(1, 399)));
 
     renderClock();
-    $('#clock-next').addEventListener('click', () => moveClock(5));
-    $('#clock-back').addEventListener('click', () => moveClock(-5));
+    wireClock();
     $('#clock-four').addEventListener('click', () => {
       fourStyle = fourStyle === 'IIII' ? 'IV' : 'IIII';
       $('#clock-four').setAttribute('aria-pressed', String(fourStyle === 'IIII'));

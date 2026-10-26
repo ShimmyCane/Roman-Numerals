@@ -807,11 +807,11 @@ button.bead:focus-visible { outline: 4px solid var(--link); outline-offset: 3px;
 /* Shake: the pieces pour from the top right into the bucket */
 .shake-top { display: flex; align-items: center; gap: 16px; margin-bottom: 10px; }
 .shake-top .big-btn { flex: 0 0 auto; min-width: 80px; }
-.bucket-box { position: relative; height: 320px; margin: 8px 0 12px; overflow: hidden; }
+.bucket-box { position: relative; width: min(240px, 100%); height: 340px; margin: 8px auto 12px; overflow: hidden; }
 .bucket-outline { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--ink); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
 .bucket-outline path { stroke-width: 3; vector-effect: non-scaling-stroke; }
 .token { position: absolute; display: grid; place-items: center; font-weight: 900; color: #2b2540; border-radius: 10px;
-  transition: left 0.7s ease-in-out, top 0.7s cubic-bezier(0.5, 0, 0.9, 1); }
+  left: 0; top: 0; will-change: transform; }
 
 /* Rods: bars in one line, the amount under each rod, colour bars matching raw and organized */
 .bead.placeholder { visibility: hidden; }
@@ -833,3 +833,8 @@ button.bead:focus-visible { outline: 4px solid var(--link); outline-offset: 3px;
 .double-cell .cell-arabic { font-size: 0.85em; color: var(--ink-soft); }
 .light { width: 22px; height: 22px; border-radius: 50%; border: 3px solid var(--ink); background: transparent; }
 .light.on { background: #ffd23f; box-shadow: 0 0 10px #ffd23f; }
+
+/* Round four: drag the clock; tall buttons and no double-tap zoom on phones */
+.clock-drag { touch-action: none; cursor: grab; }
+.big-btn, .tab-btn, button { touch-action: manipulation; }
+.big-btn.tall { min-height: calc(var(--btn-h, 56px) * 2); }
