@@ -16,7 +16,11 @@ These came from Jimmy's feedback on the `XCV − LIV` and `XCVI − XCIII` steps
 8. **Match first, expand only when needed.** Same parts on both sides cross out together. Trade only when a part is missing (round 6).
 9. **Fix It names only the rule that is needed.** `XXIIII` shows "4 I's in a row", then `XXIV`. It does not walk through every rule (round 3).
 10. **Change only the smallest part that must change.** LXLVII becomes XCVII by changing LXL to XC, and VII stays (round 4).
-11. **Test with real examples before shipping.** Read every caption in order, as a child would, and ask whether you could explain the step to someone who has not seen it.
+11. **Find the shortest path first, then show it.** A person adding X + LXXV just slides the X in. Check that short way before any longer method, and use it when the result is already in simplest form (round 7).
+12. **Work by place, like a counting board.** Line the numbers up in thousands, hundreds, tens and ones, and work from the ones up. A place that reaches ten moves one letter up. A place that is short borrows from above. This avoids opening IX into VIIII when nothing needs it (round 7).
+13. **One change per row.** Each row shows the whole state again. The part that changed shows old → new. A letter that moves up arrives highlighted in its new place, without crossing out the whole place (round 7).
+14. **If it is hard to program, it is hard to teach.** When the steps keep getting longer and stranger, the method is wrong, not the wording. Go back to how a person would do it by hand (round 7).
+15. **Test with real examples before shipping.** Read every caption in order, as a child would, and ask whether you could explain the step to someone who has not seen it.
 
 ## 2. Animation
 
@@ -61,6 +65,7 @@ These came from Jimmy's feedback on the `XCV − LIV` and `XCVI − XCIII` steps
 
 ## 7. Testing
 
-1. **Run the logic tests after every change.** `node tests/roman.test.js` covers the converter, the checker, the calculator, and the repairs. There are 27 tests as of round 6.
-2. **Run a headless browser check on each changed screen.** Check for page errors, horizontal overflow at 1024px and 390px, and screenshot each changed tab. Open hidden panels before clicking into them (rounds 3 to 6).
-3. **Check each look defines every variable.** A look missing a variable falls back to something unexpected. A quick script catches it (round 3).
+1. **Check a method against every case, not a few.** The counting-board method was checked against every sum and difference up to 300 (134,850 cases), and against how many steps each takes (round 7).
+2. **Run the logic tests after every change.** `node tests/roman.test.js` covers the converter, the checker, the calculator, and the repairs. There are 27 tests as of round 6.
+3. **Run a headless browser check on each changed screen.** Check for page errors, horizontal overflow at 1024px and 390px, and screenshot each changed tab. Open hidden panels before clicking into them (rounds 3 to 6).
+4. **Check each look defines every variable.** A look missing a variable falls back to something unexpected. A quick script catches it (round 3).
