@@ -38,7 +38,20 @@
     $$('.tab').forEach((s) => s.classList.toggle('active', s.id === `tab-${name}`));
   }
 
-  // ---------- Start: squares to scale, the area is the value ----------
+  // ---------- Start: tap a letter to see its value, then the squares to scale ----------
+  function buildLetterRow() {
+    const row = $('#letter-row');
+    LETTERS.forEach(({ letter, value }) => {
+      const b = el('button', `tile ${letter}`);
+      b.append(letter, el('span', 'arabic', String(value)));
+      b.addEventListener('click', () => {
+        $('#letter-hint').textContent = `${letter} is worth ${Roman.words(value)} (${value}).`;
+      });
+      row.append(b);
+    });
+  }
+
+  // Squares to scale, the area is the value
   function renderTiles() {
     const row = $('#tile-row');
     row.replaceChildren();
@@ -350,6 +363,9 @@
 
   // ---------- wiring ----------
   function init() {
+    $$('.tab-btn').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+
+    buildLetterRow();
     renderTiles();
     buildSpiralStatic();
     renderSpiralWindow();
@@ -358,7 +374,6 @@
     wireShake();
     renderRods();
 
-    $$('.tab-btn').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
     $('#steps-n').addEventListener('input', (e) => renderStairs(Number(e.target.value)));
     $('#pour').addEventListener('click', pour);
     $('#rods-random').addEventListener('click', randomRods);
