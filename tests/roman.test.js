@@ -366,22 +366,12 @@ test('Random equation: the easy one has two numerals, the harder one has three w
   assert.ok(harder.some((ops) => ops.includes('+')) && harder.some((ops) => ops.includes('-')), 'additions and subtractions are mixed');
 });
 
-test('Half a chili: two numerals, and a trade is needed every time', () => {
-  for (let i = 0; i < 300; i++) {
-    const { text, value } = Roman.randomHalfEquation();
-    const parts = text.split(' ');
-    assert.equal(parts.length, 3, text);
-    const a = Roman.lenientValue(parts[0]);
-    const b = Roman.lenientValue(parts[2]);
-    if (parts[1] === '+') {
-      assert.ok(a % 10 + b % 10 >= 10, `ones add past ten: ${text}`);
-      assert.equal(a + b, value, text);
-    } else {
-      assert.ok(a % 10 < b % 10 || a % 10 > b % 10, `a trade is needed: ${text}`);
-      assert.ok(a > b, `not below zero: ${text}`);
-      assert.equal(a - b, value, text);
-    }
-    assert.ok(value >= 1 && value <= 150, text);
+test('Chili on Fix It: harder numerals break two or more pairs, and still fix to the simplest form', () => {
+  for (let i = 0; i < 200; i++) {
+    const { numeral, answer, value } = Roman.randomDisarranged(Math.random, true);
+    assert.equal(Roman.toRoman(value), answer);
+    assert.ok((answer.match(/IV|IX|XL|XC|CD|CM/g) || []).length >= 2, answer);
+    assert.equal(Roman.lenientValue(numeral), value, numeral);
   }
 });
 

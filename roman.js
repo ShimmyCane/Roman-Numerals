@@ -719,23 +719,6 @@
     }
   }
 
-  // Half a chili: two numerals, bigger than the easy ones, and a trade is needed (ones add past ten, or a ones digit must borrow).
-  function randomHalfEquation(rand = Math.random) {
-    for (;;) {
-      const adding = rand() < 0.5;
-      const a = randomInt(11, 89, rand);
-      const b = randomInt(11, 89, rand);
-      if (adding) {
-        if (a % 10 + b % 10 < 10 || a + b > 150) continue;
-        return { text: `${toRoman(a)} + ${toRoman(b)}`, value: a + b };
-      }
-      const big = Math.max(a, b);
-      const small = Math.min(a, b);
-      if (big % 10 >= small % 10 || big === small) continue;
-      return { text: `${toRoman(big)} - ${toRoman(small)}`, value: big - small };
-    }
-  }
-
   // Fix It: a bad numeral made by writing each subtractive pair as its pieces (XL becomes XXXX).
   // Only numbers with a pair are used, so the bad numeral is always wrong and the answer is always the simplest form.
   function disarrange(s) {
@@ -744,8 +727,13 @@
   const DISARRANGEABLE = [];
   for (let n = 2; n <= 99; n++) if (disarrange(toRoman(n)) !== toRoman(n)) DISARRANGEABLE.push(n);
 
-  function randomDisarranged(rand = Math.random) {
-    const value = DISARRANGEABLE[randomInt(0, DISARRANGEABLE.length - 1, rand)];
+  // The chili makes harder ones: numerals that break two or more pairs, like MCMXCIV written as DCCCCLXXXXVIIII
+  const HARDER_DISARRANGEABLE = [];
+  for (let n = 2; n <= MAX; n++) if ((toRoman(n).match(/IV|IX|XL|XC|CD|CM/g) || []).length >= 2) HARDER_DISARRANGEABLE.push(n);
+
+  function randomDisarranged(rand = Math.random, harder = false) {
+    const pool = harder ? HARDER_DISARRANGEABLE : DISARRANGEABLE;
+    const value = pool[randomInt(0, pool.length - 1, rand)];
     return { numeral: disarrange(toRoman(value)), answer: toRoman(value), value };
   }
 
@@ -777,6 +765,6 @@
   return {
     VALUE, PAIR_PIECES, TRADE, MAX, LETTER_LIMIT, QUIZ_MAX_TYPES, TRUE_FALSE, DISARRANGEABLE, RANDOM_NUMERALS,
     lenientValue, eqOf, toRoman, words, chunks, check, calculate, repairPlan, regroupPlan, addEquation, takeAwayEquation, firstRepair, parse, disarrange,
-    randomNumeral, randomSum, randomEquation, randomHalfEquation, randomDisarranged,
+    randomNumeral, randomSum, randomEquation, randomDisarranged,
   };
 });

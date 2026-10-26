@@ -585,8 +585,8 @@
 
   // ---------- Random: each button makes a numeral or sum, then runs it like a typed one ----------
   const randomMakers = {
-    addsub: { entry: 'addsub', make: (level) => (level === 'half' ? Roman.randomHalfEquation() : Roman.randomEquation(level === 'harder')).text },
-    fixbad: { entry: 'fix', make: () => Roman.randomDisarranged().numeral },
+    addsub: { entry: 'addsub', make: (level) => Roman.randomEquation(level === 'harder').text },
+    fixbad: { entry: 'fix', make: (level) => Roman.randomDisarranged(Math.random, level === 'harder').numeral },
     regroup: { entry: 'regroup', make: randomAddition },
   };
   const runners = { addsub: runAddSub, fix: runFix, regroup: runRegroup };
