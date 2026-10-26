@@ -210,53 +210,81 @@
     $('#zoom-out').addEventListener('click', () => { zoomIndex = Math.min(ZOOMS.length - 1, zoomIndex + 1); renderSpiral(); });
   }
 
-  // ---------- Steps: a ×5 step is a big step (five units up), a ×2 step a small one (two units up) ----------
-  const ST = { x0: 8, base: 292, w: 40, unit: 9, block: 40 };
-  // The first step is one unit; after that each step rises by its own times number
-  const RISES = LETTERS.map(({ value }, i) => (i === 0 ? 1 : value / LETTERS[i - 1].value));
-  const MORE = [5, 2, 5]; // the stairs carry on past M, fading out
+  // ---------- Steps: each staircase is drawn on a log scale, so a step's height is the log of its times number ----------
+  // Roman: the letters (times five, times two, alternating). Arabic: decimal (times ten). Binary: times two.
+  // All three share one height scale, so 1000 sits at the same height on each, and the Roman line stays behind as a dashed guide.
+  const ST = { x0: 6, base: 292, col: 37, H: 220 };
+  const STAIR_K = ST.H / 3.5; // one unit of log height; 1 sits half a unit up, 1000 sits at 3.5 units
+  const LETTER_OF = Object.fromEntries(LETTERS.map(({ letter, value }) => [value, letter]));
+  const ROMAN_STEPS = LETTERS.map(({ letter, value }) => ({ value, big: letter, small: String(value) }));
+  const DECIMAL_STEPS = [1, 10, 100, 1000].map((value) => ({ value, big: String(value), small: toRoman(value) }));
+  const BINARY_STEPS = [1, 2, 4, 8, 16, 32, 64].map((value) => ({ value, big: value.toString(2), small: String(value) }));
+  const STAIR_MODES = { roman: ROMAN_STEPS, arabic: DECIMAL_STEPS, binary: BINARY_STEPS };
+  const FADE = 2; // the outline carries on past the last step, fading
   let stepsShown = 1;
-  let stepsMode = 'roman'; // the big label on each step: a letter, or its Arabic value
+  let stepsMode = 'roman';
+
+  const treadY = (value) => ST.base - (Math.log10(value) + 0.5) * STAIR_K;
 
   function renderStairs() {
     const svg = $('#stairs-svg');
     svg.replaceChildren();
-    const { x0, base, w, unit, block } = ST;
-    const treads = [];
-    let y = base;
-    RISES.forEach((rise) => { y -= rise * unit; treads.push(y); });
+    const { x0, base, col } = ST;
+    const steps = STAIR_MODES[stepsMode];
 
-    // One solid outline of the stairs, then a lighter run of steps that carries on past M
+    // The outline of the current staircase, with a fade run past its end
     const pts = [[x0, base]];
-    treads.forEach((t, i) => pts.push([x0 + i * w, t], [x0 + (i + 1) * w, t]));
-    const end = x0 + treads.length * w;
-    svg.appendChild(svgEl('polygon', { points: [...pts, [end, base]].map((p) => p.join(',')).join(' '), fill: 'var(--card)', stroke: 'var(--ink)', 'stroke-width': 2.5, 'stroke-linejoin': 'round' }));
-    let mx = end;
-    let my = treads[treads.length - 1];
-    MORE.forEach((rise, k) => {
-      const ny = my - rise * unit;
-      svg.appendChild(svgEl('polyline', { points: `${mx},${my} ${mx},${ny} ${mx + w},${ny}`, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2.5, opacity: 0.45 - k * 0.12 }));
-      mx += w;
-      my = ny;
+    steps.forEach((s, i) => {
+      const t = treadY(s.value);
+      pts.push([x0 + i * col, t], [x0 + (i + 1) * col, t]);
     });
+    const last = steps[steps.length - 1].value;
+    const lastRise = treadY(steps[steps.length - 2].value) - treadY(last);
+    let my = treadY(last);
+    let mx = x0 + steps.length * col;
+    svg.appendChild(svgEl('polygon', { points: [...pts, [mx, base]].map((p) => p.join(',')).join(' '), fill: 'var(--card)', stroke: 'var(--ink)', 'stroke-width': 2.5, 'stroke-linejoin': 'round' }));
+    for (let k = 0; k < FADE; k++) {
+      const ny = my - lastRise;
+      svg.appendChild(svgEl('polyline', { points: `${mx},${my} ${mx},${ny} ${mx + col},${ny}`, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2.5, opacity: 0.45 - k * 0.15 }));
+      mx += col;
+      my = ny;
+    }
 
-    LETTERS.forEach(({ letter, value }, i) => {
-      const tread = treads[i];
-      const cx = x0 + i * w + w / 2;
-      if (i > 0) svg.appendChild(svgEl('text', { x: cx, y: tread + 16, 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 900, fill: 'var(--link)' }, `×${RISES[i]}`));
+    // The Roman line on top of the fill, dashed and coloured, when Arabic or binary is on
+    if (stepsMode !== 'roman') {
+      const pts = [[x0, base]];
+      ROMAN_STEPS.forEach((s, i) => {
+        const t = treadY(s.value);
+        pts.push([x0 + i * col, t], [x0 + (i + 1) * col, t]);
+      });
+      svg.appendChild(svgEl('polyline', { points: pts.map((p) => p.join(',')).join(' '), fill: 'none', stroke: 'var(--link)', 'stroke-width': 2.5, 'stroke-dasharray': '6 5', 'stroke-linejoin': 'round' }));
+    }
+
+    steps.forEach((s, i) => {
+      const t = treadY(s.value);
+      const prev = i === 0 ? base : treadY(steps[i - 1].value);
+      const cx = x0 + i * col + col / 2;
+      if (i > 0) svg.appendChild(svgEl('text', { x: cx, y: t + 14, 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 900, fill: 'var(--link)' }, `×${s.value / steps[i - 1].value}`));
       if (i >= stepsShown) return;
+      const rise = prev - t;
+      const block = Math.max(16, Math.min(44, rise - 4));
+      const colour = LETTER_OF[s.value] ? `var(--t-${LETTER_OF[s.value]})` : 'var(--paper)';
       const g = svgEl('g', { class: i === stepsShown - 1 ? 'block-new' : '' });
-      g.appendChild(svgEl('rect', { x: x0 + i * w + 2, y: tread - block, width: w - 4, height: block, rx: 6, fill: `var(--t-${letter})`, stroke: 'var(--ink)', 'stroke-width': i === stepsShown - 1 ? 3.5 : 2 }));
-      const big = stepsMode === 'roman' ? letter : String(value);
-      const small = stepsMode === 'roman' ? String(value) : letter;
-      g.appendChild(svgEl('text', { x: cx, y: tread - block / 2 + 2, 'text-anchor': 'middle', 'font-size': stepsMode === 'roman' ? 17 : (big.length > 3 ? 10 : 13), 'font-weight': 900, fill: '#2b2540' }, big));
-      g.appendChild(svgEl('text', { x: cx, y: tread - 6, 'text-anchor': 'middle', 'font-size': 10, 'font-weight': 700, fill: '#2b2540' }, small));
+      g.appendChild(svgEl('rect', { x: x0 + i * col + 2, y: t - block, width: col - 4, height: block, rx: 5, fill: colour, stroke: 'var(--ink)', 'stroke-width': i === stepsShown - 1 ? 3.5 : 2 }));
+      const big = s.big;
+      const bigSize = stepsMode === 'roman' ? 17 : Math.max(8, Math.min(11, Math.floor(60 / big.length)));
+      if (block >= 26) {
+        g.appendChild(svgEl('text', { x: cx, y: t - block / 2 + (bigSize / 3), 'text-anchor': 'middle', 'font-size': bigSize, 'font-weight': 900, fill: '#2b2540' }, big));
+        g.appendChild(svgEl('text', { x: cx, y: t - 4, 'text-anchor': 'middle', 'font-size': 9, 'font-weight': 700, fill: '#2b2540' }, s.small));
+      } else {
+        g.appendChild(svgEl('text', { x: cx, y: t - block - 3, 'text-anchor': 'middle', 'font-size': bigSize, 'font-weight': 900, fill: 'var(--ink)' }, big));
+      }
       svg.appendChild(g);
     });
+
     $('#steps-back').disabled = stepsShown <= 1;
-    $('#steps-next').disabled = stepsShown >= LETTERS.length;
-    $('#steps-roman').setAttribute('aria-pressed', String(stepsMode === 'roman'));
-    $('#steps-arabic').setAttribute('aria-pressed', String(stepsMode === 'arabic'));
+    $('#steps-next').disabled = stepsShown >= steps.length;
+    ['roman', 'arabic', 'binary'].forEach((m) => $(`#steps-${m}`).setAttribute('aria-pressed', String(stepsMode === m)));
   }
 
   // ---------- Shake: pick a number; its pieces drop into a narrow cup and float about like ice cubes ----------
@@ -739,10 +767,14 @@
     renderSpiral();
 
     renderStairs();
-    $('#steps-next').addEventListener('click', () => { stepsShown = Math.min(LETTERS.length, stepsShown + 1); renderStairs(); });
+    $('#steps-next').addEventListener('click', () => { stepsShown = Math.min(STAIR_MODES[stepsMode].length, stepsShown + 1); renderStairs(); });
     $('#steps-back').addEventListener('click', () => { stepsShown = Math.max(1, stepsShown - 1); renderStairs(); });
-    $('#steps-roman').addEventListener('click', () => { stepsMode = 'roman'; renderStairs(); });
-    $('#steps-arabic').addEventListener('click', () => { stepsMode = 'arabic'; renderStairs(); });
+    // Switching shows the whole staircase, so the three can be compared at once
+    ['roman', 'arabic', 'binary'].forEach((m) => $(`#steps-${m}`).addEventListener('click', () => {
+      stepsMode = m;
+      stepsShown = STAIR_MODES[m].length;
+      renderStairs();
+    }));
 
     pickShake();
     wireShake();
