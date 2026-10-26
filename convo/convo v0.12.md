@@ -16,3 +16,16 @@ Jimmy: "OK, I think Add & Subtract is getting there, but I still want you to sta
 ## Open question
 
 - Should the Fix It and Regroup tabs also show every row at once, or keep revealing one row at a time?
+
+## Follow-up: underline replacements, never split a numeral
+
+Jimmy: replaced parts fade out, and the blocks that did the replacing get an underline. A Roman numeral should never be broken over two rows. Several numerals or sub-expressions on separate lines are fine. When the screen is tight, make the text and bubbles smaller so each row fits, and move a panel to the bottom if that gives more room.
+
+- **Underline for replacements.** Letters that were just put in sit together over one bracket-shaped underline, in the after board, in the equation (IX opened to VIIII) and in the place boxes (the new value, and a letter that moved up). The parts they replaced stay faded on the before side. This also shows on the Fix It and Regroup tabs.
+- **One numeral, one line.** Each line of working (equation, before → after, place box) shrinks its letters and bubbles until it fits the width.
+  - Before → after sits on one line. If that would make the letters too small, the after numeral goes under the before one.
+  - A long equation keeps a readable size and puts whole numbers on separate lines. It never breaks inside a number.
+  - A very long pile of letters (only when adding, for example LXXXXXXXVIIIIIII) breaks only where the letter changes. A run of X's or I's always stays together.
+- **More width.** "How to read this" now sits below the working on Add & Subtract, not beside it. Phones get less padding around the rows.
+- **Also fixed:** the Candy look was a little wider than a phone screen because of the entry box.
+- **Checked:** at 1024, 768, 390 and 320 wide, in several looks, no numeral or run is split, there are no page errors, and the page has no sideways scroll. 36 logic tests pass.

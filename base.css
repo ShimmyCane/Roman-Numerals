@@ -197,10 +197,12 @@ main { padding: 0 var(--gutter, 16px); }
 }
 
 /* Fix It: before and after boards, joined by an arrow */
-.repair-pair { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: center; }
-.repair-pair .board { min-height: 0; padding: 10px; }
-.repair-pair .arrow { font-size: 1.8em; color: var(--link); font-weight: bold; }
-@media (max-width: 560px) { .repair-pair { grid-template-columns: 1fr; } .repair-pair .arrow { transform: rotate(90deg); justify-self: center; } }
+/* Before → after sit on one line. If that would make the letters too small, they stack (app.js fitAll). */
+.repair-pair { display: flex; flex-wrap: nowrap; gap: 8px; align-items: center; }
+.repair-pair .board { flex: none; min-height: 0; padding: 10px; }
+.repair-pair .arrow { flex: none; font-size: calc(1.8em * var(--fit, 1)); color: var(--link); font-weight: bold; }
+.repair-pair.stacked { flex-direction: column; align-items: flex-start; }
+.repair-pair.stacked .arrow { transform: rotate(90deg); margin-left: 24px; }
 
 /* Fix It: rules broken, listed on the right */
 .broken { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 10px; }
@@ -561,6 +563,7 @@ html[data-one="on"] .ledger .step-row:not(.current) { display: none; }
 .place-row { display: flex; flex-wrap: wrap; gap: 10px; }
 .place-box {
   flex: 1 1 150px;
+  min-width: 0;
   padding: 8px 10px;
   background: #fff;
   color: #2b2540;
@@ -617,3 +620,66 @@ html[data-one="on"] .ledger .step-row:not(.current) { display: none; }
 .step-row div.caption { margin: 2px 0 6px; }
 .step-row div.caption p { margin: 0 0 2px; }
 .eq-full:last-child { border-bottom: 0; margin: 0; padding: 0; }
+
+/* Fit: one numeral is never split over two lines. app.js sets --fit below one when a line is too wide,
+   and the letters, bubbles and gaps on that line shrink with it. */
+.step-row .board, .eq-full, .eq-line, .place-body, .place-items, .eq-num { flex-wrap: nowrap; }
+.step-row .fit, .repair-pair { overflow: hidden; }
+.step-row .board { gap: calc(10px * var(--fit, 1)); padding: calc(12px * var(--fit, 1)); min-height: 0; }
+html .step-row .tile {
+  min-width: calc(var(--tile-w) * var(--fit, 1) * var(--big, 1));
+  height: calc(var(--tile-h) * var(--fit, 1) * var(--big, 1));
+  padding: 0 calc(8px * var(--fit, 1));
+  font-size: calc(var(--tile-fs) * var(--fit, 1) * var(--big, 1));
+}
+html .step-row .tile.pair { font-size: calc(var(--tile-fs) * 0.8 * var(--fit, 1) * var(--big, 1)); }
+html[data-tiles="big"] { --big: 1.25; }
+.eq-full { font-size: calc(1.3em * var(--fit, 1)); gap: calc(8px * var(--fit, 1)); }
+.eq-line { font-size: calc(1.3em * var(--fit, 1)); gap: calc(8px * var(--fit, 1)); }
+.place-body { font-size: calc(1.25em * var(--fit, 1)); }
+
+/* A replacement: the letters just put in sit together over one underline, like a bracket,
+   so it is clear which letters took the place of the faded ones. */
+.made {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: inherit;
+  padding-bottom: 12px;
+  margin-bottom: -4px;
+}
+.made::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 0;
+  height: 7px;
+  border: 3px solid var(--link);
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+}
+.board .made, .eq-num .made { gap: inherit; }
+.eq-num .made { padding-bottom: 8px; }
+.eq-num .made::after { height: 5px; border-width: 2px; }
+.eq-full .tok, .eq-line .tok, .place-body .tok { padding: 0.15em 0.4em; }
+.eq-num { gap: calc(3px * var(--fit, 1)); }
+.eq-full.wrap { flex-wrap: wrap; row-gap: 6px; }
+
+/* Narrow screens: less padding around the working, so the letters keep more room */
+@media (max-width: 560px) {
+  #tab-addsub .play, #tab-fix .play, #tab-regroup .play { padding: 10px; }
+  .step-row { grid-template-columns: 28px minmax(0, 1fr); gap: 6px; }
+  .step-row .step-num { width: 28px; height: 28px; font-size: 0.75em; }
+  .work { padding: 8px; }
+  .step-row .board { padding: calc(8px * var(--fit, 1)); }
+}
+.run { display: inline-flex; flex-wrap: nowrap; align-items: center; gap: inherit; }
+.step-row .board.wrap { flex-wrap: wrap; row-gap: calc(10px * var(--fit, 1)); }
+.repair-pair.stacked .board { max-width: 100%; }
+.step-row .board.wrap .made { flex-wrap: wrap; row-gap: calc(10px * var(--fit, 1)); }
+
+/* The entry box never pushes the page wider than a phone screen */
+.entry input { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.entry .big-btn { max-width: 100%; }
+.workbench > *, .entry > * { min-width: 0; }
