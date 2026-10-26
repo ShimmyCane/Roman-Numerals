@@ -72,55 +72,41 @@
     return el('div', `tile ${biggest} ${t.st}${t.ch.length > 1 ? ' pair' : ''}`, t.ch);
   }
 
-  // Letters that were just put in, side by side, sit together over one underline, so it is clear which
-  // letters are the replacement. makeTile draws one letter; letters with st 'new' are grouped.
-  function grouped(tiles, makeTile) {
-    const out = [];
-    let made = null;
-    tiles.forEach((t) => {
-      if (t.st !== 'new') {
-        made = null;
-        out.push(makeTile(t));
-        return;
-      }
-      if (!made) {
-        made = el('span', 'made');
-        out.push(made);
-      }
-      made.append(makeTile(t));
-    });
-    return out;
-  }
-
   // Letters of the same kind sit in one run (XXXX), so a very long pile that must break over two lines
   // breaks only where the letter changes, never in the middle of a run.
-  function runsOf(tiles) {
+  function runsOf(tiles, makeTile) {
     const runs = [];
     tiles.forEach((t) => {
       const last = runs[runs.length - 1];
-      if (last && last.dataset.ch === t.ch) return last.append(tileEl(t));
+      if (last && last.dataset.ch === t.ch) return last.append(makeTile(t));
       const run = el('span', 'run');
       run.dataset.ch = t.ch;
-      run.append(tileEl(t));
+      run.append(makeTile(t));
       runs.push(run);
     });
     return runs;
   }
 
-  // The letters just put in (st 'new') sit together over one underline.
-  function boardEl(tiles) {
-    const board = el('div', tiles.length ? 'board fit' : 'board empty-board');
+  // Runs of letters, with the letters just put in (st 'new') together over one underline.
+  function piecesOf(tiles, makeTile) {
+    const out = [];
     for (let i = 0; i < tiles.length;) {
       let j = i;
       while (j < tiles.length && (tiles[j].st === 'new') === (tiles[i].st === 'new')) j++;
-      const runs = runsOf(tiles.slice(i, j));
+      const runs = runsOf(tiles.slice(i, j), makeTile);
       if (tiles[i].st === 'new') {
         const made = el('span', 'made');
         made.append(...runs);
-        board.append(made);
-      } else board.append(...runs);
+        out.push(made);
+      } else out.push(...runs);
       i = j;
     }
+    return out;
+  }
+
+  function boardEl(tiles) {
+    const board = el('div', tiles.length ? 'board fit' : 'board empty-board');
+    board.append(...piecesOf(tiles, tileEl));
     return board;
   }
 
@@ -159,14 +145,18 @@
     });
     root.querySelectorAll('.fit').forEach((line) => {
       if (line.closest('.repair-pair')) return;
-      line.classList.remove('wrap');
+      line.classList.remove('wrap', 'piles');
       // Last resort: a long equation puts its numbers on more than one line, each number still whole;
       // a long pile breaks where the letter changes.
       // The equation keeps a readable size: it breaks between numbers before its letters get very small.
       const min = line.matches('.eq-full') ? EQ_MIN_FIT : MIN_FIT;
       if (fitOne(line, 1, min) === min && line.matches('.eq-full, .board') && tooWide(line)) {
         line.classList.add('wrap');
-        fitOne(line, WRAP_FIT);
+        // Still too wide: a long pile of letters in the equation breaks where the letter changes.
+        if (fitOne(line, WRAP_FIT) === MIN_FIT && tooWide(line) && line.matches('.eq-full')) {
+          line.classList.add('piles');
+          fitOne(line, WRAP_FIT);
+        }
       }
     });
   }
@@ -335,15 +325,29 @@
 
   // The whole equation, on its own line at the top of a row. Parts already taken away are crossed out,
   // and the last row adds = and the answer.
+  // Letters taken away are crossed out, letters just replaced are faded, and new letters sit over an underline.
+  const TOK_STATE = { cross: ' done', gone: ' gone', new: ' focus' };
+  // A pile (the letters after =, before they are regrouped) may break where the letter changes on a narrow
+  // screen. A numeral never breaks.
+  const numEl = (tiles, pile = false) => {
+    const num = el('span', pile ? 'eq-num pile' : 'eq-num');
+    num.append(...piecesOf(tiles, (t) => el('span', `tok${TOK_STATE[t.st] || ''}`, t.ch)));
+    return num;
+  };
+  // The equation's right side (after =) is ? until the left side is done; then the side being worked is in focus.
   function eqEl(eq) {
     const line = el('div', 'eq-full fit');
-    eq.items.forEach((it) => {
-      if (it.kind === 'op') return line.append(el('span', 'eq-op', it.text));
-      const num = el('span', 'eq-num');
-      num.append(...grouped(it.tiles, (t) => el('span', `tok${t.st === 'cross' ? ' done' : ''}${t.st === 'new' ? ' focus' : ''}`, t.ch)));
-      line.append(num);
-    });
+    const left = eq.focus ? el('span', `side${eq.focus === 'left' ? ' on' : ''}`) : line;
+    // A number already being worked on (letters crossed out or traded) is a pile too; one as written is not.
+    eq.items.forEach((it) => left.append(it.kind === 'op' ? el('span', 'eq-op', it.text) : numEl(it.tiles, it.tiles.some((t) => t.st !== 'normal'))));
+    if (left !== line) line.append(left);
     if (eq.result) line.append(el('span', 'eq-op', '='), el('span', 'tok res', eq.result));
+    else if (eq.right) {
+      line.append(el('span', 'eq-op', '='));
+      const right = el('span', `side${eq.focus === 'right' ? ' on' : ''}`);
+      right.append(eq.right === 'ask' ? el('span', 'tok ask', '?') : numEl(eq.right, true));
+      line.append(right);
+    }
     return line;
   }
 
@@ -356,6 +360,21 @@
 
   function addsubRow(s, i) {
     if (s.kind === 'start' || s.kind === 'repair' || s.kind === 'done') return fixRow(s, i);
+    if (s.kind === 'eq') {
+      // Regrouping: everything happens on the one equation line.
+      const row = el('div', 'step-row');
+      const inner = el('div');
+      const work = el('div', 'work');
+      work.append(eqEl(s.eq));
+      inner.append(captionEl(s.label), work);
+      if (s.ok !== undefined) {
+        const status = el('p', 'value');
+        status.append(mark(s.ok), ' ', s.ok ? 'Done' : 'Still not right');
+        inner.append(status);
+      }
+      row.append(el('div', 'step-num', Roman.toRoman(i + 1)), inner);
+      return row;
+    }
     const row = el('div', 'step-row');
     const inner = el('div');
     // The caption sits outside. The working sits in its own window, under the whole equation, so the two never blend.
@@ -388,26 +407,28 @@
       steppers.addsub.load(out.steps);
       return;
     }
-    // Regrouping: one pair at a time, left to right. Each pair starts with its own first row.
+    // Regrouping: one pair at a time, left to right, each on its own equation line.
     let current = p.terms[0];
     let steps = [];
+    if (p.terms.length > 2) {
+      const full = Roman.eqOf(p.terms, p.ops);
+      steps.push({ kind: 'eq', label: `Work two numbers at a time. First: ${p.terms[0]} ${p.ops[0] === '+' ? '+' : '−'} ${p.terms[1]}.`, eq: { ...full, right: 'ask', focus: 'left' } });
+    }
     for (let k = 1; k < p.terms.length; k++) {
       const term = p.terms[k];
-      const total = p.ops[k - 1] === '+' ? Roman.lenientValue(current) + Roman.lenientValue(term) : Roman.lenientValue(current) - Roman.lenientValue(term);
+      const op = p.ops[k - 1];
+      const total = op === '+' ? Roman.lenientValue(current) + Roman.lenientValue(term) : Roman.lenientValue(current) - Roman.lenientValue(term);
       if (total < 0) return steppers.addsub.load(steps, `${current} is less than ${term}. You cannot take away more than you have. Romans had no negative numbers.`);
       if (total === 0) return steppers.addsub.load(steps, 'Nothing is left. Romans had no zero.');
       if (total > Roman.MAX) return steppers.addsub.load(steps, `That is more than ${Roman.toRoman(Roman.MAX)}, the biggest this tool writes.`);
-      const plan = p.ops[k - 1] === '+' ? Roman.regroupPlan([current, term]) : Roman.takeAwayPlan(current, term);
-      // Each row shows the whole equation still to work: this pair, then the numbers after it.
-      const rest = Roman.eqOf(['', ...p.terms.slice(k + 1)], p.ops.slice(k)).items.slice(1);
-      plan.steps.forEach((st) => {
-        if (st.kind !== 'done') st.eq = { ...st.eq, items: st.eq.items.concat(rest) };
-        else if (rest.length) {
-          const next = Roman.eqOf([plan.result, ...p.terms.slice(k + 1)], p.ops.slice(k));
-          next.items[0].tiles = [{ ch: plan.result, st: 'new' }];
-          st.eq = next;
-        } else st.eq = Roman.eqOf(p.terms, p.ops, plan.result);
-      });
+      const plan = op === '+' ? Roman.addEquation([current, term]) : Roman.takeAwayEquation(current, term);
+      const done = plan.steps[plan.steps.length - 1];
+      // The last row of the whole sum shows the whole sum with its answer. Earlier pairs say what comes next.
+      if (k === p.terms.length - 1) {
+        if (p.terms.length > 2) done.eq = Roman.eqOf(p.terms, p.ops, plan.result);
+      } else {
+        done.label = `${done.label} Next: ${plan.result} ${p.ops[k] === '+' ? '+' : '−'} ${p.terms[k + 1]}.`;
+      }
       steps = steps.concat(plan.steps);
       current = plan.result;
     }

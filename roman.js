@@ -481,71 +481,192 @@
     return { steps: r.steps, result: r.cur, ok, value: total };
   }
 
-  // Take away by regrouping: open short forms, cross out the letters to take away, and when a letter is missing,
-  // trade one bigger letter for smaller ones (one V for five I's). Then regroup and write the short forms.
-  function takeAwayPlan(a, b) {
+  // ---------- Add & Subtract on one line ----------
+  // Everything happens in the equation itself: A − B = ?. Letters taken away are crossed out on both sides, a trade
+  // fades the letter it replaces and puts its pieces in its place, and once the left side is done, what is left is
+  // written after the = sign and regrouped there. Each step is { kind: 'eq', label, eq }, where eq has the left
+  // side (items), the right side (right: 'ask' for ?, or tiles) and which side is in focus.
+  // Tile states: normal, cross (taken away), gone (just replaced, faded), new (just put in).
+  const tile = (ch, st = 'normal') => ({ ch, st });
+  const copyTiles = (tiles) => tiles.map((t) => ({ ...t }));
+  const isOpen = (t) => t.st === 'normal';
+
+  // A list of letters in words: ['X', 'X', 'V'] is "two X's and V".
+  function listOf(chs) {
+    const counts = [];
+    chs.forEach((ch) => {
+      const last = counts[counts.length - 1];
+      if (last && last.ch === ch) last.n++;
+      else counts.push({ ch, n: 1 });
+    });
+    const parts = counts.map((c) => (c.n > 1 ? `${words(c.n)} ${c.ch}'s` : c.ch));
+    return parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0];
+  }
+
+  function equationSteps(sides, ops) {
+    const steps = [];
+    const state = { right: 'ask', focus: 'left' };
+    const snap = (label) => {
+      const items = [];
+      sides.forEach((tiles, k) => {
+        if (k) items.push({ kind: 'op', text: signOf(ops[k - 1]) });
+        items.push({ kind: 'num', tiles: copyTiles(tiles) });
+      });
+      steps.push({ kind: 'eq', label, eq: { items, right: state.right === 'ask' ? 'ask' : copyTiles(state.right), focus: state.focus } });
+      // After a step is shown, replaced letters leave and new letters become plain.
+      [...sides, ...(Array.isArray(state.right) ? [state.right] : [])].forEach((list) => {
+        for (let i = list.length - 1; i >= 0; i--) {
+          if (list[i].st === 'gone') list.splice(i, 1);
+          else if (list[i].st === 'new') list[i].st = 'normal';
+        }
+      });
+    };
+    // Fade tiles from..to and put new letters in their place.
+    const replace = (list, from, to, texts) => {
+      for (let i = from; i < to; i++) list[i].st = 'gone';
+      list.splice(to, 0, ...texts.map((ch) => tile(ch, 'new')));
+    };
+    // Where a run of plain letters spells text (VIIII), as [from, to], or null.
+    const findSeq = (list, text) => {
+      for (let i = 0; i < list.length; i++) {
+        let joined = '';
+        for (let j = i; j < list.length && isOpen(list[j]) && joined.length < text.length; j++) {
+          joined += list[j].ch;
+          if (joined === text) return [i, j + 1];
+        }
+      }
+      return null;
+    };
+    // Regroup the right side one trade at a time, then write the short forms. A short form left among other
+    // letters (V and IV) is opened first, and the letters put in order, so the trades can be seen.
+    const regroupRight = (total) => {
+      const right = state.right;
+      const joined = () => right.map((t) => t.ch).join('');
+      if (joined() !== toRoman(total)) {
+        for (let i = right.findIndex((t) => PAIR_PIECES[t.ch]); i >= 0; i = right.findIndex((t) => isOpen(t) && PAIR_PIECES[t.ch])) {
+          const pair = right[i].ch;
+          replace(right, i, i + 1, PAIR_PIECES[pair].split(''));
+          snap(`${pair} is a short way to write ${PAIR_PIECES[pair]}. Open it up.`);
+        }
+        const sorted = right.map((t) => t.ch).sort((x, y) => VALUE[y] - VALUE[x]);
+        if (sorted.join('') !== joined()) {
+          replace(right, 0, right.length, sorted);
+          snap('Put the letters in order, biggest first.');
+        }
+      }
+      for (let grew = true; grew;) {
+        grew = false;
+        for (const [from, to, n] of MERGE) {
+          const at = findSeq(right, from.repeat(n));
+          if (at) {
+            replace(right, at[0], at[1], [to]);
+            snap(`${REGROUP_WORDS[n]} ${from}'s make one ${to}.`);
+            grew = true;
+            break;
+          }
+        }
+      }
+      for (const [long, short] of SHORT_FORMS) {
+        const at = findSeq(right, long);
+        if (at) {
+          replace(right, at[0], at[1], [short]);
+          snap(`${long} is the long way. The short way is ${short}.`);
+        }
+      }
+      return right.map((t) => t.ch).join('');
+    };
+    return { steps, state, snap, replace, regroupRight };
+  }
+
+  // Take away: cross out what both numbers have in one move. When a letter is missing, open a short form or
+  // trade one bigger letter for smaller ones, one trade per step. Then write what is left after = and regroup.
+  function takeAwayEquation(a, b) {
     const total = lenientValue(a) - lenientValue(b);
     if (total < 1) return { steps: [], result: null, ok: false, value: total };
-    // The equation on top: the parts of b are crossed out as they are taken away.
-    const eq = eqOf([a, b], ['-']);
-    const bTiles = eq.items[2].tiles;
-    const settle = () => bTiles.forEach((t) => { if (t.st === 'new') t.st = 'normal'; });
-    const r = regroupSteps(a, `Start with ${a}. Take away ${b}.`, () => {
-      const now = copyEq(eq);
-      settle();
-      return now;
-    });
-    const crossB = (ch, n) => {
-      for (const t of bTiles) if (n > 0 && t.st === 'normal' && t.ch === ch) { t.st = 'cross'; n--; }
-    };
-    // A short form that both numbers have is taken away whole, before anything is opened.
-    const chunkAt = (str, text) => {
-      let pos = 0;
-      for (const c of chunks(str)) {
-        if (c.text === text) return pos;
-        pos += c.text.length;
+    const A = chunks(a).map((c) => tile(c.text));
+    const B = chunks(b).map((c) => tile(c.text));
+    const w = equationSteps([A, B], ['-']);
+    w.snap(`Start with ${a}. Take away ${b}.`);
+    let first = true;
+    for (let guard = 0; guard < 60; guard++) {
+      const need = B.filter(isOpen);
+      if (!need.length) break;
+      // Every letter (or short form) that both sides have is crossed out together, in one move.
+      const used = new Set();
+      const pairs = [];
+      need.forEach((bt) => {
+        const at = A.find((x) => isOpen(x) && !used.has(x) && x.ch === bt.ch);
+        if (at) {
+          used.add(at);
+          pairs.push([at, bt]);
+        }
+      });
+      if (pairs.length) {
+        pairs.forEach(([x, y]) => { x.st = 'cross'; y.st = 'cross'; });
+        const list = listOf(pairs.map(([, y]) => y.ch));
+        const them = pairs.length > 1 ? 'them' : 'it';
+        w.snap(first ? `Both numbers have ${list}. Take ${them} away: cross ${them} out on both sides.` : `Now take away ${list}: cross ${them} out on both sides.`);
+        first = false;
+        continue;
       }
-      return -1;
-    };
-    const rest = chunks(b).map((c) => c.text);
-    chunks(b).map((c) => c.text).filter((t) => PAIR_PIECES[t]).forEach((pair) => {
-      const at = chunkAt(r.cur, pair);
-      if (at < 0) return;
-      crossB(pair, 1);
-      r.change(at, at + 2, '', `Take away ${pair}. Both numbers have ${pair}.`);
-      rest.splice(rest.indexOf(pair), 1);
-    });
-    for (let m = /IV|IX|XL|XC|CD|CM/.exec(r.cur); m; m = /IV|IX|XL|XC|CD|CM/.exec(r.cur)) {
-      const open = PAIR_PIECES[m[0]];
-      r.change(m.index, m.index + 2, open, `${m[0]} is a short way to write ${open}. Open it up.`);
-    }
-    const restText = rest.join('');
-    const take = restText.replace(/IV|IX|XL|XC|CD|CM/g, (pair) => PAIR_PIECES[pair]);
-    if (take !== restText) {
-      // Open b's short forms in the equation too, so each letter to take away has its own tile.
-      const open = bTiles.flatMap((t) => (t.st === 'normal' && PAIR_PIECES[t.ch] ? PAIR_PIECES[t.ch].split('').map((ch) => ({ ch, st: 'new' })) : [t]));
-      bTiles.splice(0, bTiles.length, ...open.flatMap((t) => (t.st === 'normal' && t.ch.length > 1 ? t.ch.split('').map((ch) => ({ ch, st: 'normal' })) : [t])));
-      r.steps.push({ kind: 'repair', label: `${restText} is the same as ${take}. Those are the letters to take away.`, before: tilesOf(restText, 0, restText.length, 'cross'), after: tilesOf(take, 0, take.length, 'new'), eq: copyEq(eq) });
-      settle();
-    }
-    // Take away one kind of letter at a time, biggest first. The letters are in order, so each kind sits together.
-    for (const ch of [...new Set(take)]) {
-      const n = take.split(ch).length - 1;
-      const count = () => r.cur.split(ch).length - 1;
-      while (count() < n) {
-        let j = -1;
-        for (let i = 0; i < r.cur.length; i++) if (VALUE[r.cur[i]] > VALUE[ch]) j = i;
-        const big = r.cur[j];
-        r.change(j, j + 1, TRADE[big], `Not enough ${ch}'s. Trade one ${big} for ${TRADE[big].split('').join(' + ')}.`);
+      const big = need.reduce((m, t) => (lenientValue(t.ch) > lenientValue(m.ch) ? t : m));
+      if (PAIR_PIECES[big.ch]) {
+        const i = B.indexOf(big);
+        w.replace(B, i, i + 1, PAIR_PIECES[big.ch].split(''));
+        w.snap(`${big.ch} is the same as ${PAIR_PIECES[big.ch]}. Open it up, so each letter can be taken away.`);
+        continue;
       }
-      const at = r.cur.indexOf(ch);
-      crossB(ch, n);
-      r.change(at, at + n, '', n === 1 ? `Take away ${ch}.` : `Take away ${words(n)} ${ch}'s.`);
+      const pairA = A.find((x) => isOpen(x) && PAIR_PIECES[x.ch] && PAIR_PIECES[x.ch].includes(big.ch));
+      const bigger = A.filter((x) => isOpen(x) && x.ch.length === 1 && VALUE[x.ch] > VALUE[big.ch]);
+      if (!pairA && bigger.length) {
+        // Trade the last of the smallest letters that are bigger than the one we need.
+        const from = bigger.reduce((m, t) => (VALUE[t.ch] <= VALUE[m.ch] ? t : m));
+        const i = A.indexOf(from);
+        w.replace(A, i, i + 1, TRADE[from.ch].split(''));
+        w.snap(`Not enough ${big.ch}'s. Trade one ${from.ch} for ${TRADE[from.ch].split('').join(' + ')}.`);
+        continue;
+      }
+      const opening = pairA || A.find((x) => isOpen(x) && PAIR_PIECES[x.ch]);
+      if (!opening) break;
+      const i = A.indexOf(opening);
+      w.replace(A, i, i + 1, PAIR_PIECES[opening.ch].split(''));
+      w.snap(`${opening.ch} is a short way to write ${PAIR_PIECES[opening.ch]}. Open it up.`);
     }
-    r.finish();
-    const ok = r.cur === toRoman(total);
-    r.steps.push({ kind: 'done', tiles: tilesOf(r.cur), ok, result: r.cur, eq: eqOf([a, b], ['-'], r.cur) });
-    return { steps: r.steps, result: r.cur, ok, value: total };
+    // The left side is done. What is left goes after the = sign, in order, and is regrouped there.
+    w.state.right = A.filter(isOpen).map((t) => tile(t.ch, 'new')).sort((x, y) => lenientValue(y.ch) - lenientValue(x.ch));
+    w.state.focus = 'right';
+    w.snap(`All of ${b} is taken away. Write what is left after the = sign.`);
+    const result = w.regroupRight(total);
+    const ok = result === toRoman(total);
+    w.steps.push({ kind: 'eq', label: ok ? `Right form: ${result}.` : `Simplest form: ${result}.`, ok, result, eq: eqOf([a, b], ['-'], result) });
+    return { steps: w.steps, result, ok, value: total };
+  }
+
+  // Add: if the parts of both numbers already slot together in order, that is the answer. Otherwise open the
+  // short forms, put every letter after the = sign, biggest first, and regroup there.
+  function addEquation(terms) {
+    const total = terms.reduce((sum, t) => sum + lenientValue(t), 0);
+    const sides = terms.map((t) => chunks(t).map((c) => tile(c.text)));
+    const w = equationSteps(sides, terms.slice(1).map(() => '+'));
+    w.snap(`Add ${terms.join(' and ')}.`);
+    const byBig = (x, y) => lenientValue(y.ch) - lenientValue(x.ch);
+    const slotted = sides.flat().slice().sort(byBig);
+    if (slotted.map((t) => t.ch).join('') !== toRoman(total)) {
+      sides.forEach((list) => {
+        for (let i = list.findIndex((t) => PAIR_PIECES[t.ch]); i >= 0; i = list.findIndex((t) => isOpen(t) && PAIR_PIECES[t.ch])) {
+          const pair = list[i].ch;
+          w.replace(list, i, i + 1, PAIR_PIECES[pair].split(''));
+          w.snap(`${pair} is a short way to write ${PAIR_PIECES[pair]}. Open it up.`);
+        }
+      });
+    }
+    w.state.right = sides.flat().map((t) => tile(t.ch, 'new')).sort(byBig);
+    w.state.focus = 'right';
+    w.snap('Put all the letters together after the = sign, biggest first.');
+    const result = w.regroupRight(total);
+    const ok = total <= MAX && result === toRoman(total);
+    w.steps.push({ kind: 'eq', label: ok ? `Right form: ${result}.` : `Simplest form: ${result}.`, ok, result, eq: eqOf(terms, terms.slice(1).map(() => '+'), result) });
+    return { steps: w.steps, result, ok, value: total };
   }
 
   // Read "XL + XX - IX" into terms and operators.
@@ -621,7 +742,7 @@
 
   return {
     VALUE, PAIR_PIECES, TRADE, MAX, LETTER_LIMIT, QUIZ_MAX_TYPES, TRUE_FALSE, DISARRANGEABLE, RANDOM_NUMERALS,
-    lenientValue, eqOf, toRoman, words, chunks, check, calculate, repairPlan, regroupPlan, takeAwayPlan, firstRepair, parse, disarrange,
+    lenientValue, eqOf, toRoman, words, chunks, check, calculate, repairPlan, regroupPlan, addEquation, takeAwayEquation, firstRepair, parse, disarrange,
     randomNumeral, randomSum, randomDisarranged,
   };
 });
