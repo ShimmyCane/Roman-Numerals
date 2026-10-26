@@ -585,15 +585,15 @@
 
   // ---------- Random: each button makes a numeral or sum, then runs it like a typed one ----------
   const randomMakers = {
-    addsub: { entry: 'addsub', make: (harder) => Roman.randomEquation(harder).text },
+    addsub: { entry: 'addsub', make: (level) => (level === 'half' ? Roman.randomHalfEquation() : Roman.randomEquation(level === 'harder')).text },
     fixbad: { entry: 'fix', make: () => Roman.randomDisarranged().numeral },
     regroup: { entry: 'regroup', make: randomAddition },
   };
   const runners = { addsub: runAddSub, fix: runFix, regroup: runRegroup };
 
-  function runRandom(key, harder = false) {
+  function runRandom(key, level) {
     const { entry, make } = randomMakers[key];
-    const text = make(harder);
+    const text = make(level);
     $(`form[data-entry="${entry}"] input`).value = text;
     remember(entry, text);
     runners[entry](text);
@@ -1065,7 +1065,7 @@
       });
     });
 
-    $$('[data-random]').forEach((b) => b.addEventListener('click', () => runRandom(b.dataset.random, 'harder' in b.dataset)));
+    $$('[data-random]').forEach((b) => b.addEventListener('click', () => runRandom(b.dataset.random, b.dataset.level)));
     initPractice();
 
     $$('[data-undo]').forEach((b) => b.addEventListener('click', () => {
