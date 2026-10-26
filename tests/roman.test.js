@@ -66,86 +66,79 @@ test('numbers above 3999 are not accepted', () => {
   assert.ok(Roman.calculate(['MMM', 'MMM'], ['+']).error);
 });
 
-test('calculate: XL - XX = XX, with the second number broken into its own step', () => {
-  const r = Roman.calculate(['XL', 'XX'], ['-']);
-  assert.equal(r.error, null);
-  assert.equal(r.result, 'XX');
-  assert.equal(r.value, 20);
-  const i = r.steps.findIndex((s) => s.text.startsWith('Second number'));
-  assert.ok(i > 0, 'second number has its own step');
-  assert.equal(r.steps[r.steps.length - 1].text, 'Simplest form: XX.');
+test('calculate: the first step is the whole sum', () => {
+  const r = Roman.calculate(['XXIX', 'XXII'], ['+']);
+  assert.equal(r.steps[0].text, 'Full sum: XXIX + XXII.');
+  assert.deepEqual(r.steps[0].tokens.map((t) => t.text), ['X', 'X', 'IX', '+', 'X', 'X', 'I', 'I']);
 });
 
-test('calculate: the first step is the whole sum on one line', () => {
-  const r = Roman.calculate(['XLI', 'XIX'], ['+']);
-  assert.equal(r.steps[0].text, 'Full sum: XLI + XIX.');
-  assert.deepEqual(r.steps[0].line.map((t) => t.text), ['XL', 'I', '+', 'X', 'IX']);
+test('calculate: X + LXXV is one slide-in step (the short way)', () => {
+  const r = Roman.calculate(['X', 'LXXV'], ['+']);
+  assert.equal(r.result, 'LXXXV');
+  assert.equal(r.steps.length, 2);
+  assert.equal(r.steps[1].text, 'Slide X in among the letters of LXXV: LXXXV. Nothing else needs to change.');
+  assert.equal(r.steps[1].tokens.filter((t) => t.st === 'focus').map((t) => t.text).join(''), 'X');
 });
 
-test('calculate: XLI + XIX = LX, with IX broken into V and IIII, then regrouped', () => {
-  const r = Roman.calculate(['XLI', 'XIX'], ['+']);
-  assert.equal(r.result, 'LX');
-  assert.equal(r.value, 60);
-  const brk = r.steps.find((s) => s.text === 'IX is 9. Write it as V + I + I + I + I.');
-  assert.ok(brk, 'IX break step');
-  const focus = brk.line.find((t) => t.focus);
-  assert.equal(focus.text, 'IX');
-  assert.equal(focus.becomes, 'VIIII');
-  assert.ok(r.steps.some((s) => s.text === 'Put 5 X\'s together. They make one L.'));
+test('calculate: XXIX + XXII works by place and never opens IX into VIIII', () => {
+  const r = Roman.calculate(['XXIX', 'XXII'], ['+']);
+  assert.equal(r.result, 'LI');
+  assert.ok(!r.steps.some((s) => s.text.includes('VIIII') || s.text.includes('V + I + I')), 'no needless expansion');
+  assert.ok(r.steps.some((s) => s.text === 'Ones: IX (9) + II (2) = 11. Write XI.'));
+  assert.ok(r.steps.some((s) => s.text.startsWith('XI has one X in it') && s.text.includes('Move the X up to the tens')));
+  assert.ok(r.steps.some((s) => s.text === 'Tens: XX (20) + XX (20) + X (10) = 50. Write L.'));
+  assert.equal(r.steps[r.steps.length - 1].text, 'Put the places together: L + I = LI.');
 });
 
-test('calculate: the sum reaches an unsorted = row, and only then is the right side regrouped', () => {
-  const r = Roman.calculate(['XCVI', 'XCIII'], ['-']);
-  const eqIdx = r.steps.findIndex((s) => s.text.startsWith('The = sign'));
-  assert.ok(eqIdx > 0);
-  assert.ok(r.steps[eqIdx].line.some((t) => t.eq));
-  assert.ok(r.steps.slice(eqIdx + 1).every((s) => s.line.some((t) => t.eq)));
-  assert.equal(r.steps[r.steps.length - 1].text, 'Simplest form: III.');
-});
-
-test('calculate: XCVI - XCIII matches XC on both sides, then trades one V for I\'s', () => {
-  const r = Roman.calculate(['XCVI', 'XCIII'], ['-']);
-  assert.deepEqual(r.steps[0].line.map((t) => t.text), ['XC', 'V', 'I', '−', 'XC', 'I', 'I', 'I']);
-  const same = r.steps.find((s) => s.text === 'Take away XC. Both sides have XC.');
-  assert.ok(same);
-  assert.ok(r.steps.some((s) => s.text === 'No I to take away. Trade one V (5) for I + I + I + I + I, which is also 5.'));
-  assert.ok(r.steps.some((s) => s.text === "Take away 3 I's."));
-  assert.equal(r.result, 'III');
-});
-
-test('calculate: a broken pair is shown on the line with its arrow, and the other parts stay put', () => {
-  const r = Roman.calculate(['XL', 'XX'], ['-']);
-  const brk = r.steps.find((s) => s.line.some((t) => t.focus && t.becomes === 'XXXX'));
-  assert.ok(brk, 'XL expands to XXXX in place');
-});
-
-test('calculate: every take-away step crosses out as many parts as its caption says', () => {
-  const r = Roman.calculate(['XL', 'IX'], ['-']);
-  const takes = r.steps.filter((s) => s.text.startsWith('Take away'));
-  assert.ok(takes.length > 0);
-  for (const s of takes) {
-    const m = s.text.match(/^Take away (\d+) /);
-    const n = m ? Number(m[1]) : 1;
-    const crossed = s.line.filter((t) => t.st === 'done' && !t.op && !t.eq && t.side === 'left').length;
-    assert.ok(crossed >= n, s.text);
+test('calculate: each place step changes one place (two for a carry or a borrow), and shows what it was', () => {
+  for (const [t, o] of [[['XXIX', 'XXII'], ['+']], [['XLI', 'IX'], ['-']], [['C', 'I'], ['-']], [['CXCV', 'XV'], ['+']]]) {
+    const r = Roman.calculate(t, o);
+    for (const s of r.steps.filter((x) => x.kind === 'places').slice(1)) {
+      const changed = s.boxes.filter((b) => b.focus);
+      assert.ok(changed.length >= 1, s.text);
+      assert.ok(changed.every((b) => Array.isArray(b.was) || b.items.some((it) => it.fresh)), s.text);
+      if (!/Borrow|Move/.test(s.text)) assert.equal(changed.length, 1, s.text);
+    }
   }
-  assert.equal(r.result, 'XXXI');
 });
 
-test('calculate: the second number gets its own step before anything is taken away', () => {
-  const r = Roman.calculate(['XL', 'XX'], ['-']);
-  const i = r.steps.findIndex((s) => s.text.startsWith('Second number XX'));
-  assert.ok(i > 0);
-  assert.equal(r.steps[i + 1].text, 'XL is 40. Write it as X + X + X + X.');
-  assert.equal(r.steps[i + 2].text, "Take away 2 X's.");
-  assert.equal(r.result, 'XX');
+test('calculate: XCVI - XCIII takes away place by place', () => {
+  const r = Roman.calculate(['XCVI', 'XCIII'], ['-']);
+  assert.equal(r.result, 'III');
+  assert.ok(r.steps.some((s) => s.text === 'Ones: VI (6) − III (3) = 3. Write III.'));
+  assert.ok(r.steps.some((s) => s.text === 'Tens: XC (90) − XC (90) = 0. Nothing is left in the tens.'));
 });
 
-test('calculate: XL + XX - IX = LI (multi-step, needs a trade)', () => {
+test('calculate: XLI - IX borrows one X from the tens', () => {
+  const r = Roman.calculate(['XLI', 'IX'], ['-']);
+  assert.equal(r.result, 'XXXII');
+  assert.ok(r.steps.some((s) => s.text === 'Ones: I is less than IX. Borrow one X from the tens: XL becomes XXX, and I becomes XI.'));
+});
+
+test('calculate: C - I borrows across an empty place (the tens get XC)', () => {
+  const r = Roman.calculate(['C', 'I'], ['-']);
+  assert.equal(r.result, 'XCIX');
+  assert.ok(r.steps.some((s) => s.text.includes('the tens get XC')));
+});
+
+test('calculate: LXXV - XV is the short way (cross out, then what is left)', () => {
+  const r = Roman.calculate(['LXXV', 'XV'], ['-']);
+  assert.equal(r.result, 'LX');
+  assert.equal(r.steps.length, 3);
+  assert.equal(r.steps[1].tokens.filter((t) => t.st === 'cross').map((t) => t.text).join(''), 'XV');
+});
+
+test('calculate: XL + XX - IX = LI (two pairs, one after the other)', () => {
   const r = Roman.calculate(['XL', 'XX', 'IX'], ['+', '-']);
   assert.equal(r.result, 'LI');
   assert.equal(r.value, 51);
-  assert.ok(r.steps.some((s) => /trade/i.test(s.text)));
+  assert.ok(r.steps.some((s) => s.text === 'Next: LX − IX.'));
+});
+
+test('calculate: nothing left is reported, not shown as a numeral', () => {
+  const r = Roman.calculate(['XL', 'XL'], ['-']);
+  assert.ok(r.error);
+  assert.equal(r.result, null);
 });
 
 test('calculate: negative results are reported, not shown as numerals', () => {

@@ -556,3 +556,21 @@ html[data-calm="on"] *, html[data-calm="on"] *::before, html[data-calm="on"] *::
 /* Ideas to try (settings) */
 html[data-tiles="big"] .tile { min-width: calc(var(--tile-w) * 1.3); height: calc(var(--tile-h) * 1.2); font-size: calc(var(--tile-fs) * 1.2); }
 html[data-one="on"] .ledger .step-row:not(.current) { display: none; }
+
+/* Add & Subtract: place boxes (thousands, hundreds, tens, ones), like the columns of a counting board */
+.place-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.place-box {
+  flex: 1 1 150px;
+  padding: 8px 10px;
+  background: #fff;
+  color: #2b2540;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+}
+.place-box.focus { background: #fffbe6; box-shadow: 0 0 0 4px var(--link); }
+.place-label { font-size: 0.75em; font-weight: bold; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.75; }
+.place-body { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; font-size: 1.25em; font-weight: bold; }
+.place-items { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.place-items.was { opacity: 0.45; text-decoration: line-through; }
+.place-empty { font-size: 0.8em; font-style: italic; opacity: 0.6; }
+.place-box .tok { font-family: var(--tile-font, inherit); }

@@ -124,180 +124,191 @@
   }
 
   // ---------- Add & Subtract ----------
-  // The whole sum is one line of chunks (XL, I, +, X, IX ...). Parts are expanded in place (XL shows an arrow to XXXX),
-  // matching parts are crossed out on both sides, and what is left goes to the right of '=', unsorted.
-  // The right side is then regrouped one step at a time and written in simplest form.
-  //   token: { text, op?, eq?, term?, side: 'left' | 'right', st: 'todo' | 'new' | 'done', focus?, becomes? }
+  // Worked like a counting board. First the short way: if the letters only need to slide together (or come out),
+  // that is one step. Otherwise the numbers are lined up by place (thousands, hundreds, tens, ones) and worked one
+  // place at a time from the ones up. A place that reaches ten moves one letter up to the next place (carry).
+  // A place that is short borrows one letter from the place above. Each step changes one place, so each row shows one change.
+  //   step: { text, kind: 'line', tokens: [{ text, st: 'normal' | 'focus' | 'cross', op? }], value }
+  //       | { text, kind: 'places', boxes: [{ label, items: [{ text, sign }], focus, was }], value }
+  const PLACES = [
+    { label: 'Thousands', unit: 1000, one: 'M' },
+    { label: 'Hundreds', unit: 100, one: 'C' },
+    { label: 'Tens', unit: 10, one: 'X' },
+    { label: 'Ones', unit: 1, one: 'I' },
+  ];
+
+  // The part of a number that sits in one place: 29 has XX in the tens and IX in the ones.
+  const placePart = (n, unit) => {
+    const d = Math.floor(n / unit) % 10;
+    return d ? toRoman(d * unit) : '';
+  };
+  const blocksOf = (s) => chunks(s).map((c) => c.text);
+  const byValue = (a, b) => lenientValue(b) - lenientValue(a);
+  const copyItems = (items) => items.map((it) => ({ ...it }));
+  const signOf = (op) => (op === '+' ? '+' : '−');
+
   function calculate(terms, ops) {
     const steps = [];
-    const line = [];
+    const line = (text, tokens, value = null) => steps.push({ text, kind: 'line', tokens, value });
+    const plain = (s) => blocksOf(s).map((t) => ({ text: t, st: 'normal' }));
+    const pairTokens = (a, op, b) => [...plain(a), { text: signOf(op), op: true }, ...plain(b)];
 
-    terms.forEach((term, k) => {
-      if (k > 0) line.push({ op: true, text: ops[k - 1] === '+' ? '+' : '−' });
-      chunks(term).forEach((c) => line.push({ text: c.text, st: 'todo', term: k, side: 'left' }));
-    });
+    // Work out one place at a time, from the ones up. dir is +1 to add, -1 to take away.
+    const byPlace = (a, b, dir, result, total) => {
+      const va = lenientValue(a);
+      const vb = lenientValue(b);
+      const boxes = PLACES.map((p) => ({
+        ...p,
+        items: [{ text: placePart(va, p.unit), sign: 1 }, { text: placePart(vb, p.unit), sign: dir }].filter((it) => it.text),
+      }));
+      const lower = (bx) => bx.label.toLowerCase();
+      const posItem = (bx) => bx.items.find((it) => it.sign > 0);
+      const posValue = (bx) => (posItem(bx) ? lenientValue(posItem(bx).text) : 0);
+      // Set the first number's part of a place to a new value (0 empties it).
+      const setPos = (bx, v) => {
+        const it = posItem(bx);
+        if (v > 0 && it) it.text = toRoman(v);
+        else if (v > 0) bx.items.unshift({ text: toRoman(v), sign: 1 });
+        else if (it) bx.items.splice(bx.items.indexOf(it), 1);
+      };
+      // Record the places. Changed places carry what they held before (was), so the row can show old → new.
+      const snap = (text, changed = {}) => steps.push({
+        text,
+        kind: 'places',
+        value: null,
+        boxes: boxes
+          .filter((bx) => bx.items.length || changed[bx.unit])
+          .map((bx) => ({
+            label: bx.label,
+            items: copyItems(bx.items),
+            focus: Boolean(changed[bx.unit]),
+            was: Array.isArray(changed[bx.unit]) ? changed[bx.unit] : null,
+          })),
+      }) && boxes.forEach((bx) => bx.items.forEach((it) => { delete it.fresh; }));
 
-    // Record one step. Pieces that just appeared stop being new, so later steps do not replay their animation.
-    const snap = (text, value = null) => {
-      steps.push({ text, line: line.map((t) => ({ ...t })), value });
-      line.forEach((t) => {
-        delete t.focus;
-        delete t.becomes;
-        if (t.st === 'new') t.st = 'todo';
+      snap('Line up the places, like the columns of a counting board. Work from the ones up.');
+      const order = boxes.slice().reverse();
+      order.forEach((bx, idx) => {
+        const up = order[idx + 1];
+        if (dir > 0) {
+          if (bx.items.length < 2) return;
+          const was = copyItems(bx.items);
+          const sum = was.reduce((t, it) => t + lenientValue(it.text), 0);
+          const written = toRoman(sum);
+          bx.items = [{ text: written, sign: 1 }];
+          snap(`${bx.label}: ${was.map((it) => `${it.text} (${lenientValue(it.text)})`).join(' + ')} = ${sum}. Write ${written}.`, { [bx.unit]: was });
+          if (sum >= 10 * bx.unit) {
+            const was2 = copyItems(bx.items);
+            const rest = sum - 10 * bx.unit;
+            bx.items = rest ? [{ text: toRoman(rest), sign: 1 }] : [];
+            // The letter that moves up is marked as new in its place, instead of crossing out the whole place.
+            up.items.push({ text: up.one, sign: 1, fresh: true });
+            snap(rest
+              ? `${written} has one ${up.one} in it, which is ${10 * bx.unit}. Move the ${up.one} up to the ${lower(up)}. ${toRoman(rest)} stays in the ${lower(bx)}.`
+              : `${written} is ${10 * bx.unit}. Move it up to the ${lower(up)}. Nothing stays in the ${lower(bx)}.`,
+            { [bx.unit]: was2, [up.unit]: 'added' });
+          }
+          return;
+        }
+        const neg = bx.items.find((it) => it.sign < 0);
+        if (!neg) return;
+        if (posValue(bx) < lenientValue(neg.text)) {
+          // Borrow from the nearest place above that has something. Places in between get nine of their letter.
+          let j = idx + 1;
+          while (!posValue(order[j])) j++;
+          const src = order[j];
+          const changed = {};
+          [src, ...order.slice(idx + 1, j), bx].forEach((b2) => { changed[b2.unit] = copyItems(b2.items); });
+          const oldSrc = posItem(src).text;
+          const oldCur = posItem(bx) ? posItem(bx).text : '';
+          setPos(src, posValue(src) - src.unit);
+          const middle = order.slice(idx + 1, j).map((m) => {
+            setPos(m, 9 * m.unit);
+            return `, the ${lower(m)} get ${toRoman(9 * m.unit)}`;
+          }).join('');
+          setPos(bx, posValue(bx) + 10 * bx.unit);
+          const short = oldCur ? `${oldCur} is less than ${neg.text}` : `there is nothing here to take ${neg.text} from`;
+          const fromSrc = posItem(src) ? `${oldSrc} becomes ${posItem(src).text}` : `${oldSrc} is used up`;
+          const toCur = oldCur ? `${oldCur} becomes ${posItem(bx).text}` : `the ${lower(bx)} get ${posItem(bx).text}`;
+          snap(`${bx.label}: ${short}. Borrow one ${src.one} from the ${lower(src)}: ${fromSrc}${middle}, and ${toCur}.`, changed);
+        }
+        const was = copyItems(bx.items);
+        const top = posItem(bx).text;
+        const d = posValue(bx) - lenientValue(neg.text);
+        bx.items = d ? [{ text: toRoman(d), sign: 1 }] : [];
+        snap(`${bx.label}: ${top} (${lenientValue(top)}) − ${neg.text} (${lenientValue(neg.text)}) = ${d}. `
+          + (d ? `Write ${toRoman(d)}.` : `Nothing is left in the ${lower(bx)}.`), { [bx.unit]: was });
       });
+
+      const parts = boxes.filter((bx) => bx.items.length).map((bx) => bx.items[0].text);
+      const joined = parts.join('');
+      line(parts.length > 1 ? `Put the places together: ${parts.join(' + ')} = ${joined}.` : `That gives ${joined}.`, plain(joined), total);
+      if (joined !== result) line(`Write it in the simplest form: ${result}.`, plain(result), total);
+      return { result };
     };
 
-    // Live parts: not crossed out, and on the given side. Each comes with its index on the line.
-    const live = (side, pred = () => true) => line
-      .map((t, i) => ({ t, i }))
-      .filter(({ t }) => !t.op && !t.eq && t.side === side && t.st === 'todo' && pred(t));
-
-    const rightLive = () => line
-      .map((t, i) => ({ t, i }))
-      .filter(({ t }) => !t.op && !t.eq && t.side === 'right' && t.st !== 'done');
-    const rightValue = () => rightLive().reduce((sum, { t }) => sum + lenientValue(t.text), 0);
-
-    // Expand one left-side part in place. It stays on the line, crossed out, with an arrow to its pieces.
-    const expand = (i) => {
-      const t = line[i];
-      const pieces = PAIR_PIECES[t.text] || TRADE[t.text];
-      t.st = 'done';
-      t.focus = true;
-      t.becomes = pieces;
-      line.splice(i + 1, 0, ...pieces.split('').map((ch) => ({ text: ch, st: 'new', term: t.term, side: 'left' })));
-      return pieces;
+    const addPair = (a, b) => {
+      const total = lenientValue(a) + lenientValue(b);
+      if (total > MAX) {
+        const error = `That is more than ${MAX}, the biggest this tool writes.`;
+        line(error, pairTokens(a, '+', b));
+        return { error, value: total };
+      }
+      const result = toRoman(total);
+      // The short way: slide the smaller number's letters in among the bigger one's. If that is already simplest, stop.
+      const small = blocksOf(a).length <= blocksOf(b).length ? a : b;
+      const big = small === a ? b : a;
+      const merged = [...blocksOf(big).map((t) => ({ text: t, st: 'normal' })), ...blocksOf(small).map((t) => ({ text: t, st: 'focus' }))]
+        .sort((x, y) => byValue(x.text, y.text));
+      if (merged.map((t) => t.text).join('') === result) {
+        line(`Slide ${small} in among the letters of ${big}: ${result}. Nothing else needs to change.`, merged, total);
+        return { result };
+      }
+      return byPlace(a, b, 1, result, total);
     };
 
-    // Make sure n live parts of this letter are on the left, from parts of the other numbers.
-    // If there are not enough, the smallest bigger part is expanded, one step at a time.
-    const ensure = (ch, n, skipTerm) => {
-      const count = () => live('left', (t) => t.text === ch && t.term !== skipTerm).length;
-      while (count() < n) {
-        const bigger = live('left', (t) => t.term !== skipTerm && lenientValue(t.text) > VALUE[ch]);
-        if (!bigger.length) throw new Error(`Not enough to take away ${ch}`);
-        const pick = bigger.reduce((a, b) => (lenientValue(b.t.text) < lenientValue(a.t.text) ? b : a));
-        const text = pick.t.text;
-        const pieces = expand(pick.i);
-        snap(PAIR_PIECES[text]
-          ? `${text} is ${lenientValue(text)}. Write it as ${pieces.split('').join(' + ')}.`
-          : `No ${ch} to take away. Trade one ${text} (${lenientValue(text)}) for ${pieces.split('').join(' + ')}, which is also ${lenientValue(text)}.`);
+    const subPair = (a, b) => {
+      const diff = lenientValue(a) - lenientValue(b);
+      if (diff < 0) {
+        const error = 'You cannot take away more than you have. Romans had no negative numbers.';
+        line(`${a} is less than ${b}. ${error}`, pairTokens(a, '-', b));
+        return { error, value: null };
       }
+      if (diff === 0) {
+        const error = 'Nothing is left. Romans had no zero.';
+        line(error, pairTokens(a, '-', b), 0);
+        return { error, value: 0 };
+      }
+      const result = toRoman(diff);
+      // The short way: every part of the second number is also a part of the first. Cross them out; if what is left
+      // is already simplest, that is the answer.
+      const left = plain(a);
+      const fits = blocksOf(b).every((t) => {
+        const hit = left.find((x) => x.st === 'normal' && x.text === t);
+        if (hit) hit.st = 'cross';
+        return Boolean(hit);
+      });
+      if (fits && left.filter((x) => x.st === 'normal').map((x) => x.text).join('') === result) {
+        line(`Take ${b} out of ${a}: cross out ${blocksOf(b).join(', ')}.`, left);
+        line(`${result} is left.`, plain(result), diff);
+        return { result };
+      }
+      return byPlace(a, b, -1, result, diff);
     };
 
-    // Subtract the second number. Its parts are matched on the left and crossed out together.
-    const subtract = (k) => {
-      const isSecond = (t) => !t.op && !t.eq && t.term === k && t.side === 'left' && t.st === 'todo';
-      line.forEach((t) => { if (t.term === k && !t.op) t.focus = true; });
-      snap(`Second number ${terms[k]} = ${lenientValue(terms[k])}.`);
-      for (;;) {
-        const idx = line.findIndex(isSecond);
-        if (idx < 0) break;
-        const part = line[idx];
-        if (PAIR_PIECES[part.text]) {
-          const match = live('left', (t) => t.text === part.text && t.term !== k)[0];
-          if (match) {
-            part.st = 'done';
-            part.focus = true;
-            match.t.st = 'done';
-            match.t.focus = true;
-            snap(`Take away ${part.text}. Both sides have ${part.text}.`);
-          } else {
-            const pieces = expand(idx);
-            snap(`${part.text} is ${lenientValue(part.text)}. Write it as ${pieces.split('').join(' + ')}.`);
-          }
-          continue;
-        }
-        // A run of the same letter from the second number is taken away in one step.
-        const group = line.map((t, i) => ({ t, i })).filter(({ t }) => isSecond(t) && t.text === part.text);
-        ensure(part.text, group.length, k);
-        const takers = live('left', (t) => t.text === part.text && t.term !== k).slice(0, group.length);
-        const second = line.map((t, i) => ({ t, i })).filter(({ t }) => isSecond(t) && t.text === part.text);
-        takers.forEach(({ t }) => { t.st = 'done'; t.focus = true; });
-        second.forEach(({ t }) => { t.st = 'done'; t.focus = true; });
-        snap(second.length === 1 ? `Take away ${part.text}.` : `Take away ${second.length} ${part.text}'s.`);
-      }
-    };
+    line(`Full sum: ${terms.map((t, k) => (k ? `${signOf(ops[k - 1])} ${t}` : t)).join(' ')}.`,
+      terms.flatMap((t, k) => (k ? [{ text: signOf(ops[k - 1]), op: true }, ...plain(t)] : plain(t))));
 
-    // Replace each left-side pair with its pieces, so every letter can be grouped.
-    const breakLeftPairs = () => {
-      for (;;) {
-        const i = line.findIndex((t) => !t.op && !t.eq && t.side === 'left' && t.st === 'todo' && PAIR_PIECES[t.text]);
-        if (i < 0) break;
-        const text = line[i].text;
-        const pieces = expand(i);
-        snap(`${text} is ${lenientValue(text)}. Write it as ${pieces.split('').join(' + ')}.`);
-      }
-    };
-
-    // Regroup the right side one letter-group at a time, then write it in order and in simplest form.
-    const regroup = (value) => {
-      let grew = true;
-      while (grew) {
-        grew = false;
-        for (const [from, to, n] of MERGE) {
-          const have = rightLive().filter(({ t }) => t.text === from);
-          if (have.length >= n) {
-            have.slice(0, n).forEach(({ t }) => { t.st = 'done'; t.focus = true; });
-            line.push({ text: to, st: 'new', side: 'right' });
-            snap(`Put ${n} ${from}'s together. They make one ${to}.`, value());
-            grew = true;
-            break;
-          }
-        }
-      }
-    };
-
-    const rewrite = (texts, caption, value) => {
-      rightLive().forEach(({ t }) => { t.st = 'done'; t.focus = true; });
-      texts.forEach((text) => line.push({ text, st: 'new', side: 'right' }));
-      snap(caption, value);
-    };
-
-    try {
-      snap(`Full sum: ${terms.map((t, k) => (k ? `${ops[k - 1] === '+' ? '+' : '−'} ${t}` : t)).join(' ')}.`);
-
-      for (let k = 1; k < terms.length; k++) {
-        if (ops[k - 1] === '+') {
-          line.forEach((t) => { if (t.term === k && !t.op) t.focus = true; });
-          snap(`Add ${terms[k]} = ${lenientValue(terms[k])}.`);
-        } else {
-          subtract(k);
-        }
-      }
-
-      breakLeftPairs();
-      const leftovers = live('left');
-      leftovers.forEach(({ t }) => { t.st = 'done'; t.focus = true; });
-      line.push({ op: true, eq: true, text: '=' });
-      leftovers.forEach(({ t }) => line.push({ text: t.text, st: 'new', side: 'right' }));
-      const value = rightValue();
-      if (value < 1 || value > MAX) {
-        const error = value < 1 ? 'Zero has no Roman numeral.' : `That is more than ${MAX}, the biggest this tool writes.`;
-        snap(error, value);
-        return { steps, value, result: null, error };
-      }
-      snap('The = sign: the rest is the answer. It is not in order yet.', value);
-
-      regroup(rightValue);
-
-      const result = toRoman(rightValue());
-      const current = rightLive().map(({ t }) => t.text);
-      if (current.join('') === result) {
-        rightLive().forEach(({ t }) => { t.focus = true; });
-        snap(`Simplest form: ${result}.`, rightValue());
-      } else {
-        const ordered = current.slice().sort((a, b) => lenientValue(b) - lenientValue(a));
-        if (ordered.join('') !== current.join('')) {
-          rewrite(ordered, `Put the pieces in order: ${ordered.join(' ')}.`, rightValue());
-        }
-        rewrite(chunks(result).map((c) => c.text), `Build it back up: ${result}.`, rightValue());
-      }
-      return { steps, value: rightValue(), result, error: null };
-    } catch (err) {
-      const error = 'Romans had no negative numbers. Try a bigger first number.';
-      snap('Stop here. There is not enough to take away, and Romans had no negative numbers.');
-      return { steps, value: null, result: null, error };
+    let current = terms[0];
+    for (let k = 1; k < terms.length; k++) {
+      const op = ops[k - 1];
+      if (terms.length > 2) line(`Next: ${current} ${signOf(op)} ${terms[k]}.`, pairTokens(current, op, terms[k]));
+      const out = op === '+' ? addPair(current, terms[k]) : subPair(current, terms[k]);
+      if (out.error) return { steps, value: out.value === undefined ? null : out.value, result: null, error: out.error };
+      current = out.result;
     }
+    if (terms.length === 1) line(`${current} is already a whole number. Nothing to add or take away.`, plain(current), lenientValue(current));
+    return { steps, value: lenientValue(current), result: current, error: null };
   }
 
   // ---------- Fix It ----------

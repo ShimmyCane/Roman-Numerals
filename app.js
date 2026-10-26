@@ -174,44 +174,55 @@
     lastRun[name] = text;
   }
 
-  // ---------- Add & Subtract: the whole sum on one line, with the = row once it is worked out ----------
-  // A token is one part of the sum: a chunk like XL or I, an operator, the '=' sign, or a part on the right of '='.
-  // A part is crossed out when it is done, and a part that was expanded shows an arrow to what it became.
-  function partEl(t) {
-    let cls = 'tok';
-    if (t.side === 'right') cls += ' right';
-    if (t.st === 'done') cls += ' done';
-    if (t.focus) cls += ' focus';
-    if (t.st === 'new') cls += ' appear';
-    return el('span', cls, t.text);
+  // ---------- Add & Subtract: each row is one change ----------
+  // A row is either a line of letters (the sum, a slide-in, a cross-out, the answer) or the place boxes
+  // (thousands, hundreds, tens, ones). A box that changed in this step is highlighted and shows old → new.
+  function tokenEl(t) {
+    if (t.op) return el('span', 'eq-op', t.text);
+    return el('span', `tok${t.st === 'focus' ? ' focus' : ''}${t.st === 'cross' ? ' done' : ''}`, t.text);
   }
 
-  function eqLine(tokens) {
+  function lineEl(tokens) {
     const line = el('div', 'eq-line');
-    tokens.forEach((t) => {
-      if (t.eq) {
-        line.append(el('span', 'eq-sign', '='));
-      } else if (t.op) {
-        line.append(el('span', 'eq-op', t.text));
-      } else if (t.focus && t.becomes) {
-        line.append(partEl(t), el('span', 'eq-arrow', '→'));
-        t.becomes.split('').forEach((ch, k) => {
-          if (k) line.append(el('span', 'eq-plus', '+'));
-          line.append(el('span', 'tok became', ch));
-        });
-      } else {
-        line.append(partEl(t));
-      }
-    });
+    line.append(...tokens.map(tokenEl));
     return line;
+  }
+
+  // The numbers in one place, with + or − between them. An empty place says so.
+  function itemsEl(items) {
+    const wrap = el('span', 'place-items');
+    if (!items.length) wrap.append(el('span', 'place-empty', 'nothing'));
+    items.forEach((it, k) => {
+      if (k || it.sign < 0) wrap.append(el('span', 'eq-op', it.sign < 0 ? '−' : '+'));
+      wrap.append(el('span', `tok${it.fresh ? ' focus' : ''}`, it.text));
+    });
+    return wrap;
+  }
+
+  function placesEl(boxes) {
+    const row = el('div', 'place-row');
+    boxes.forEach((b) => {
+      const box = el('div', `place-box${b.focus ? ' focus' : ''}`);
+      const body = el('div', 'place-body');
+      if (b.focus && b.was) {
+        const was = itemsEl(b.was);
+        was.classList.add('was');
+        body.append(was, el('span', 'eq-arrow', '→'), itemsEl(b.items));
+      } else {
+        body.append(itemsEl(b.items));
+      }
+      box.append(el('div', 'place-label', b.label), body);
+      row.append(box);
+    });
+    return row;
   }
 
   function addsubRow(s, i) {
     const row = el('div', 'step-row');
     const inner = el('div');
-    // The caption sits outside. The sum sits in its own working window, so the two never blend.
+    // The caption sits outside. The working sits in its own window, so the two never blend.
     const work = el('div', 'work');
-    work.append(eqLine(s.line));
+    work.append(s.kind === 'places' ? placesEl(s.boxes) : lineEl(s.tokens));
     inner.append(el('p', 'caption', s.text), work);
     if (s.value !== null) inner.append(el('p', 'value', `Worth ${s.value}`));
     row.append(el('div', 'step-num', String(i + 1)), inner);
