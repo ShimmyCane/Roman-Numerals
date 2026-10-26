@@ -3,65 +3,35 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Felix's page: the shape of the system</title>
+  <title>Felix's page</title>
   <link rel="stylesheet" href="base.css">
   <link id="look-css" rel="stylesheet" href="looks/sunny.css">
 </head>
 <body>
   <header class="top">
-    <h1>Felix's page: the shape of the system</h1>
-    <p class="sub">Look at the letters first. Then find the rule.</p>
+    <h1>Felix's page</h1>
   </header>
 
   <nav class="tabs" role="tablist">
-    <button class="tab-btn active" role="tab" data-tab="purpose">Purpose</button>
+    <button class="tab-btn active" role="tab" data-tab="purpose">Start</button>
     <button class="tab-btn" role="tab" data-tab="spiral">Spiral</button>
     <button class="tab-btn" role="tab" data-tab="steps">Steps</button>
-    <button class="tab-btn" role="tab" data-tab="tiles">Tiles</button>
+    <button class="tab-btn" role="tab" data-tab="tiles">Squares</button>
     <button class="tab-btn" role="tab" data-tab="rods">Rods</button>
-    <button class="tab-btn" role="tab" data-tab="resources">Resources</button>
+    <button class="tab-btn" role="tab" data-tab="resources">Grown-ups</button>
   </nav>
 
   <main>
-    <!-- PURPOSE: the story this page tells -->
+    <!-- START: a picture of the pattern -->
     <section class="tab active" id="tab-purpose">
-      <div class="history-grid">
-        <article class="rule-card wide">
-          <h2>The story</h2>
-          <p>Start with a clock. Ten past eight and quarter to nine both sit on the same face, but the marks on the face are not all the same size: the minutes come in fives, and the hours come in twelves. The steps are mixed, and we read them without thinking.</p>
-          <p>The Roman letters have the same kind of mixed steps. Look at the seven letters in order: I, V, X, L, C, D, M. Each step is either <strong>times five</strong> or <strong>times two</strong>, and they keep alternating:</p>
-          <p class="big-value">1 → 5 (×5) → 10 (×2) → 50 (×5) → 100 (×2) → 500 (×5) → 1000 (×2)</p>
-          <p>Every two steps make <strong>times ten</strong>. That is the same as the place value we use every day: 47 means 4 tens and 7 ones, and each column is ten times the one before it.</p>
-        </article>
-
-        <article class="rule-card">
-          <h3>What to notice</h3>
-          <ul class="facts">
-            <li>Each full turn of the spiral is one times ten.</li>
-            <li>V sits about seven-tenths of a turn from I, a little more than halfway round. X comes back to the start.</li>
-            <li>The same shape repeats for every power of ten: I, X, C, M, and V, L, D between them.</li>
-          </ul>
-        </article>
-
-        <article class="rule-card">
-          <h3>Where this leads</h3>
-          <ul class="facts">
-            <li><strong>Decimal.</strong> Every column is times ten.</li>
-            <li><strong>Binary.</strong> Every column is times two: 1, 2, 4, 8. Computers use only two digits.</li>
-            <li><strong>Algorithms.</strong> A rule that you repeat, step by step, to get the answer. Writing a numeral from its parts is one.</li>
-          </ul>
-        </article>
-
-        <article class="rule-card wide">
-          <h3>The order of the tabs</h3>
-          <ol class="purpose-list">
-            <li><strong>Spiral.</strong> The letters on a spiral, one full turn for each times ten.</li>
-            <li><strong>Steps.</strong> The same letters as a staircase, with the times-five and times-two steps marked.</li>
-            <li><strong>Tiles.</strong> Each letter as a square, drawn to scale by its area.</li>
-            <li><strong>Rods.</strong> A counting board, one rod for each column. Type a number and see its parts, then the Roman numeral they make.</li>
-          </ol>
-          <p class="note">This page explores the shape of the system. It is not part of the lesson unless Jimmy says so. Roman numerals are not place value: each letter has its own value, and there is no zero. The rods show how place value and the letters are related, not how the Romans wrote numbers.</p>
-        </article>
+      <div class="layout single">
+        <div class="play">
+          <h2>Look for the pattern</h2>
+          <p class="big-value">I → V → X → L → C → D → M</p>
+          <p class="big-value">1 → 5 → 10 → 50 → 100 → 500 → 1000</p>
+          <p>Times 5, times 2, times 5, times 2.</p>
+          <p class="note">Next tab: Spiral.</p>
+        </div>
       </div>
     </section>
 
@@ -69,26 +39,24 @@
     <section class="tab" id="tab-spiral">
       <div class="layout single">
         <div class="play">
-          <h2>The letters on a spiral</h2>
-          <p>Each full turn is times ten. The letters step round it: the five comes a little more than halfway round, and the ten finishes the turn.</p>
+          <h2>Round and round</h2>
           <div class="field">
-            <label for="spiral-n">Show up to</label>
+            <label for="spiral-n">Show</label>
             <input id="spiral-n" type="range" min="1" max="7" value="7" aria-describedby="spiral-caption">
           </div>
-          <svg class="felix-art" id="spiral-svg" viewBox="0 0 400 400" role="img" aria-label="A spiral of the seven letters, one full turn for each times ten"></svg>
+          <svg class="felix-art" id="spiral-svg" viewBox="0 0 400 400" role="img" aria-label="A spiral of the letters"></svg>
           <p class="big-value" id="spiral-caption" aria-live="polite"></p>
         </div>
       </div>
     </section>
 
-    <!-- STEPS: a staircase with the times-five and times-two steps -->
+    <!-- STEPS: a staircase -->
     <section class="tab" id="tab-steps">
       <div class="layout single">
         <div class="play">
-          <h2>The staircase: times five, times two</h2>
-          <p>Each step up is the next letter. The label between two letters says what the step multiplies by.</p>
+          <h2>Up the stairs</h2>
           <div class="field">
-            <label for="steps-n">Show up to</label>
+            <label for="steps-n">Show</label>
             <input id="steps-n" type="range" min="1" max="7" value="7">
           </div>
           <div class="stairs" id="stairs" aria-live="polite"></div>
@@ -97,28 +65,25 @@
       </div>
     </section>
 
-    <!-- TILES: the letters to scale by area -->
+    <!-- SQUARES: bigger value, bigger square -->
     <section class="tab" id="tab-tiles">
       <div class="layout single">
         <div class="play">
-          <h2>The letters to scale</h2>
-          <p>Each square has the area of its letter's value. Five times as much area is a square about 2.2 times as wide. Compare I with M: 1000 times the area.</p>
-          <div class="tile-row" id="tile-row" aria-label="Squares drawn to scale by value"></div>
-          <p class="big-value" id="tiles-note" aria-live="polite"></p>
+          <h2>Bigger number, bigger square</h2>
+          <div class="tile-row" id="tile-row" aria-label="Squares, bigger for bigger numbers"></div>
         </div>
       </div>
     </section>
 
-    <!-- RODS: a counting board, parts first, then the numeral -->
+    <!-- RODS: type a number, see its parts -->
     <section class="tab" id="tab-rods">
       <div class="layout single">
         <div class="play">
-          <h2>The counting board</h2>
-          <p>Each rod is one column. The bead on top is five; the beads underneath are one each. Type a number from 1 to 3999, or press Random. The parts come first, then the numeral they make.</p>
+          <h2>Counting board</h2>
           <form class="entry" id="rods-form">
-            <input id="rods-input" type="text" inputmode="numeric" autocomplete="off" placeholder="A number, like 47" maxlength="4" aria-label="Type a number from 1 to 3999">
-            <button class="big-btn" type="submit">Show it</button>
-            <button class="big-btn ghost" type="button" id="rods-random">🎲 Random</button>
+            <input id="rods-input" type="text" inputmode="numeric" autocomplete="off" placeholder="like 47" maxlength="4" aria-label="Type a number from 1 to 3999">
+            <button class="big-btn" type="submit">Go</button>
+            <button class="big-btn ghost" type="button" id="rods-random">🎲</button>
           </form>
           <div class="rods" id="rods" aria-live="polite"></div>
           <div class="rods-parts" id="rods-parts" aria-live="polite"></div>
@@ -126,53 +91,49 @@
       </div>
     </section>
 
-    <!-- RESOURCES: existing work on the web, so we do not rebuild it -->
+    <!-- GROWN-UPS: links to existing work, kept out of the way -->
     <section class="tab" id="tab-resources">
       <div class="history-grid">
         <article class="rule-card wide">
-          <h2>Existing resources</h2>
-          <p class="note">These links came from web searches. I have not opened every page, so check each one before you use it: licence, whether it still works, and whether it suits children.</p>
+          <h2>For grown-ups</h2>
+          <p class="note">Links from web searches. Not all opened yet: check licence and suitability first.</p>
         </article>
 
         <article class="rule-card">
-          <h3>Counting boards and abacus</h3>
+          <h3>Counting boards</h3>
           <ul class="sources">
-            <li><a href="https://www.mathematik.uni-marburg.de/~thormae/lectures/ti1/code/abacus/soroban.html" target="_blank" rel="noopener">Soroban and suanpan simulator (Marburg)</a>: a JavaScript abacus. Closest to the biquinary rods on the Rods tab.</li>
-            <li><a href="https://github.com/bocaletto-luca/abacus" target="_blank" rel="noopener">Abacus web app (bocaletto-luca)</a>: a browser abacus for practising arithmetic, with a GitHub Pages version.</li>
-            <li><a href="https://flathub.org/apps/org.sugarlabs.AbacusActivity" target="_blank" rel="noopener">Sugar Labs Abacus Activity</a>: free and open source. Shows Roman and Chinese counting systems. Runs on Linux.</li>
-            <li><a href="https://nunc.ch/wp-content/uploads/2026/07/Greek-Abacus-Simulator-—-User-Guide-v.0.8.34.pdf" target="_blank" rel="noopener">Greek Abacus Simulator, user guide</a>: a counting-board simulator with token moves. The guide is in French; check the source before using.</li>
-            <li><a href="https://medium.com/chronicles-of-computation/roman-counting-boards-e2ddb15c7d2f" target="_blank" rel="noopener">Roman counting boards (Medium)</a>: a background article on pebbles, or calculi.</li>
+            <li><a href="https://www.mathematik.uni-marburg.de/~thormae/lectures/ti1/code/abacus/soroban.html" target="_blank" rel="noopener">Soroban and suanpan simulator (Marburg)</a></li>
+            <li><a href="https://github.com/bocaletto-luca/abacus" target="_blank" rel="noopener">Abacus web app (GitHub)</a></li>
+            <li><a href="https://flathub.org/apps/org.sugarlabs.AbacusActivity" target="_blank" rel="noopener">Sugar Labs Abacus Activity</a></li>
+            <li><a href="https://medium.com/chronicles-of-computation/roman-counting-boards-e2ddb15c7d2f" target="_blank" rel="noopener">Roman counting boards (article)</a></li>
           </ul>
         </article>
 
         <article class="rule-card">
-          <h3>Spirals and the shape of the system</h3>
+          <h3>Spirals</h3>
           <ul class="sources">
-            <li><a href="https://observablehq.com/@jrus/drawing-logarithmic-spirals-with-bezplot" target="_blank" rel="noopener">Drawing logarithmic spirals (Observable)</a>: plain JavaScript with the formula for each point. Good for the Spiral tab.</li>
-            <li><a href="https://observablehq.com/@bmschmidt/animating-log-spirals-as-webgl-points" target="_blank" rel="noopener">Animating log spirals (Observable)</a>: a moving spiral. Uses WebGL.</li>
-            <li><a href="https://num8ers.com/?p=9022" target="_blank" rel="noopener">Interactive SVG spiral generator (num8ers)</a>: real-time spiral patterns, including the golden-ratio spiral.</li>
-            <li><a href="https://codepen.io/fractalkitty/pen/MYwzROr" target="_blank" rel="noopener">Spiral pen (CodePen)</a>: a canvas spiral with on-screen controls.</li>
-            <li><a href="https://demonstrations.wolfram.com/LogarithmicSpiral/" target="_blank" rel="noopener">Logarithmic spiral (Wolfram Demonstrations)</a>: an interactive demo with the maths shown.</li>
+            <li><a href="https://observablehq.com/@jrus/drawing-logarithmic-spirals-with-bezplot" target="_blank" rel="noopener">Logarithmic spirals (Observable)</a></li>
+            <li><a href="https://num8ers.com/?p=9022" target="_blank" rel="noopener">Spiral generator (num8ers)</a></li>
+            <li><a href="https://codepen.io/fractalkitty/pen/MYwzROr" target="_blank" rel="noopener">Spiral pen (CodePen)</a></li>
+            <li><a href="https://demonstrations.wolfram.com/LogarithmicSpiral/" target="_blank" rel="noopener">Logarithmic spiral (Wolfram)</a></li>
           </ul>
         </article>
 
         <article class="rule-card">
-          <h3>Roman numeral activities for children</h3>
+          <h3>For children</h3>
           <ul class="sources">
-            <li><a href="https://www.splashlearn.com/tools/roman-numeral-cards" target="_blank" rel="noopener">Roman numeral cards (SplashLearn)</a>: free drag-and-drop cards for I, V, X, L and C.</li>
-            <li><a href="https://www.twinkl.com/resource/t-t-2635-roman-numeral-visual-aids" target="_blank" rel="noopener">Roman numeral visual aids (Twinkl)</a>: printable colourful displays.</li>
-            <li><a href="https://www.twinkl.com/resource/year-5-roman-numerals-lesson-1-reading-and-interpreting-roman-numerals-up-to-1000-video-t-m-33712" target="_blank" rel="noopener">Roman numerals video lesson (Twinkl)</a>: for ages 9 to 10, up to 1000.</li>
+            <li><a href="https://www.splashlearn.com/tools/roman-numeral-cards" target="_blank" rel="noopener">Roman numeral cards (SplashLearn)</a></li>
+            <li><a href="https://www.twinkl.com/resource/t-t-2635-roman-numeral-visual-aids" target="_blank" rel="noopener">Visual aids (Twinkl)</a></li>
           </ul>
         </article>
 
         <article class="rule-card">
-          <h3>Animation and snippets</h3>
+          <h3>Animation</h3>
           <ul class="sources">
-            <li><a href="https://www.alternativeto.net/software/anime-js/" target="_blank" rel="noopener">Anime.js (AlternativeTo)</a>: small, open source (MIT). Animates CSS, SVG and plain objects. Good for the Steps and Spiral reveals.</li>
-            <li><a href="https://alternativeto.net/software/popmotion" target="_blank" rel="noopener">Popmotion (AlternativeTo)</a>: a small motion engine, listed as about 12 kB.</li>
-            <li><a href="https://www.alternativeto.net/software/animate-css/" target="_blank" rel="noopener">Animate.css (AlternativeTo)</a>: ready-made CSS effects, no script needed. Good for the pop-in of tiles.</li>
+            <li><a href="https://www.alternativeto.net/software/anime-js/" target="_blank" rel="noopener">Anime.js (AlternativeTo)</a></li>
+            <li><a href="https://alternativeto.net/software/popmotion" target="_blank" rel="noopener">Popmotion (AlternativeTo)</a></li>
+            <li><a href="https://www.alternativeto.net/software/animate-css/" target="_blank" rel="noopener">Animate.css (AlternativeTo)</a></li>
           </ul>
-          <p class="note">Library sizes and licences are as listed by the directory sites (AlternativeTo) and should be checked on each project's own page. Use a cdnjs link with an exact version if one is added.</p>
         </article>
       </div>
     </section>
@@ -192,7 +153,7 @@
       <button class="big-btn look-btn" data-look="sunny" aria-pressed="true">Sunny</button>
     </div>
     <h4>Pictures</h4>
-    <a class="big-btn ghost" href="assets.html">Pictures to find (planning page)</a>
+    <a class="big-btn ghost" href="assets.html">Pictures to find</a>
     <button class="big-btn ghost" id="drawer-close">Close</button>
   </div>
 

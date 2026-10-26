@@ -81,10 +81,7 @@
 
     const cur = LETTERS[n - 1];
     const prev = LETTERS[n - 2];
-    let caption = `${cur.value} is ${cur.letter}.`;
-    if (prev) caption += ` ${cur.value / prev.value} times ${prev.letter}.`;
-    if (Number.isInteger(Math.log10(cur.value)) && n > 1 && cur.value > 1) caption += ' Back on the same spoke: one full turn, times ten.';
-    $('#spiral-caption').textContent = caption;
+    $('#spiral-caption').textContent = prev ? `${cur.letter} ${cur.value}  ×${cur.value / prev.value}` : `${cur.letter} ${cur.value}`;
   }
 
   // ---------- Steps: a staircase with the times-five and times-two steps marked ----------
@@ -102,7 +99,7 @@
       box.appendChild(col);
     });
     const cur = LETTERS[n - 1];
-    $('#steps-caption').textContent = `${cur.letter} is ${cur.value}.` + (n > 1 ? ` The steps so far: ${LETTERS.slice(1, n).map((x, i) => `×${x.value / LETTERS[i].value}`).join(', ')}.` : '');
+    $('#steps-caption').textContent = `${cur.letter} ${cur.value}`;
   }
 
   // ---------- Tiles: each square's area is its value, so the sides are the square roots ----------
@@ -121,8 +118,6 @@
       cell.appendChild(el('div', 'tile-label', `${letter} ${value}`));
       row.appendChild(cell);
     });
-    const steps = LETTERS.slice(1).map((x, i) => `×${x.value / LETTERS[i].value}`).join(', ');
-    $('#tiles-note').textContent = `From I to M, the steps are ${steps}.`;
   }
 
   // ---------- Rods: parts first, then the numeral they make ----------
@@ -165,11 +160,9 @@
     });
 
     const parts = ROD_LETTERS.map((rod, i) => rodParts(digits[i], rod)).join('');
-    const sum = digits.map((d, i) => d * [1000, 100, 10, 1][i]).filter((v) => v > 0).join(' + ');
     $('#rods-parts').replaceChildren(
       el('p', 'big-value', `Parts: ${parts}`),
-      el('p', 'big-value', `Put them together: ${toRoman(n)}`),
-      el('p', 'note', `${n} is ${sum}.`),
+      el('p', 'big-value', `Short: ${toRoman(n)}`),
     );
   }
 
@@ -183,7 +176,7 @@
     const n = readNumber(text);
     if (n === null) {
       $('#rods').replaceChildren();
-      $('#rods-parts').replaceChildren(el('p', 'note', `Type a whole number from 1 to ${MAX}.`));
+      $('#rods-parts').replaceChildren(el('p', 'note', `1 to ${MAX}`));
       return;
     }
     renderRods(n);
