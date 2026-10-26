@@ -702,10 +702,10 @@
     return { text: `${toRoman(a)} ${adding ? '+' : '-'} ${toRoman(b)}`, value: adding ? a + b : a - b };
   }
 
-  // Add & Subtract: a random equation. Two in three have two numerals (the easier ones). The rest have three, with
-  // additions and subtractions mixed, so they take several steps. The sum never goes below one.
-  function randomEquation(rand = Math.random) {
-    if (rand() < 2 / 3) return randomSum(rand);
+  // Add & Subtract: a random equation. The easy one has two numerals. The harder one (the chili button) has three,
+  // with additions and subtractions mixed, so it takes several steps. The sum never goes below one.
+  function randomEquation(harder = false, rand = Math.random) {
+    if (!harder) return randomSum(rand);
     for (;;) {
       const a = randomInt(10, 99, rand);
       const ops = [rand() < 0.5 ? '+' : '-', rand() < 0.5 ? '+' : '-'];

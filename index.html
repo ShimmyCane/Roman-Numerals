@@ -22,7 +22,8 @@
   </header>
 
   <nav class="tabs" role="tablist">
-    <button class="tab-btn active" role="tab" data-tab="fix">Fix It</button>
+    <button class="tab-btn active" role="tab" data-tab="purpose">Purpose</button>
+    <button class="tab-btn" role="tab" data-tab="fix">Fix It</button>
     <button class="tab-btn" role="tab" data-tab="addsub">Add &amp; Subtract</button>
     <button class="tab-btn" role="tab" data-tab="quiz">Quiz</button>
     <button class="tab-btn" role="tab" data-tab="letters">Letters</button>
@@ -95,8 +96,68 @@
       </div>
     </section>
 
+    <!-- PURPOSE: why this site, what the children are learning, a note for parents, and every tab in detail -->
+    <section class="tab active" id="tab-purpose">
+      <div class="history-grid">
+        <article class="rule-card wide">
+          <h2>Why we are doing this website</h2>
+          <p>This website is used to help the children learn lesson six for this week of October twenty-sixth. The lessons revolve around:</p>
+          <ol class="purpose-list">
+            <li>continuing fixing Roman numeral numbers (Tab II) based on the hardcoded rules by ORMC (Tab VI)</li>
+            <li>practicing how to do simple addition and subtraction with Roman numerals ideally without converting back to Arabic numbers (Tab III)</li>
+          </ol>
+          <p>This also provides scaffolding for my child who may not have picked up any (or all) of the actual lessons to be able to do the homework by herself. So I have provided a simple quiz to help warm her up with gentle reminders (Tab IV).</p>
+        </article>
+
+        <article class="rule-card wide">
+          <h2>For the learner: why we are doing this</h2>
+          <p>Roman numerals are letters that people used for counting a long time ago. You already know some of them, like I, V and X. In this lesson you will read them, fix them when they are written wrong, and add and take away with them without changing them into our numbers.</p>
+          <p>Think about these questions. Talk about them in class.</p>
+          <ul class="think-list">
+            <li>What do you enjoy most about this lesson?</li>
+            <li>What do you find trickiest about Roman numerals?</li>
+          </ul>
+        </article>
+
+        <article class="rule-card wide">
+          <h2>A note to parents: why are we learning this?</h2>
+          <p>This is a good question. In reading the teacher's guide, it seems to be a larger part of a survey of the decimal place system, to understand "students study Roman numerals, which are essentially decimal, but not place value" (page eight).</p>
+          <h3>This is hard (an honest appraisal)</h3>
+          <p>I understand this to mean that we are learning Roman numerals as setting up a context for being able to refine. Nope, I don't understand this at all. As part of trying to figure this out, and working with AI to do it, I realize just how difficult it is to actually communicate what is going on and create steps that make sense. So to be honest, I still don't know.</p>
+          <p>But I am thinking that the point is to do addition and subtraction without deferring to Arabic numerals. When I read through the rules, as well as the delaying of rule four, it seems to be about approaching math algorithmically and building a stronger foundation for appreciating addition and subtraction. But that's all me.</p>
+          <p class="note">Feedback welcome. Please text me.</p>
+        </article>
+
+        <article class="rule-card wide">
+          <details class="more-options">
+            <summary>Show more: every tab, in detail</summary>
+            <h3>Purpose</h3>
+            <p>The page you are reading now: why the site exists, the questions for the learner, the note for parents, and this list.</p>
+            <h3>Fix It (Tab II)</h3>
+            <p>A numeral is written wrong on purpose, for example IIII or LXXXXVII. Press Random bad numeral, or type your own. Each step fixes one part: the part that is wrong is crossed out, and the fix sits beside it. The rules that were broken are listed above the steps. Press Next step to go one step at a time, or Play steps to watch them go by.</p>
+            <h3>Add &amp; Subtract (Tab III)</h3>
+            <p>Type a sum like XLI + XIX, or press a random button. The dice makes an easier equation with two numerals. The chili makes a harder one with three numerals. The first step shows the start only, and a line asks you to think before you press Next step. Each step makes one change, and the sum stays on one line with an equals sign. When the left side is done, the answer is written after the equals sign and regrouped there. Show all steps at once, in settings, turns on the old view. At the bottom, you can record yourself explaining the problem and its solution, and play it back.</p>
+            <p class="note">Regrouping is the usual way. The counting board is a setting. Both are teaching models, not a documented Roman method.</p>
+            <h3>Quiz (Tab IV)</h3>
+            <p>Gentle warm-up questions: letters both ways, and true or false statements about Roman numerals. A miss comes back later as a similar question. Forget my mistakes, in settings, clears them.</p>
+            <h3>Letters (Tab V)</h3>
+            <p>The letters I, V, X, L, C, D and M with their values in words. The pairs that exist (IV, IX, XL, XC, CD, CM) are shown straight away. Press More to see pairs that never exist.</p>
+            <h3>Rules (Tab VI)</h3>
+            <p>The rules with examples. Each rule shows a short summary on the left and the full wording on the right. Rule four is still to come.</p>
+            <h3>Regroup (Tab VII)</h3>
+            <p>A ladder of trades: five I's make a V, two V's make an X, and so on. Tap a card to watch the letters come together. Short forms are shown too. Try it adds by regrouping, one trade at a time. The random sum button is hidden here, and can be shown again in settings.</p>
+            <h3>Long Ago (Tab VIII)</h3>
+            <p>Trivia about how people counted and wrote numbers long ago, from the Romans to the Maya and China. The index at the top says what each part covers. Numbers are allowed on this tab.</p>
+            <h3>Settings (gear, bottom right)</h3>
+            <p>Look, text size, step speed, calm motion, the method for Add &amp; Subtract, show all steps at once, the random button on Regroup, and some ideas to try, such as reading each step aloud and bigger tiles.</p>
+          </details>
+        </article>
+      </div>
+    </section>
+
+
     <!-- FIX IT: start with a bad numeral; rules broken sit above the steps -->
-    <section class="tab active" id="tab-fix">
+    <section class="tab" id="tab-fix">
       <div class="layout single">
         <div class="play">
           <div class="workbench">
@@ -128,7 +189,10 @@
       <div class="layout single">
         <div class="play">
           <div class="workbench">
-            <button class="big-btn" type="button" data-random="addsub">🎲 Random equation</button>
+            <div class="random-pair">
+              <button class="big-btn" type="button" data-random="addsub">🎲 Random equation</button>
+              <button class="big-btn chili" type="button" data-random="addsub" data-harder aria-label="Harder random equation, with three numerals" title="Harder: three numerals">🌶️</button>
+            </div>
             <form class="entry" data-entry="addsub">
               <input id="addsub-input" type="text" autocomplete="off" placeholder="Or type your own, like XLI + XIX" maxlength="40" aria-label="Type your own sum">
               <button class="big-btn" type="submit">Work it out</button>
@@ -143,6 +207,18 @@
             <button class="big-btn ghost" data-all="addsub">Show all</button>
             <button class="big-btn" data-step="addsub" data-dir="1">Next step</button>
           </div>
+
+          <section class="practice" aria-labelledby="practice-title">
+            <h3 id="practice-title">Now practice presenting this problem and its solution</h3>
+            <p class="note">Press Record, then explain each step out loud. Press Stop when you are done, and play it back to hear yourself. Recordings stay on this device, and they are gone when you close the page.</p>
+            <p class="practice-problem" id="practice-problem" aria-live="polite">Make a sum first, then record yourself explaining it.</p>
+            <div class="controls">
+              <button class="big-btn" type="button" id="rec-start">● Record</button>
+              <button class="big-btn ghost" type="button" id="rec-stop" disabled>■ Stop</button>
+            </div>
+            <p class="note" id="rec-status" aria-live="polite"></p>
+            <ol class="takes" id="takes"></ol>
+          </section>
         </div>
         <aside class="ref">
           <h3>How to read this</h3>
@@ -177,12 +253,26 @@
     <!-- LONG AGO -->
     <section class="tab" id="tab-history">
       <div class="history-grid">
-        <article class="rule-card big-answer wide">
+        <article class="rule-card wide index-box" aria-labelledby="trivia-index">
+          <h3 id="trivia-index">In this tab, at a glance</h3>
+          <ul class="trivia-index">
+            <li><a href="#trivia-app">Is this app how the Romans did it?</a>: how this app differs from counting stones on a board.</li>
+            <li><a href="#trivia-math">How the Romans did math</a>: counting, adding and subtracting with stones.</li>
+            <li><a href="#trivia-multiply">Multiplying with letters</a>: why it was hard, and what people probably did.</li>
+            <li><a href="#trivia-compare">From the Roman way to our way</a>: the counting board compared with place value, and where our methods came from.</li>
+            <li><a href="#trivia-other">Other ways to write numbers</a>: the Maya and China.</li>
+            <li><a href="#trivia-past">Past 1000</a>, <a href="#trivia-zero">No zero</a>, <a href="#trivia-negative">No negative numbers</a>, <a href="#trivia-iv">IV or IIII?</a>: facts about the numerals themselves.</li>
+            <li><a href="#trivia-time">Roman numbers through time</a>, <a href="#trivia-today">Where we still see them</a>, and <a href="#trivia-compare-table">Roman and our numbers</a>: a timeline, and where you can spot them now.</li>
+            <li><a href="#trivia-read">Read more</a>: sources for grown-ups.</li>
+          </ul>
+        </article>
+
+        <article class="rule-card big-answer wide" id="trivia-app">
           <h3>Is this app how the Romans did it?</h3>
           <p>Not exactly. This app breaks numbers into letters, so you can see what each letter is worth. The Romans mostly counted with small stones on a board, and wrote only the answer with letters.</p>
         </article>
 
-        <article class="rule-card wide">
+        <article class="rule-card wide" id="trivia-math">
           <h3>How the Romans did math</h3>
           <div class="subtabs" role="tablist" aria-label="Count, add or subtract">
             <button class="subtab active" data-sub="count" aria-pressed="true">Count</button>
@@ -209,27 +299,27 @@
           </section>
         </article>
 
-        <article class="rule-card">
+        <article class="rule-card" id="trivia-past">
           <h3>Past 1000</h3>
           <p>The Romans put a line over a letter to make it a thousand times bigger. An overlined I is 1,000, which is the same as M. That is why this app stops at M.</p>
         </article>
 
-        <article class="rule-card">
+        <article class="rule-card" id="trivia-zero">
           <h3>No zero</h3>
           <p>The Romans had no symbol for zero. In tables, they wrote the Latin word <em>nulla</em>, which means "none".</p>
         </article>
 
-        <article class="rule-card">
+        <article class="rule-card" id="trivia-negative">
           <h3>No negative numbers</h3>
           <p>A sum below zero had no Roman answer. Roman accounts kept money <em>received</em> (<em>acceptum</em>) and money <em>spent</em> (<em>expensum</em>) in two lists.</p>
         </article>
 
-        <article class="rule-card">
+        <article class="rule-card" id="trivia-iv">
           <h3>IV or IIII?</h3>
           <p>Both were used. The gates of the Colosseum use IIII for 4, but XL for 40. Clocks still use IIII. IV became the common form much later.</p>
         </article>
 
-        <article class="rule-card wide">
+        <article class="rule-card wide" id="trivia-time">
           <h3>Roman numbers through time</h3>
           <ol class="timeline-visual">
             <li><span class="when">About 2,000 years ago</span><span class="what">Romans carve numbers in letters on buildings and monuments.</span></li>
@@ -240,7 +330,7 @@
           </ol>
         </article>
 
-        <article class="rule-card">
+        <article class="rule-card" id="trivia-today">
           <h3>Where we still see them</h3>
           <ul class="facts">
             <li><strong>Super Bowls.</strong> The NFL numbers them in Roman numerals. Super Bowl LIX was in February 2025.</li>
@@ -249,7 +339,7 @@
           </ul>
         </article>
 
-        <article class="rule-card">
+        <article class="rule-card" id="trivia-compare-table">
           <h3>Roman and our numbers</h3>
           <table class="compare">
             <tr><th></th><th>Roman</th><th>Our numbers</th></tr>
@@ -260,14 +350,14 @@
           <p class="note">Our numbers came from India, with zero and place value. That is why they are easier to add and subtract on paper.</p>
         </article>
 
-        <article class="rule-card wide">
+        <article class="rule-card wide" id="trivia-multiply">
           <h3>Multiplying with letters</h3>
           <p>Adding and taking away are easy with letters, but multiplying is much harder. Nobody has found a Roman paper method for it. Most historians think Romans multiplied on the counting board, using pebbles and beads, and perhaps by doubling and halving.</p>
           <p>Our place-value numbers changed that. Each column holds one digit, so you can write the whole method on paper, column by column.</p>
           <p class="note">Historians still argue about exactly how Romans multiplied. The board is the best evidence; doubling is a likely guess.</p>
         </article>
 
-        <article class="rule-card wide">
+        <article class="rule-card wide" id="trivia-compare">
           <h3>From the Roman way to our way</h3>
           <table class="compare">
             <tr><th></th><th>Counting board (Roman)</th><th>Place value (ours)</th></tr>
@@ -278,7 +368,7 @@
           <p>The Indian system with zero reached Europe through Arabic mathematicians. Fibonacci's book of 1202 helped spread it. The grid for multiplying (the lattice method) came the same way, from India through Arab and Persian mathematicians. Fibonacci's book did not start it.</p>
         </article>
 
-        <article class="rule-card">
+        <article class="rule-card" id="trivia-other">
           <h3>Other ways to write numbers</h3>
           <ul class="facts">
             <li><strong>The Maya (Central America).</strong> They counted in twenties, with a dot for one, a bar for five, and a shell for zero. Some say their zero was invented before the Indian one, but the dates are uncertain.</li>
@@ -286,7 +376,7 @@
           </ul>
         </article>
 
-        <article class="rule-card wide">
+        <article class="rule-card wide" id="trivia-read">
           <h3>Read more (for grown-ups)</h3>
           <ul class="sources">
             <li><a href="https://en.wikipedia.org/wiki/Salamis_Tablet" target="_blank" rel="noopener">Salamis Tablet (Wikipedia)</a>: a Greek counting board of about 300 BCE, with its photograph</li>

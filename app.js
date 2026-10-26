@@ -390,6 +390,7 @@
   }
 
   function runAddSub(text) {
+    renderProblem();
     const p = Roman.parse(text);
     if (p.error) {
       setError(p.error);
@@ -584,18 +585,85 @@
 
   // ---------- Random: each button makes a numeral or sum, then runs it like a typed one ----------
   const randomMakers = {
-    addsub: { entry: 'addsub', make: () => Roman.randomEquation().text },
+    addsub: { entry: 'addsub', make: (harder) => Roman.randomEquation(harder).text },
     fixbad: { entry: 'fix', make: () => Roman.randomDisarranged().numeral },
     regroup: { entry: 'regroup', make: randomAddition },
   };
   const runners = { addsub: runAddSub, fix: runFix, regroup: runRegroup };
 
-  function runRandom(key) {
+  function runRandom(key, harder = false) {
     const { entry, make } = randomMakers[key];
-    const text = make();
+    const text = make(harder);
     $(`form[data-entry="${entry}"] input`).value = text;
     remember(entry, text);
     runners[entry](text);
+  }
+
+  // ---------- Practice: record yourself presenting the problem, then play it back ----------
+  // Recordings are kept in this page's memory only: they are never uploaded, and they are gone when the page closes.
+  const TAKE_LIMIT = 5;
+  const takes = [];
+  let takeNo = 0;
+  let recorder = null;
+  let recStream = null;
+  let recChunks = [];
+
+  const recStatus = (msg) => { $('#rec-status').textContent = msg; };
+  function renderProblem() {
+    const problem = lastRun.addsub;
+    $('#practice-problem').textContent = problem ? `Problem: ${problem}` : 'Make a sum first, then record yourself explaining it.';
+  }
+  function renderTakes() {
+    $('#takes').replaceChildren(...takes.map((t) => {
+      const li = el('li');
+      const audio = el('audio');
+      audio.controls = true;
+      audio.src = t.url;
+      li.append(el('p', 'note', `${t.label}: ${t.problem}`), audio);
+      return li;
+    }));
+  }
+  function setRecording(on) {
+    $('#rec-start').disabled = on;
+    $('#rec-stop').disabled = !on;
+  }
+  async function startRecording() {
+    if (!navigator.mediaDevices || !window.MediaRecorder) {
+      recStatus('This browser cannot record sound. Try another browser.');
+      return;
+    }
+    try {
+      recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      recStatus('Recording needs the microphone. Allow it for this page, then press Record again.');
+      return;
+    }
+    const problem = lastRun.addsub || 'no sum yet';
+    recChunks = [];
+    recorder = new MediaRecorder(recStream);
+    recorder.addEventListener('dataavailable', (e) => { if (e.data.size) recChunks.push(e.data); });
+    recorder.addEventListener('stop', () => {
+      recStream.getTracks().forEach((track) => track.stop());
+      const blob = new Blob(recChunks, { type: recorder.mimeType || 'audio/webm' });
+      takeNo++;
+      takes.push({ label: `Take ${Roman.toRoman(takeNo)}`, problem, url: URL.createObjectURL(blob) });
+      while (takes.length > TAKE_LIMIT) URL.revokeObjectURL(takes.shift().url);
+      recorder = null;
+      renderTakes();
+      recStatus('Saved for this visit. Play it back below.');
+    });
+    recorder.start();
+    setRecording(true);
+    recStatus('Recording. Press Stop when you are done.');
+  }
+  function stopRecording() {
+    if (recorder) recorder.stop();
+    setRecording(false);
+  }
+  function initPractice() {
+    renderProblem();
+    $('#rec-start').addEventListener('click', startRecording);
+    $('#rec-stop').addEventListener('click', stopRecording);
   }
 
   // ---------- Quiz: letters and true / false statements ----------
@@ -995,7 +1063,8 @@
       });
     });
 
-    $$('[data-random]').forEach((b) => b.addEventListener('click', () => runRandom(b.dataset.random)));
+    $$('[data-random]').forEach((b) => b.addEventListener('click', () => runRandom(b.dataset.random, 'harder' in b.dataset)));
+    initPractice();
 
     $$('[data-undo]').forEach((b) => b.addEventListener('click', () => {
       const name = b.dataset.undo;

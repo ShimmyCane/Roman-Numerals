@@ -703,3 +703,30 @@ html[data-tiles="big"] { --big: 1.25; }
 .more-options { margin: 10px 0 6px; }
 .more-options > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: bold; }
 .big-btn[hidden] { display: none; }
+
+/* Purpose tab: lists and headings for the lesson, the learner's questions and the parents' note */
+#tab-purpose h2 { margin: 0 0 8px; font-size: 1.25em; }
+#tab-purpose .purpose-list, #tab-purpose .think-list { padding-left: 1.4em; margin: 8px 0; }
+#tab-purpose .purpose-list li, #tab-purpose .think-list li { margin: 6px 0; font-size: 1.05em; }
+#tab-purpose .more-options h3 { margin: 16px 0 4px; font-size: 1.05em; }
+#tab-purpose .more-options p { margin: 0 0 6px; }
+
+/* Add & Subtract: the dice (easy) and the chili (harder), side by side */
+.random-pair { display: flex; gap: 10px; align-items: stretch; }
+.random-pair .big-btn:first-child { flex: 1 1 auto; }
+.random-pair .chili { flex: 0 0 auto; min-width: var(--btn-h); font-size: 1.4em; }
+
+/* Add & Subtract: record and play back, at the bottom of the tab */
+.practice { margin-top: 22px; padding: 14px 16px; border: 2px dashed var(--ink); border-radius: 16px; }
+.practice h3 { margin: 0 0 6px; }
+.practice-problem { font-weight: bold; margin: 6px 0; }
+.takes { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 10px; }
+.takes li { display: grid; gap: 4px; }
+.takes audio { width: 100%; max-width: 480px; }
+.practice #rec-start:disabled, .practice #rec-stop:disabled { opacity: 0.45; }
+
+/* Long Ago: the quick index at the top */
+.index-box { background: var(--card, #fff); }
+.trivia-index { margin: 6px 0 0; padding-left: 1.2em; }
+.trivia-index li { margin: 6px 0; }
+.trivia-index a { font-weight: bold; }
