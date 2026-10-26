@@ -31,13 +31,18 @@
   </nav>
 
   <main>
-    <!-- LETTERS: learn only -->
+    <!-- LETTERS: tap a letter to see its pairs -->
     <section class="tab active" id="tab-letters">
       <div class="layout">
         <div class="play">
           <h2>Tap a letter</h2>
           <div class="letter-row" id="letter-row"></div>
           <p class="big-value" id="letter-hint" aria-live="polite">Tap a letter to see what it is worth.</p>
+          <div class="pair-box">
+            <h3 id="pair-title">I pairs that exist</h3>
+            <div class="pair-list" id="pair-list"></div>
+            <button class="big-btn ghost" id="pair-more" type="button">Show pairs that never exist</button>
+          </div>
         </div>
         <aside class="ref">
           <h3>The seven letters</h3>
@@ -50,21 +55,20 @@
             <tr><td class="D">D</td><td>500</td></tr>
             <tr><td class="M">M</td><td>1000</td></tr>
           </table>
+          <div id="extended-box" hidden>
+            <h3>Past 1000</h3>
+            <p class="note">A line over a letter makes it a thousand times bigger. For reference only; the checker does not use these yet.</p>
+            <div class="ext-list" id="extended-list"></div>
+          </div>
         </aside>
       </div>
     </section>
 
     <!-- RULES: five rules on the left, examples on the right -->
     <section class="tab" id="tab-rules">
-      <p class="note-box">Rule wording here is a working summary. It will be replaced with the ORC wording once it is supplied.</p>
+      <p class="note-box">The rule wording is from the ORMC unit notes. Rule 4 comes later.</p>
       <div class="split">
-        <nav class="rule-list" aria-label="Rules">
-          <button class="rule-btn active" data-rule="1" aria-pressed="true"><b>1</b> Same letters in a row</button>
-          <button class="rule-btn" data-rule="2" aria-pressed="false"><b>2</b> Smaller letters after a bigger one</button>
-          <button class="rule-btn" data-rule="3" aria-pressed="false"><b>3</b> Smaller letter before a bigger one</button>
-          <button class="rule-btn" data-rule="4" aria-pressed="false"><b>4</b> Pairs</button>
-          <button class="rule-btn" data-rule="5" aria-pressed="false"><b>5</b> Simplest form</button>
-        </nav>
+        <nav class="rule-list" id="rule-list" aria-label="Rules"></nav>
         <section class="play rule-panel" aria-live="polite">
           <h2 id="rule-title">Rule 1</h2>
           <p id="rule-text"></p>
@@ -101,7 +105,7 @@
       </div>
     </section>
 
-    <!-- ADD & SUBTRACT: the full sum on a line, with pieces on a board below -->
+    <!-- ADD & SUBTRACT: the whole sum on one line, with the = row once it is worked out -->
     <section class="tab" id="tab-addsub">
       <div class="layout">
         <div class="play">
@@ -122,9 +126,8 @@
         </div>
         <aside class="ref">
           <h3>How to read this</h3>
-          <p>The sum stays on the line. Crossed-out parts are done. The arrow shows what a part became.</p>
-          <p>The pieces sit on the board. If there is nothing to take away, trade a bigger piece first.</p>
-          <div class="tally" id="addsub-tally"></div>
+          <p>The whole sum stays on one line. Parts that are done are crossed out. A part that is opened shows an arrow to what it became.</p>
+          <p>After the = sign, the answer is written unsorted. Then it is grouped and written in order.</p>
         </aside>
       </div>
     </section>
@@ -202,12 +205,12 @@
 
         <article class="rule-card wide">
           <h3>Roman numbers through time</h3>
-          <ol class="timeline">
-            <li><strong>Ancient Rome:</strong> letters are carved on buildings and monuments.</li>
-            <li><strong>About 500 CE:</strong> Indian mathematicians write numbers with place value.</li>
-            <li><strong>628 CE:</strong> Brahmagupta writes rules for calculating with zero.</li>
-            <li><strong>1202:</strong> Fibonacci brings the new numbers to Europe.</li>
-            <li><strong>Today:</strong> Roman numbers are still used on Super Bowls, clocks and book chapters.</li>
+          <ol class="timeline-visual">
+            <li><span class="when">About 2,000 years ago</span><span class="what">Romans carve numbers in letters on buildings and monuments.</span></li>
+            <li><span class="when">About 1,500 years ago</span><span class="what">In India, people learn to write numbers with place value and zero.</span></li>
+            <li><span class="when">About 1,400 years ago</span><span class="what">Brahmagupta writes rules for doing math with zero (628 CE).</span></li>
+            <li><span class="when">About 800 years ago</span><span class="what">Fibonacci brings these numbers to Europe (1202).</span></li>
+            <li><span class="when">Today</span><span class="what">Roman numbers are still used for Super Bowls, clocks and book chapters.</span></li>
           </ol>
         </article>
 
@@ -263,9 +266,29 @@
     <div class="look-row" role="group" aria-label="Look">
       <button class="big-btn look-btn" data-look="sunny" aria-pressed="true">Sunny</button>
       <button class="big-btn look-btn" data-look="chalk" aria-pressed="false">Chalk</button>
-      <button class="big-btn look-btn" data-look="notebook" aria-pressed="false">Notebook</button>
       <button class="big-btn look-btn" data-look="candy" aria-pressed="false">Candy</button>
+      <button class="big-btn look-btn" data-look="poster" aria-pressed="false">Poster</button>
+      <button class="big-btn look-btn" data-look="folder" aria-pressed="false">Folder</button>
+      <button class="big-btn look-btn" data-look="garden" aria-pressed="false">Garden</button>
     </div>
+    <h4>Reading and motion</h4>
+    <label class="field">Text size
+      <select id="opt-size">
+        <option value="normal">Normal</option>
+        <option value="large">Large</option>
+        <option value="xlarge">Extra large</option>
+      </select>
+    </label>
+    <label class="field">Step speed
+      <select id="opt-speed">
+        <option value="3000">Slow</option>
+        <option value="1600" selected>Normal</option>
+        <option value="800">Quick</option>
+      </select>
+    </label>
+    <label class="toggle"><input type="checkbox" id="opt-calm"> Calm motion (no bouncing)</label>
+    <h4>Numbers</h4>
+    <label class="toggle"><input type="checkbox" id="opt-extended"> Show letters past 1000</label>
     <h4>Help</h4>
     <label class="toggle"><input type="checkbox" id="opt-sound" checked> Sounds</label>
     <label class="toggle"><input type="checkbox" id="opt-pictures" checked> Pictures on steps</label>

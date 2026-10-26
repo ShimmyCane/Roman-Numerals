@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;700&display=swap');
+/* Folder: kraft paper, a serif face, and tabs that sit on top of the panels like folder tabs. */
+:root, html {
+  --font: "Lora", Georgia, serif;
+  --font-head: "Lora", Georgia, serif;
+  --tile-font: "Lora", Georgia, serif;
+  --font-size: 18px;
+  --paper: #e8d6b3;
+  --paper-image: repeating-linear-gradient(90deg, transparent 0 46px, #3b2a1a0d 46px 47px);
+  --card: #fffaf0;
+  --card-ink: #3b2a1a;
+  --ink: #3b2a1a;
+  --ink-soft: #6b5238;
+  --edge: 2px;
+  --edge-style: solid;
+  --r-card: 4px 18px 18px 18px;
+  --r-btn: 14px;
+  --r-tile: 10px;
+  --r-tab: 14px 14px 0 0;
+  --shadow: 3px 4px 0 #3b2a1a55;
+  --shadow-tile: 2px 3px 0 #3b2a1a55;
+  --btn-h: 56px;
+  --btn-fs: 1.1rem;
+  --tile-w: 62px;
+  --tile-h: 68px;
+  --tile-fs: 1.9rem;
+  --tile-ink: #3b2a1a;
+  --t-I: #cfe8d8; --t-V: #f8d1a8; --t-X: #d9e8b5; --t-L: #f5b8ad;
+  --t-C: #bfdcef; --t-D: #dcd0f0; --t-M: #f9e39a;
+  --accent: #fffaf0;
+  --good: #cfe3b0;
+  --bad: #f5b8ad;
+  --mark-good: #3a7d44;
+  --mark-bad: #b3361e;
+  --link: #7a4a1e;
+  --dots: #3b2a1a1f;
+  --input-bg: #fffaf0;
+  --filter: none;
+  --line-gap: 14px;
+  --gutter: 18px;
+}
+.tabs { align-items: flex-end; gap: 6px; padding: 14px var(--gutter) 0; border-bottom: 3px solid #3b2a1a; }
+.tab-btn { background: #d4bd8e; border-bottom: 0; margin-bottom: -3px; box-shadow: none; transform: none; }
+.tab-btn.active { background: #fffaf0; box-shadow: none; transform: none; }
+.play, .ref, .rule-card, .rule-panel { margin-top: 8px; }
+.tab { border-top: 0; }

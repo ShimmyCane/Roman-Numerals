@@ -1,9 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Merriweather:wght@700;900&display=swap');
 /* Candy: big rounded type, pill buttons, chunky outlines and shadows, bright tiles. */
 :root, html {
   --font: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
   --font-head: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
   --font-size: 22px;
+  --tile-font: "Merriweather", Georgia, serif;
   --paper: #ffe9f5;
   --paper-image: radial-gradient(circle, #ff8fc044 4px, transparent 5px);
   --card: #ffffff;
@@ -39,6 +40,6 @@
   --gutter: 20px;
 }
 .big-btn, .tab-btn, .rule-btn { text-transform: uppercase; letter-spacing: 0.04em; }
-.tile { border-width: 4px; }
+.tile { border-width: 4px; font-weight: 900; }
 .tok { border-width: 3px; border-radius: 999px; }
 .rule-btn b { border-width: 3px; }

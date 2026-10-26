@@ -3,6 +3,7 @@
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
   const { VALUE } = Roman;
   const LETTERS = ['I', 'V', 'X', 'L', 'C', 'D', 'M'];
+  const PAIRS = Object.keys(Roman.PAIR_PIECES);
 
   let soundOn = true;
   let showErrors = false;
@@ -77,30 +78,12 @@
     return board;
   }
 
-  // "How to read this": count what is on the board right now.
-  function drawTally(tallyEl, tiles) {
-    if (!tallyEl) return;
-    const counts = {};
-    tiles.forEach((t) => {
-      if (t.st !== 'cross') counts[t.ch] = (counts[t.ch] || 0) + 1;
-    });
-    const order = Object.keys(counts).sort((a, b) => Roman.lenientValue(b) - Roman.lenientValue(a));
-    let total = 0;
-    const rows = order.map((ch) => {
-      const n = counts[ch];
-      const each = Roman.lenientValue(ch);
-      total += n * each;
-      return `<div><span>${n} × ${ch} (${each} each)</span><span>${n * each}</span></div>`;
-    });
-    if (rows.length) rows.push(`<div class="total"><span>Total</span><span>${total}</span></div>`);
-    tallyEl.innerHTML = rows.join('');
-  }
-
   // ---------- ledger steppers ----------
   // Rows are added and removed at the end only. A row that is already on screen is never rebuilt,
   // so its tiles do not replay their animation when the user presses Play steps or Next.
   const steppers = {};
-  function makeStepper(name, { renderRow, onShow, tallyEl }) {
+  const stepSpeed = () => Number($('#opt-speed').value) || 1600;
+  function makeStepper(name, { renderRow, onShow }) {
     const ledger = $(`#${name}-ledger`);
     const playBtn = $(`[data-play="${name}"]`);
     let steps = [];
@@ -118,7 +101,6 @@
       if (!steps.length) {
         clearRows();
         ledger.replaceChildren(el('p', 'empty', emptyText));
-        if (tallyEl) tallyEl.replaceChildren();
         if (onShow) onShow([]);
         return;
       }
@@ -131,7 +113,6 @@
       while (rows.length > shown) rows.pop().remove();
       rows.forEach((r, i) => r.classList.toggle('current', i === shown - 1));
       ledger.scrollTop = ledger.scrollHeight;
-      if (tallyEl) drawTally(tallyEl, steps[shown - 1].board || []);
       if (onShow) onShow(steps.slice(0, shown));
     }
 
@@ -171,7 +152,7 @@
           shown++;
           sfx.tap();
           sync();
-        }, 1600);
+        }, stepSpeed());
       },
       stop,
     };
@@ -185,29 +166,38 @@
     lastRun[name] = text;
   }
 
-  // ---------- Add & Subtract: the line of the sum, with the board below ----------
+  // ---------- Add & Subtract: the whole sum on one line, with the = row once it is worked out ----------
+  // A token is one part of the sum: a chunk like XL or I, an operator, the '=' sign, or a part on the right of '='.
+  // A part is crossed out when it is done, and a part that was expanded shows an arrow to what it became.
+  function partEl(t) {
+    let cls = 'tok';
+    if (t.side === 'right') cls += ' right';
+    if (t.st === 'done') cls += ' done';
+    if (t.focus) cls += ' focus';
+    if (t.st === 'new') cls += ' appear';
+    return el('span', cls, t.text);
+  }
+
   function eqLine(tokens) {
     const line = el('div', 'eq-line');
     tokens.forEach((t) => {
-      if (t.op) {
+      if (t.eq) {
+        line.append(el('span', 'eq-sign', '='));
+      } else if (t.op) {
         line.append(el('span', 'eq-op', t.text));
-      } else if (t.res) {
-        line.append(el('span', 'tok res', t.text));
       } else if (t.focus && t.becomes) {
-        line.append(el('span', 'tok focus', t.text), el('span', 'eq-arrow', '→'), el('span', 'tok new', t.becomes));
-      } else if (t.focus) {
-        line.append(el('span', 'tok focus', t.text));
+        line.append(partEl(t), el('span', 'eq-arrow', '→'), el('span', 'tok became', t.becomes));
       } else {
-        line.append(el('span', `tok${t.st === 'done' ? ' done' : ''}`, t.text));
+        line.append(partEl(t));
       }
     });
     return line;
   }
 
-  function addsubRow(s, i, current) {
-    const row = el('div', `step-row${current ? ' current' : ''}`);
+  function addsubRow(s, i) {
+    const row = el('div', 'step-row');
     const inner = el('div');
-    inner.append(el('p', 'caption', s.text), eqLine(s.line), boardEl(s.board));
+    inner.append(el('p', 'caption', s.text), eqLine(s.line));
     if (s.value !== null) inner.append(el('p', 'value', `Worth ${s.value}`));
     row.append(el('div', 'step-num', String(i + 1)), inner);
     return row;
@@ -313,7 +303,7 @@
     runners[entry](text);
   }
 
-  // ---------- Quiz: letters and true / false / ambiguous ----------
+  // ---------- Quiz: letters and true / false statements ----------
   // `carry` holds misses for the rest of this visit only. Refreshing the page clears them, and so does Forget my mistakes.
   const quiz = { round: 0, carry: [], batch: [], index: 0, correct: 0, current: null, answered: false, timer: null };
 
@@ -327,9 +317,9 @@
   }
 
   const TRUE_FALSE = Roman.TRUE_FALSE;
-  const TF_OPTIONS = ['True', 'False', 'Ambiguous'];
+  const TF_OPTIONS = ['True', 'False'];
 
-  // Letters asked both ways (letter to value, value to letter), plus the True / False / Ambiguous items.
+  // Letters asked both ways (letter to value, value to letter), plus the True / False items.
   function allItems() {
     const letters = LETTERS.flatMap((ch) => [
       { kind: 'letter', prompt: ch, answer: String(VALUE[ch]) },
@@ -435,43 +425,123 @@
   }
 
   // ---------- Look: each look is a whole stylesheet in looks/, swapped by the settings buttons ----------
-  const LOOKS = ['sunny', 'chalk', 'notebook', 'candy'];
+  const LOOKS = ['sunny', 'chalk', 'candy', 'poster', 'folder', 'garden'];
   function setLook(name) {
     if (!LOOKS.includes(name)) name = 'sunny';
     $('#look-css').href = `looks/${name}.css`;
     $$('[data-look]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.look === name)));
   }
 
-  // ---------- Rules: five rules on the left, examples on the right ----------
+  // ---------- Letters: tap a letter to see its pairs, then the pairs that never exist ----------
+  let pairLetter = 'I';
+  let pairMore = false;
+
+  const pairChip = (p) => {
+    const chip = el('div', 'pair-chip ok');
+    chip.append(el('b', '', p), el('span', '', `= ${Roman.lenientValue(p)}`));
+    return chip;
+  };
+  const neverChip = (p) => {
+    const chip = el('div', 'pair-chip never');
+    chip.append(mark(false), el('b', '', p), el('span', '', 'never'));
+    return chip;
+  };
+
+  // Pairs that exist for a letter: the subtractive pairs it belongs to.
+  function existingPairs(x) {
+    return PAIRS.filter((p) => p.includes(x));
+  }
+  // Pairs that never exist for a letter: the smaller letter goes first, and the rules do not allow it.
+  function neverPairs(x) {
+    const after = LETTERS.filter((y) => VALUE[y] > VALUE[x] && !PAIRS.includes(x + y)).map((y) => x + y);
+    const before = LETTERS.filter((y) => VALUE[y] < VALUE[x] && !PAIRS.includes(y + x)).map((y) => y + x);
+    return [...after, ...before];
+  }
+
+  function renderPairs() {
+    const x = pairLetter;
+    $$('.letter-row button').forEach((b) => b.classList.toggle('picked', b.textContent === x));
+    const list = $('#pair-list');
+    if (!pairMore) {
+      $('#pair-title').textContent = `${x} pairs that exist`;
+      const ex = existingPairs(x);
+      list.replaceChildren(...(ex.length ? ex.map(pairChip) : [el('p', 'note', `${x} does not pair. It stands alone.`)]));
+      $('#pair-more').textContent = 'Show pairs that never exist';
+    } else {
+      $('#pair-title').textContent = `${x} pairs that never exist`;
+      list.replaceChildren(...neverPairs(x).map(neverChip));
+      $('#pair-more').textContent = 'Back to pairs that exist';
+    }
+  }
+
+  function buildLetterRow() {
+    const row = $('#letter-row');
+    LETTERS.forEach((ch) => {
+      const b = el('button', `tile ${ch}`, ch);
+      b.addEventListener('click', () => {
+        pairLetter = ch;
+        pairMore = false;
+        $('#letter-hint').textContent = `${ch} is worth ${VALUE[ch]}.`;
+        beep([VALUE[ch] > 100 ? 392 : 523 + VALUE[ch] / 10]);
+        renderPairs();
+      });
+      row.append(b);
+    });
+  }
+
+  function buildExtendedBox() {
+    // Overlined letters stand for thousands. They are shown for reference only: the checker does not use them.
+    const list = $('#extended-list');
+    list.replaceChildren(...LETTERS.map((ch) => {
+      const row = el('div', 'ext-row');
+      row.append(el('span', 'ext-letter', `${ch}̅`), el('span', '', `${VALUE[ch] * 1000}`));
+      return row;
+    }));
+  }
+
+  // ---------- Rules: five rules on the left (in full), examples on the right ----------
   const ok = (numeral, note) => ({ good: true, numeral, note });
   const bad = (numeral, fix, note) => ({ good: false, numeral, fix, note });
+  // The wording is from Jimmy's notes (convo v0.1). Rule 4 is left for later.
   const RULES = {
     1: {
       title: 'Rule 1',
-      text: 'Equal letters in a row are added. No more than three in a row.',
+      text: 'If there are a few equal basic Roman numerals in a row, add them. No more than three equal basic numerals in a row are allowed.',
       examples: [ok('III', '= 3'), ok('XXX', '= 30'), bad('IIII', 'IV'), bad('XXXX', 'XL')],
     },
     2: {
       title: 'Rule 2',
-      text: 'A smaller letter on the right of a bigger one is added. No more than three.',
+      text: 'If one or a few equal smaller basic Roman numerals are to the right of a greater one, we add them. No more than three smaller equal basic numerals are allowed.',
       examples: [ok('VI', '= 6'), ok('XVIII', '= 18'), bad('VIIII', 'IX')],
     },
     3: {
       title: 'Rule 3',
-      text: 'A smaller letter on the left of a bigger one is taken away. Only one, never a few.',
+      text: 'If a smaller basic Roman numeral is to the left of a greater one, we subtract it. It is not allowed to put a few smaller equal basic numerals to the left of a greater one.',
       examples: [ok('IV', '= 4'), ok('XL', '= 40'), ok('CM', '= 900'), bad('IIX', 'X', 'only one I before the X')],
     },
     4: {
       title: 'Rule 4',
-      text: 'Wording not supplied yet. These are the pairs the tool uses; the rule wording comes from the ORC unit.',
-      examples: [ok('IV', '= 4'), ok('IX', '= 9'), ok('XL', '= 40'), ok('XC', '= 90'), ok('CD', '= 400'), ok('CM', '= 900')],
+      text: 'Coming later. We will come back to this rule.',
+      examples: [],
     },
     5: {
       title: 'Rule 5',
-      text: 'Always write it in the simplest form.',
+      text: 'Subject to all other rules, one should write a Roman numeral in the simplest possible form.',
       examples: [bad('VV', 'X'), bad('LL', 'C'), bad('IIII', 'IV')],
     },
   };
+
+  function renderRuleList() {
+    const list = $('#rule-list');
+    list.replaceChildren(...Object.keys(RULES).map((n) => {
+      const b = el('button', 'rule-btn');
+      b.dataset.rule = n;
+      b.setAttribute('aria-pressed', 'false');
+      b.append(el('b', '', n), ` ${RULES[n].text}`);
+      b.addEventListener('click', () => showRule(Number(n)));
+      return b;
+    }));
+  }
 
   function showRule(n) {
     const rule = RULES[n];
@@ -483,6 +553,10 @@
     $('#rule-title').textContent = rule.title;
     $('#rule-text').textContent = rule.text;
     const box = $('#rule-examples');
+    if (!rule.examples.length) {
+      box.replaceChildren(el('p', 'note', 'Rule 4 will be added when the wording is ready.'));
+      return;
+    }
     box.replaceChildren(...rule.examples.map((ex) => {
       const line = el('div', 'example');
       line.append(el('span', 'strip', ex.numeral));
@@ -497,10 +571,10 @@
   }
 
   // ---------- Long Ago: counting board pictures ----------
-  // One pebble per unit, tens on the left, ones on the right. Drawn from fixed numbers only.
+  // One pebble per unit, tens on the left, ones on the right. Each pebble has a small delay so they slide on one after another.
   function countingBoardSVG(tens, ones) {
-    const pebble = (x, y) => `<circle cx="${x}" cy="${y}" r="8" fill="#ffe9a6" stroke="#2b2540" stroke-width="2.5"/>`;
-    const column = (x, n) => Array.from({ length: n }, (_, k) => pebble(x, 190 - 18 * k)).join('');
+    const pebble = (x, y, k) => `<circle class="peb" style="--d:${(k * 0.12).toFixed(2)}s" cx="${x}" cy="${y}" r="8" fill="#ffe9a6" stroke="#2b2540" stroke-width="2.5"/>`;
+    const column = (x, n) => Array.from({ length: n }, (_, k) => pebble(x, 190 - 18 * k, k)).join('');
     return `<svg class="board-art" viewBox="0 0 300 220" role="img" aria-label="${tens} tens and ${ones} ones">`
       + '<g stroke="#2b2540" stroke-width="3" stroke-linecap="round">'
       + '<line x1="90" y1="16" x2="90" y2="200"/><line x1="210" y1="16" x2="210" y2="200"/><line x1="40" y1="204" x2="260" y2="204"/></g>'
@@ -545,19 +619,6 @@
     });
   }
 
-  // ---------- Letters ----------
-  function buildLetterRow() {
-    const row = $('#letter-row');
-    LETTERS.forEach((ch) => {
-      const b = el('button', `tile ${ch}`, ch);
-      b.addEventListener('click', () => {
-        $('#letter-hint').textContent = `${ch} is worth ${VALUE[ch]}.`;
-        beep([VALUE[ch] > 100 ? 392 : 523 + VALUE[ch] / 10]);
-      });
-      row.append(b);
-    });
-  }
-
   // ---------- tabs, forms, gear ----------
   function showTab(name) {
     $$('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
@@ -566,16 +627,22 @@
   }
 
   function init() {
-    steppers.addsub = makeStepper('addsub', { renderRow: addsubRow, tallyEl: $('#addsub-tally') });
+    steppers.addsub = makeStepper('addsub', { renderRow: addsubRow });
     steppers.fix = makeStepper('fix', { renderRow: fixRow, onShow: showFixRules });
     steppers.addsub.load([], 'Press Random, or type a sum like XLI + XIX.');
     steppers.fix.load([], 'Press Random bad numeral, or type your own.');
     buildLetterRow();
+    buildExtendedBox();
+    renderPairs();
     renderDemos();
+    renderRuleList();
     showRule(1);
 
     $$('.tab-btn').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
-    $$('.rule-btn').forEach((b) => b.addEventListener('click', () => showRule(Number(b.dataset.rule))));
+    $('#pair-more').addEventListener('click', () => {
+      pairMore = !pairMore;
+      renderPairs();
+    });
 
     $$('form[data-entry]').forEach((form) => {
       form.addEventListener('submit', (e) => {
@@ -614,6 +681,7 @@
       });
       $$('.subpanel').forEach((p) => p.classList.toggle('active', p.dataset.panel === name));
     }));
+
     $('#quiz-next').addEventListener('click', startRound);
     startRound();
 
@@ -634,6 +702,9 @@
     $('#opt-pictures').addEventListener('change', (e) => {
       document.body.classList.toggle('no-pictures', !e.target.checked);
     });
+    $('#opt-size').addEventListener('change', (e) => { document.documentElement.dataset.size = e.target.value; });
+    $('#opt-calm').addEventListener('change', (e) => { document.documentElement.dataset.calm = e.target.checked ? 'on' : ''; });
+    $('#opt-extended').addEventListener('change', (e) => { $('#extended-box').hidden = !e.target.checked; });
     setLook('sunny');
   }
 
