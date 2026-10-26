@@ -68,7 +68,7 @@ test('numbers above 3999 are not accepted', () => {
 
 test('calculate: the first step is the whole sum', () => {
   const r = Roman.calculate(['XXIX', 'XXII'], ['+']);
-  assert.equal(r.steps[0].text, 'Full sum: XXIX + XXII.');
+  assert.equal(r.steps[0].text, 'The whole problem: XXIX + XXII.');
   const eq = r.steps[0].eq.items.map((it) => (it.kind === 'op' ? it.text : it.tiles.map((t) => t.ch)));
   assert.deepEqual(eq, [['X', 'X', 'IX'], '+', ['X', 'X', 'I', 'I']]);
 });
@@ -88,7 +88,7 @@ test('calculate: XXIX + XXII works by place and never opens IX into VIIII', () =
   assert.ok(r.steps.some((s) => s.text === 'Ones: IX + II = XI.'));
   assert.ok(r.steps.some((s) => s.text.startsWith('XI has an X in it') && s.text.includes('so move it up')));
   assert.ok(r.steps.some((s) => s.text === 'Tens: XX + XX + X = L.'));
-  assert.equal(r.steps[r.steps.length - 1].text, 'Put the places together: L + I = LI.');
+  assert.equal(r.steps[r.steps.length - 1].text, 'Put the columns together: L + I = LI.');
 });
 
 test('calculate: each place step changes one place (two for a carry or a borrow), and shows what it was', () => {
@@ -98,7 +98,7 @@ test('calculate: each place step changes one place (two for a carry or a borrow)
       const changed = s.boxes.filter((b) => b.focus);
       assert.ok(changed.length >= 1, s.text);
       assert.ok(changed.every((b) => Array.isArray(b.was) || b.items.some((it) => it.fresh)), s.text);
-      if (!/borrow|move/i.test(s.text)) assert.equal(changed.length, 1, s.text);
+      if (!/borrow|get one|move/i.test(s.text)) assert.equal(changed.length, 1, s.text);
     }
   }
 });
@@ -113,7 +113,7 @@ test('calculate: XCVI - XCIII takes away place by place', () => {
 test('calculate: XLI - IX borrows one X from the tens', () => {
   const r = Roman.calculate(['XLI', 'IX'], ['-']);
   assert.equal(r.result, 'XXXII');
-  assert.ok(r.steps.some((s) => s.text === 'Ones: I is less than IX. Borrow one X from the tens: XL becomes XXX, and I becomes XI.'));
+  assert.ok(r.steps.some((s) => s.text === 'Ones: I is less than IX. Get one X from the tens: XL becomes XXX, and I becomes XI.'));
 });
 
 test('calculate: C - I borrows across an empty place (the tens get XC)', () => {
@@ -234,7 +234,7 @@ test('Regroup: XXVII + XVIII puts the letters in order, regroups, then writes XL
   assert.equal(p.result, 'XLV');
   const labels = p.steps.filter((s) => s.kind === 'repair').map((s) => s.label);
   assert.deepEqual(labels, [
-    'Put the letters in order, biggest first.',
+    'Put the biggest letters first.',
     "Five I's make one V.",
     "Two V's make one X.",
     'XXXX is the long way. The short way is XL.',

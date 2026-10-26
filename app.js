@@ -611,7 +611,7 @@
   const recStatus = (msg) => { $('#rec-status').textContent = msg; };
   function renderProblem() {
     const problem = lastRun.addsub;
-    $('#practice-problem').textContent = problem ? `Problem: ${problem}` : 'Make a sum first, then record yourself explaining it.';
+    $('#practice-problem').textContent = problem ? `Problem: ${problem}` : 'Make a problem first, then explain it.';
   }
   function renderTakes() {
     $('#takes').replaceChildren(...takes.map((t) => {
@@ -831,9 +831,9 @@
   function renderPairs() {
     const list = $('#pair-list');
     if (!pairMore) {
-      $('#pair-title').textContent = 'Pairs that exist (a smaller letter in front of a bigger one)';
+      $('#pair-title').textContent = 'Pairs that are real (a smaller letter in front of a bigger one)';
       list.replaceChildren(...groupPairs(PAIRS, pairChip));
-      $('#pair-more').textContent = 'Show pairs that never exist';
+      $('#pair-more').textContent = 'Show pairs that are not allowed';
     } else {
       $('#pair-title').textContent = 'Pairs that never exist';
       list.replaceChildren(...groupPairs(neverPairs(), neverChip));
@@ -1040,7 +1040,7 @@
     steppers.regroup.load([], 'Press Random, or type a sum like XXVII + XVIII.');
     buildLadder();
     steppers.addsub.load([], 'Press Random, or type a sum like XLI + XIX.');
-    steppers.fix.load([], 'Press Random bad numeral, or type your own.');
+    steppers.fix.load([], 'Press Random wrong numeral, or type your own.');
     buildLetterRow();
     renderPairs();
     renderDemos();
