@@ -50,16 +50,16 @@
 
     <!-- RULES: five rules on the left, examples on the right -->
     <section class="tab" id="tab-rules">
-      <p class="note-box">The rule wording is from the ORMC unit notes. Rule 4 comes later.</p>
+      <p class="note-box">The rule wording is from the ORMC unit notes. Rule IV comes later.</p>
       <div class="split">
         <nav class="rule-list" id="rule-list" aria-label="Rules"></nav>
         <section class="play rule-panel" aria-live="polite">
-          <h2 id="rule-title">Rule 1</h2>
+          <h2 id="rule-title">Rule I</h2>
           <p id="rule-text"></p>
           <div id="rule-examples"></div>
         </section>
       </div>
-      <p class="rules-foot">Letters: I = 1 · V = 5 · X = 10 · L = 50 · C = 100 · D = 500 · M = 1000</p>
+      <p class="rules-foot">I one · V five · X ten · L fifty · C one hundred · D five hundred · M one thousand</p>
     </section>
 
     <!-- REGROUP: trading many small letters for one bigger one -->
@@ -71,7 +71,7 @@
           <div class="ladder" id="ladder"></div>
 
           <div class="pattern-box">
-            <h3>The pattern: 5, then 2, then 5, then 2</h3>
+            <h3>The pattern: five, then two, then five, then two</h3>
             <div class="pattern-chain" id="pattern-chain"></div>
             <p class="note">Two steps up the chain is always ten: ten I's make an X, ten X's make a C, ten C's make an M.</p>
           </div>
@@ -149,10 +149,9 @@
         </div>
         <aside class="ref">
           <h3>How to read this</h3>
-          <p>If the letters can just slide together, that is one step.</p>
-          <p>If not, the numbers are lined up by place, like the columns of a counting board: thousands, hundreds, tens, ones. Each step changes one place, starting with the ones.</p>
-          <p>When a place reaches ten, one letter moves up to the next place. When a place is short, it borrows one letter from the place above.</p>
-          <p class="note">This is a teaching model, built like a counting board.</p>
+          <p><strong>Regrouping</strong> (the usual way): put the letters together, open short forms, take away or put in order, then regroup (five I's make a V) and write the short forms.</p>
+          <p><strong>Counting board</strong> (in settings): line up the places, ones, tens, hundreds, and work one place at a time.</p>
+          <p class="note">Both are teaching models. Switch between them in settings.</p>
         </aside>
       </div>
     </section>
@@ -162,7 +161,7 @@
       <div class="layout">
         <div class="play">
           <div class="quiz-head">
-            <span id="quiz-round">Round 1</span>
+            <span id="quiz-round">Round I</span>
             <span id="quiz-left"></span>
           </div>
           <div class="prompt" id="quiz-prompt"></div>
@@ -316,6 +315,13 @@
       </select>
     </label>
     <label class="toggle"><input type="checkbox" id="opt-calm"> Calm motion (no bouncing)</label>
+    <h4>Add &amp; Subtract</h4>
+    <label class="field">Method
+      <select id="opt-method">
+        <option value="regroup" selected>Regrouping (letters together)</option>
+        <option value="board">Counting board (by place)</option>
+      </select>
+    </label>
     <h4>Ideas to try</h4>
     <p class="note">Turn these on to see if they help. Tell me which to keep.</p>
     <label class="toggle"><input type="checkbox" id="opt-aloud"> Read each step aloud</label>

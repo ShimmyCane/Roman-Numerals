@@ -84,9 +84,9 @@ test('calculate: XXIX + XXII works by place and never opens IX into VIIII', () =
   const r = Roman.calculate(['XXIX', 'XXII'], ['+']);
   assert.equal(r.result, 'LI');
   assert.ok(!r.steps.some((s) => s.text.includes('VIIII') || s.text.includes('V + I + I')), 'no needless expansion');
-  assert.ok(r.steps.some((s) => s.text === 'Ones: IX (9) + II (2) = 11. Write XI.'));
-  assert.ok(r.steps.some((s) => s.text.startsWith('XI has one X in it') && s.text.includes('Move the X up to the tens')));
-  assert.ok(r.steps.some((s) => s.text === 'Tens: XX (20) + XX (20) + X (10) = 50. Write L.'));
+  assert.ok(r.steps.some((s) => s.text === 'Ones: IX + II = XI.'));
+  assert.ok(r.steps.some((s) => s.text.startsWith('XI has an X in it') && s.text.includes('so move it up')));
+  assert.ok(r.steps.some((s) => s.text === 'Tens: XX + XX + X = L.'));
   assert.equal(r.steps[r.steps.length - 1].text, 'Put the places together: L + I = LI.');
 });
 
@@ -97,7 +97,7 @@ test('calculate: each place step changes one place (two for a carry or a borrow)
       const changed = s.boxes.filter((b) => b.focus);
       assert.ok(changed.length >= 1, s.text);
       assert.ok(changed.every((b) => Array.isArray(b.was) || b.items.some((it) => it.fresh)), s.text);
-      if (!/Borrow|Move/.test(s.text)) assert.equal(changed.length, 1, s.text);
+      if (!/borrow|move/i.test(s.text)) assert.equal(changed.length, 1, s.text);
     }
   }
 });
@@ -105,8 +105,8 @@ test('calculate: each place step changes one place (two for a carry or a borrow)
 test('calculate: XCVI - XCIII takes away place by place', () => {
   const r = Roman.calculate(['XCVI', 'XCIII'], ['-']);
   assert.equal(r.result, 'III');
-  assert.ok(r.steps.some((s) => s.text === 'Ones: VI (6) − III (3) = 3. Write III.'));
-  assert.ok(r.steps.some((s) => s.text === 'Tens: XC (90) − XC (90) = 0. Nothing is left in the tens.'));
+  assert.ok(r.steps.some((s) => s.text === 'Ones: VI − III = III.'));
+  assert.ok(r.steps.some((s) => s.text === 'Tens: XC − XC leaves nothing in the tens.'));
 });
 
 test('calculate: XLI - IX borrows one X from the tens', () => {
@@ -183,7 +183,7 @@ test('parse reads an expression and rejects bad input', () => {
 test('Fix It: XXIIII is repaired with one rule, then XXIV (the eyes example)', () => {
   const p = Roman.repairPlan('XXIIII');
   assert.deepEqual(p.steps.map((s) => s.kind), ['start', 'repair', 'done']);
-  assert.equal(p.steps[1].label, "4 I's in a row");
+  assert.equal(p.steps[1].label, "Four I's in a row");
   assert.equal(p.steps[1].rule, 1);
   assert.equal(p.result, 'XXIV');
   assert.equal(p.ok, true);
@@ -236,7 +236,7 @@ test('Regroup: XXVII + XVIII puts the letters in order, regroups, then writes XL
     'Put the letters in order, biggest first.',
     "Five I's make one V.",
     "Two V's make one X.",
-    'XXXX is 40. The short way to write 40 is XL.',
+    'XXXX is the long way. The short way is XL.',
   ]);
 });
 
@@ -254,6 +254,54 @@ test('Regroup: every sum up to 200 + 200 ends at the simplest form', () => {
       assert.equal(p.ok, true);
     }
   }
+});
+
+test('Take away by regrouping: XCVI - XCIII takes XC whole, trades one V, then takes three I\'s', () => {
+  const p = Roman.takeAwayPlan('XCVI', 'XCIII');
+  assert.equal(p.result, 'III');
+  assert.deepEqual(p.steps.filter((s) => s.kind === 'repair').map((s) => s.label), [
+    'Take away XC. Both numbers have XC.',
+    "Not enough I's. Trade one V for I + I + I + I + I.",
+    "Take away three I's.",
+  ]);
+});
+
+test('Take away by regrouping: every difference up to 200 ends at the simplest form', () => {
+  for (let a = 2; a <= 200; a += 1) {
+    for (let b = 1; b < a; b += 3) {
+      const p = Roman.takeAwayPlan(Roman.toRoman(a), Roman.toRoman(b));
+      assert.equal(p.result, Roman.toRoman(a - b), `${a}-${b}`);
+      assert.equal(p.ok, true);
+    }
+  }
+});
+
+test('No Arabic numerals in any step caption (they belong only on the Long Ago tab)', () => {
+  const texts = [];
+  for (let a = 1; a <= 120; a += 7) {
+    for (let b = 1; b <= 120; b += 11) {
+      const A = Roman.toRoman(a);
+      const B = Roman.toRoman(b);
+      Roman.calculate([A, B], ['+']).steps.forEach((s) => texts.push(s.text));
+      if (a > b) Roman.calculate([A, B], ['-']).steps.forEach((s) => texts.push(s.text));
+      Roman.regroupPlan([A, B]).steps.forEach((s) => texts.push(s.label || ''));
+      if (a > b) Roman.takeAwayPlan(A, B).steps.forEach((s) => texts.push(s.label || ''));
+    }
+  }
+  ['XXIIII', 'VIIII', 'IIX', 'LXXXXVII', 'MMMM', 'MDCCCLXXXVIII'].forEach((n) => {
+    Roman.repairPlan(n).steps.forEach((s) => texts.push(s.label || ''));
+    Roman.check(n).issues.forEach((i) => texts.push(i.text));
+  });
+  Roman.TRUE_FALSE.forEach((t) => texts.push(t.prompt, t.why || ''));
+  const withDigits = texts.filter((t) => /[0-9]/.test(t));
+  assert.deepEqual(withDigits, []);
+});
+
+test('words writes values in words', () => {
+  assert.equal(Roman.words(4), 'four');
+  assert.equal(Roman.words(49), 'forty-nine');
+  assert.equal(Roman.words(900), 'nine hundred');
+  assert.equal(Roman.words(1994), 'one thousand nine hundred ninety-four');
 });
 
 test('Build & Random: random numerals are in simplest form and within the letter limit', () => {

@@ -38,3 +38,12 @@ Jimmy: online guides talk about regrouping the symbols after adding or taking aw
 ## Open question
 
 - Should Add & Subtract use regrouping too, or keep the counting-board method for adding and taking away, with Regroup as its own lesson?
+
+## Follow-up: method setting, and no Arabic numerals outside Long Ago
+
+Jimmy: not familiar with the counting board, so make it a setting to switch back and forth. No Arabic numerals in the first tabs, only in Long Ago.
+
+- **Add & Subtract uses regrouping by default.** Adding: put the letters together, open short forms, sort, regroup, then write the short forms. Taking away: take a short form whole if both numbers have it, open the rest, cross out the letters to take away, and trade one bigger letter down when a letter is missing ("Not enough I's. Trade one V for I + I + I + I + I.").
+- **Settings › Add & Subtract › Method:** Regrouping (default) or Counting board. Changing it re-runs the current sum.
+- **No Arabic numerals outside Long Ago.** Values are in words ("I is worth one", "IV = four"). Counts are in words ("Take away three I's", "Four I's in a row"). Step numbers, quiz rounds and rule numbers are in Roman numerals (step IV, Round II, Rule III). The quiz asks letter ↔ word ("V" ↔ "five"). A test fails if any step caption has a digit.
+- **Checked:** take-away by regrouping is right for every difference up to 300 (44,850 cases). 35 logic tests pass. A browser scan found no digits on any tab but Long Ago.

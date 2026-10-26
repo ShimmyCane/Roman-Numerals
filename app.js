@@ -218,14 +218,14 @@
   }
 
   function addsubRow(s, i) {
+    if (s.kind === 'start' || s.kind === 'repair' || s.kind === 'done') return fixRow(s, i);
     const row = el('div', 'step-row');
     const inner = el('div');
     // The caption sits outside. The working sits in its own window, so the two never blend.
     const work = el('div', 'work');
     work.append(s.kind === 'places' ? placesEl(s.boxes) : lineEl(s.tokens));
     inner.append(el('p', 'caption', s.text), work);
-    if (s.value !== null) inner.append(el('p', 'value', `Worth ${s.value}`));
-    row.append(el('div', 'step-num', String(i + 1)), inner);
+    row.append(el('div', 'step-num', Roman.toRoman(i + 1)), inner);
     return row;
   }
 
@@ -242,9 +242,27 @@
       steppers.addsub.load([], `"${wrong}": ${Roman.check(wrong).issues[0].text} Try the Fix It tab first.`);
       return;
     }
-    const out = Roman.calculate(p.terms, p.ops);
-    setError(out.error || '');
-    steppers.addsub.load(out.steps);
+    if ($('#opt-method').value === 'board') {
+      const out = Roman.calculate(p.terms, p.ops);
+      setError(out.error || '');
+      steppers.addsub.load(out.steps);
+      return;
+    }
+    // Regrouping: one pair at a time, left to right. Each pair starts with its own first row.
+    let current = p.terms[0];
+    let steps = [];
+    for (let k = 1; k < p.terms.length; k++) {
+      const term = p.terms[k];
+      const total = p.ops[k - 1] === '+' ? Roman.lenientValue(current) + Roman.lenientValue(term) : Roman.lenientValue(current) - Roman.lenientValue(term);
+      if (total < 0) return steppers.addsub.load(steps, `${current} is less than ${term}. You cannot take away more than you have. Romans had no negative numbers.`);
+      if (total === 0) return steppers.addsub.load(steps, 'Nothing is left. Romans had no zero.');
+      if (total > Roman.MAX) return steppers.addsub.load(steps, `That is more than ${Roman.toRoman(Roman.MAX)}, the biggest this tool writes.`);
+      const plan = p.ops[k - 1] === '+' ? Roman.regroupPlan([current, term]) : Roman.takeAwayPlan(current, term);
+      steps = steps.concat(plan.steps);
+      current = plan.result;
+    }
+    setError('');
+    steppers.addsub.load(steps, `${current} has nothing to add or take away.`);
   }
 
   // ---------- Fix It: a bad numeral, one repair at a time ----------
@@ -264,7 +282,7 @@
       status.append(mark(s.ok), ' ', s.ok ? 'Done' : 'Still not right');
       inner.append(status);
     }
-    row.append(el('div', 'step-num', String(i + 1)), inner);
+    row.append(el('div', 'step-num', Roman.toRoman(i + 1)), inner);
     return row;
   }
 
@@ -303,11 +321,11 @@
     setError('');
     const plan = Roman.repairPlan(s);
     if (r.ok) {
-      verdict.textContent = `Looks right! ${s} = ${r.value}`;
+      verdict.textContent = `Looks right! ${s} follows the rules.`;
       verdict.className = 'verdict good';
       sfx.good();
     } else {
-      verdict.textContent = `Not quite. ${s} = ${r.value}. The simplest form is ${plan.result}.`;
+      verdict.textContent = `Not quite. The simplest form is ${plan.result}.`;
       verdict.className = 'verdict bad';
       sfx.oops();
     }
@@ -324,12 +342,13 @@
       const card = el('button', 'ladder-card');
       card.type = 'button';
       card.setAttribute('aria-pressed', 'false');
-      card.setAttribute('aria-label', `${n} ${from}'s make one ${to}. Tap to regroup.`);
+      card.setAttribute('aria-label', `${Roman.words(n)} ${from}'s make one ${to}. Tap to regroup.`);
       const loose = el('div', 'ladder-loose');
       loose.append(...Array.from({ length: n }, () => tileEl({ ch: from, st: 'normal' })));
       const merged = el('div', 'ladder-merged');
       merged.append(tileEl({ ch: to, st: 'normal' }));
-      card.append(loose, el('span', 'arrow', '→'), merged, el('p', 'ladder-caption', `${n} ${from}'s = ${to} (${VALUE[to]})`));
+      const count = Roman.words(n);
+      card.append(loose, el('span', 'arrow', '→'), merged, el('p', 'ladder-caption', `${count.charAt(0).toUpperCase() + count.slice(1)} ${from}'s make one ${to}`));
       card.addEventListener('click', () => {
         const on = card.classList.toggle('merged');
         card.setAttribute('aria-pressed', String(on));
@@ -339,11 +358,11 @@
     }));
     const chain = $('#pattern-chain');
     const bits = [tileEl({ ch: 'I', st: 'normal' })];
-    LADDER.forEach(([, n, to]) => bits.push(el('span', 'chain-step', `× ${n} →`), tileEl({ ch: to, st: 'normal' })));
+    LADDER.forEach(([, n, to]) => bits.push(el('span', 'chain-step', `${Roman.words(n)} →`), tileEl({ ch: to, st: 'normal' })));
     chain.replaceChildren(...bits);
     $('#short-forms').replaceChildren(...SHORTS.map(([long, short]) => {
       const row = el('div', 'example');
-      row.append(el('span', 'strip', long), mark(false), el('span', 'arrow', '→'), el('span', 'strip', short), mark(true), el('span', 'equals', `= ${Roman.lenientValue(short)}`));
+      row.append(el('span', 'strip', long), mark(false), el('span', 'arrow', '→'), el('span', 'strip', short), mark(true));
       return row;
     }));
   }
@@ -374,7 +393,7 @@
     }
     const plan = Roman.regroupPlan(p.terms);
     if (plan.value > Roman.MAX) {
-      steppers.regroup.load([], `That is more than ${Roman.MAX}, the biggest this tool writes.`);
+      steppers.regroup.load([], `That is more than ${Roman.toRoman(Roman.MAX)}, the biggest this tool writes.`);
       return;
     }
     setError('');
@@ -416,8 +435,8 @@
   // Letters asked both ways (letter to value, value to letter), plus the True / False items.
   function allItems() {
     const letters = LETTERS.flatMap((ch) => [
-      { kind: 'letter', prompt: ch, answer: String(VALUE[ch]) },
-      { kind: 'value', prompt: String(VALUE[ch]), answer: ch },
+      { kind: 'letter', prompt: ch, answer: Roman.words(VALUE[ch]) },
+      { kind: 'value', prompt: Roman.words(VALUE[ch]), answer: ch },
     ]);
     const tf = TRUE_FALSE.map((t) => ({ kind: 'tf', prompt: t.prompt, answer: t.answer, why: t.why }));
     return letters.concat(tf);
@@ -425,15 +444,15 @@
 
   // Two answers per question: the right one and one wrong one.
   function optionsFor(item) {
-    const pool = item.kind === 'tf' ? TF_OPTIONS : item.kind === 'letter' ? Object.values(VALUE).map(String) : LETTERS;
+    const pool = item.kind === 'tf' ? TF_OPTIONS : item.kind === 'letter' ? Object.values(VALUE).map(Roman.words) : LETTERS;
     const wrong = shuffle(pool.filter((x) => x !== item.answer))[0];
     return shuffle([item.answer, wrong]);
   }
 
   // A missed question comes back as a similar question, not the same one.
   function similarItem(item) {
-    if (item.kind === 'letter') return { kind: 'value', prompt: String(VALUE[item.prompt]), answer: item.prompt };
-    if (item.kind === 'value') return { kind: 'letter', prompt: item.answer, answer: String(VALUE[item.answer]) };
+    if (item.kind === 'letter') return { kind: 'value', prompt: Roman.words(VALUE[item.prompt]), answer: item.prompt };
+    if (item.kind === 'value') return { kind: 'letter', prompt: item.answer, answer: Roman.words(VALUE[item.answer]) };
     const others = TRUE_FALSE.filter((t) => t.answer === item.answer && t.prompt !== item.prompt);
     if (!others.length) return item;
     const pick = shuffle(others)[0];
@@ -452,7 +471,7 @@
     quiz.index = 0;
     quiz.correct = 0;
     $('#quiz-next').hidden = true;
-    $('#quiz-round').textContent = `Round ${quiz.round}`;
+    $('#quiz-round').textContent = `Round ${Roman.toRoman(quiz.round)}`;
     askNext();
   }
 
@@ -464,7 +483,7 @@
     const prompt = $('#quiz-prompt');
     prompt.textContent = item.prompt;
     prompt.classList.toggle('long', item.prompt.length > 8);
-    $('#quiz-left').textContent = `${quiz.index + 1} of ${quiz.batch.length}`;
+    $('#quiz-left').textContent = `${Roman.toRoman(quiz.index + 1)} of ${Roman.toRoman(quiz.batch.length)}`;
     $('#quiz-feedback').textContent = '';
     const options = $('#quiz-options');
     options.replaceChildren(...optionsFor(item).map((o) => {
@@ -505,9 +524,9 @@
     $('#quiz-prompt').classList.remove('long');
     $('#quiz-options').replaceChildren();
     $('#quiz-left').textContent = '';
-    $('#quiz-feedback').textContent = `${quiz.correct} of ${quiz.batch.length} right`;
+    $('#quiz-feedback').textContent = `${quiz.correct ? Roman.toRoman(quiz.correct) : 'None'} of ${Roman.toRoman(quiz.batch.length)} right`;
     const next = $('#quiz-next');
-    next.textContent = left ? `Next round (${left} to repeat)` : 'New round';
+    next.textContent = left ? `Next round (${Roman.toRoman(left)} to repeat)` : 'New round';
     next.hidden = false;
   }
 
@@ -531,7 +550,7 @@
 
   const pairChip = (p) => {
     const chip = el('div', 'pair-chip ok');
-    chip.append(el('b', '', p), el('span', '', `= ${Roman.lenientValue(p)}`));
+    chip.append(el('b', '', p), el('span', '', `= ${Roman.words(Roman.lenientValue(p))}`));
     return chip;
   };
   const neverChip = (p) => {
@@ -576,7 +595,7 @@
     LETTERS.forEach((ch) => {
       const b = el('button', `tile ${ch}`, ch);
       b.addEventListener('click', () => {
-        $('#letter-hint').textContent = `${ch} is worth ${VALUE[ch]}.`;
+        $('#letter-hint').textContent = `${ch} is worth ${Roman.words(VALUE[ch])}.`;
         beep([VALUE[ch] > 100 ? 392 : 523 + VALUE[ch] / 10]);
       });
       row.append(b);
@@ -589,31 +608,31 @@
   // The full wording is from Jimmy's notes (convo v0.1). The short name on the left is only a label.
   const RULES = {
     1: {
-      title: 'Rule 1',
+      title: 'Rule I',
       short: 'Same letters in a row',
       text: 'If there are a few equal basic Roman numerals in a row, add them. No more than three equal basic numerals in a row are allowed.',
-      examples: [ok('III', '= 3'), ok('XXX', '= 30'), bad('IIII', 'IV'), bad('XXXX', 'XL')],
+      examples: [ok('III', '= three'), ok('XXX', '= thirty'), bad('IIII', 'IV'), bad('XXXX', 'XL')],
     },
     2: {
-      title: 'Rule 2',
+      title: 'Rule II',
       short: 'Smaller letters after a bigger one',
       text: 'If one or a few equal smaller basic Roman numerals are to the right of a greater one, we add them. No more than three smaller equal basic numerals are allowed.',
-      examples: [ok('VI', '= 6'), ok('XVIII', '= 18'), bad('VIIII', 'IX')],
+      examples: [ok('VI', '= six'), ok('XVIII', '= eighteen'), bad('VIIII', 'IX')],
     },
     3: {
-      title: 'Rule 3',
+      title: 'Rule III',
       short: 'Smaller letter before a bigger one',
       text: 'If a smaller basic Roman numeral is to the left of a greater one, we subtract it. It is not allowed to put a few smaller equal basic numerals to the left of a greater one.',
-      examples: [ok('IV', '= 4'), ok('XL', '= 40'), ok('CM', '= 900'), bad('IIX', 'X', 'only one I before the X')],
+      examples: [ok('IV', '= four'), ok('XL', '= forty'), ok('CM', '= nine hundred'), bad('IIX', 'X', 'only one I before the X')],
     },
     4: {
-      title: 'Rule 4',
+      title: 'Rule IV',
       short: 'Coming later',
       text: 'Coming later. We will come back to this rule.',
       examples: [],
     },
     5: {
-      title: 'Rule 5',
+      title: 'Rule V',
       short: 'Simplest form',
       text: 'Subject to all other rules, one should write a Roman numeral in the simplest possible form.',
       examples: [bad('VV', 'X'), bad('LL', 'C'), bad('IIII', 'IV')],
@@ -626,7 +645,7 @@
       const b = el('button', 'rule-btn');
       b.dataset.rule = n;
       b.setAttribute('aria-pressed', 'false');
-      b.append(el('b', '', n), ` ${RULES[n].short}`);
+      b.append(el('b', '', Roman.toRoman(Number(n))), ` ${RULES[n].short}`);
       b.addEventListener('click', () => showRule(Number(n)));
       return b;
     }));
@@ -643,7 +662,7 @@
     $('#rule-text').textContent = rule.text;
     const box = $('#rule-examples');
     if (!rule.examples.length) {
-      box.replaceChildren(el('p', 'note', 'Rule 4 will be added when the wording is ready.'));
+      box.replaceChildren(el('p', 'note', 'Rule IV will be added when the wording is ready.'));
       return;
     }
     box.replaceChildren(...rule.examples.map((ex) => {
@@ -840,6 +859,9 @@
       document.body.classList.toggle('no-pictures', !e.target.checked);
     });
     $('#opt-size').addEventListener('change', (e) => { document.documentElement.dataset.size = e.target.value; });
+    $('#opt-method').addEventListener('change', () => {
+      if (lastRun.addsub !== undefined) runAddSub(lastRun.addsub);
+    });
     $('#opt-calm').addEventListener('change', (e) => { document.documentElement.dataset.calm = e.target.checked ? 'on' : ''; });
     $('#opt-bigtiles').addEventListener('change', (e) => { document.documentElement.dataset.tiles = e.target.checked ? 'big' : ''; });
     $('#opt-one').addEventListener('change', (e) => { document.documentElement.dataset.one = e.target.checked ? 'on' : ''; });
