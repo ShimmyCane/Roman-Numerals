@@ -69,7 +69,8 @@ test('numbers above 3999 are not accepted', () => {
 test('calculate: the first step is the whole sum', () => {
   const r = Roman.calculate(['XXIX', 'XXII'], ['+']);
   assert.equal(r.steps[0].text, 'Full sum: XXIX + XXII.');
-  assert.deepEqual(r.steps[0].tokens.map((t) => t.text), ['X', 'X', 'IX', '+', 'X', 'X', 'I', 'I']);
+  const eq = r.steps[0].eq.items.map((it) => (it.kind === 'op' ? it.text : it.tiles.map((t) => t.ch)));
+  assert.deepEqual(eq, [['X', 'X', 'IX'], '+', ['X', 'X', 'I', 'I']]);
 });
 
 test('calculate: X + LXXV is one slide-in step (the short way)', () => {
@@ -308,6 +309,31 @@ test('Build & Random: random numerals are in simplest form and within the letter
   for (let i = 0; i < 300; i++) assert.equal(Roman.check(Roman.randomNumeral()).ok, true);
   for (const s of Roman.RANDOM_NUMERALS) assert.ok(s.length <= Roman.LETTER_LIMIT, s);
   assert.ok(!Roman.RANDOM_NUMERALS.includes('CCCLXXXVIII'));
+});
+
+test('Add & Subtract: every row carries the whole equation, and the last row has the answer', () => {
+  const text = (eq) => eq.items.map((it) => (it.kind === 'op' ? it.text : it.tiles.map((t) => t.ch).join(''))).join(' ');
+  const crossed = (eq) => eq.items.flatMap((it) => it.tiles || []).filter((t) => t.st === 'cross').map((t) => t.ch).join('');
+  const take = Roman.takeAwayPlan('XCVI', 'XCIII');
+  take.steps.forEach((s) => assert.ok(s.eq, s.label));
+  assert.equal(text(take.steps[0].eq), 'XCVI − XCIII');
+  assert.equal(crossed(take.steps[take.steps.length - 2].eq), 'XCIII');
+  assert.equal(take.steps[take.steps.length - 1].eq.result, 'III');
+  const add = Roman.regroupPlan(['XXIX', 'XXII']);
+  add.steps.forEach((s) => assert.equal(text(s.eq), 'XXIX + XXII'));
+  assert.equal(add.steps[add.steps.length - 1].eq.result, 'LI');
+  const board = Roman.calculate(['XL', 'XX', 'IX'], ['+', '-']);
+  assert.equal(text(board.steps[0].eq), 'XL + XX − IX');
+  assert.equal(board.steps[board.steps.length - 1].eq.result, 'LI');
+  // Every letter taken away is crossed out in the equation by the end.
+  for (let a = 2; a <= 120; a++) {
+    for (let b = 1; b < a; b++) {
+      const p = Roman.takeAwayPlan(Roman.toRoman(a), Roman.toRoman(b));
+      const before = p.steps[p.steps.length - 2].eq;
+      const left = before.items[2].tiles.filter((t) => t.st !== 'cross');
+      assert.deepEqual(left, [], `${Roman.toRoman(a)} − ${Roman.toRoman(b)}`);
+    }
+  }
 });
 
 console.log(`\n${passed} tests passed`);

@@ -163,9 +163,23 @@
   const copyItems = (items) => items.map((it) => ({ ...it }));
   const signOf = (op) => (op === '+' ? '+' : '−');
 
+  // An equation as numbers and signs. Each number is a row of tiles, one tile per part (XXIX is X, X, IX), so a
+  // part can be crossed out when it is taken away. result, when set, is written after an = sign.
+  function eqOf(terms, ops, result = null) {
+    const items = [];
+    terms.forEach((t, k) => {
+      if (k) items.push({ kind: 'op', text: signOf(ops[k - 1]) });
+      items.push({ kind: 'num', tiles: chunks(t).map((c) => ({ ch: c.text, st: 'normal' })) });
+    });
+    return { items, result };
+  }
+  const copyEq = (eq) => ({ ...eq, items: eq.items.map((it) => (it.tiles ? { ...it, tiles: it.tiles.map((t) => ({ ...t })) } : { ...it })) });
+
   function calculate(terms, ops) {
     const steps = [];
-    const line = (text, tokens, value = null) => steps.push({ text, kind: 'line', tokens, value });
+    // The whole equation still to work sits on top of every row. Parts already worked are replaced by their answer.
+    let eqNow = eqOf(terms, ops);
+    const line = (text, tokens, value = null) => steps.push({ text, kind: 'line', tokens, value, eq: eqNow });
     const plain = (s) => blocksOf(s).map((t) => ({ text: t, st: 'normal' }));
     const pairTokens = (a, op, b) => [...plain(a), { text: signOf(op), op: true }, ...plain(b)];
 
@@ -192,6 +206,7 @@
         text,
         kind: 'places',
         value: null,
+        eq: eqNow,
         boxes: boxes
           .filter((bx) => bx.items.length || changed[bx.unit])
           .map((bx) => ({
@@ -312,17 +327,20 @@
       return byPlace(a, b, -1, result, diff);
     };
 
-    line(`Full sum: ${terms.map((t, k) => (k ? `${signOf(ops[k - 1])} ${t}` : t)).join(' ')}.`,
-      terms.flatMap((t, k) => (k ? [{ text: signOf(ops[k - 1]), op: true }, ...plain(t)] : plain(t))));
+    // The equation sits on top of every row, so these rows need no working of their own.
+    line(`Full sum: ${terms.map((t, k) => (k ? `${signOf(ops[k - 1])} ${t}` : t)).join(' ')}.`, []);
 
     let current = terms[0];
     for (let k = 1; k < terms.length; k++) {
       const op = ops[k - 1];
-      if (terms.length > 2) line(`Next: ${current} ${signOf(op)} ${terms[k]}.`, pairTokens(current, op, terms[k]));
+      eqNow = eqOf([current, ...terms.slice(k)], ops.slice(k - 1));
+      if (terms.length > 2) line(`Next: ${current} ${signOf(op)} ${terms[k]}.`, []);
       const out = op === '+' ? addPair(current, terms[k]) : subPair(current, terms[k]);
       if (out.error) return { steps, value: out.value === undefined ? null : out.value, result: null, error: out.error };
       current = out.result;
     }
+    const last = steps[steps.length - 1];
+    last.eq = { ...eqOf(terms, ops), result: current };
     if (terms.length === 1) line(`${current} is already a whole number. Nothing to add or take away.`, plain(current), lenientValue(current));
     return { steps, value: lenientValue(current), result: current, error: null };
   }
@@ -409,12 +427,13 @@
   const SHORT_FORMS = [['DCCCC', 'CM'], ['CCCC', 'CD'], ['LXXXX', 'XC'], ['XXXX', 'XL'], ['VIIII', 'IX'], ['IIII', 'IV']];
 
   // Steps in the Fix It shape. Each change crosses out a part and puts the new letters in its place.
-  function regroupSteps(start, label) {
+  // eqFn gives the equation as it stands, shown on top of each row.
+  function regroupSteps(start, label, eqFn) {
     let cur = start;
-    const steps = [{ kind: 'start', tiles: tilesOf(cur), label }];
+    const steps = [{ kind: 'start', tiles: tilesOf(cur), label, eq: eqFn() }];
     const change = (from, to, text, label2) => {
       const next = cur.slice(0, from) + text + cur.slice(to);
-      steps.push({ kind: 'repair', label: label2, before: tilesOf(cur, from, to, 'cross'), after: tilesOf(next, from, from + text.length, 'new') });
+      steps.push({ kind: 'repair', label: label2, before: tilesOf(cur, from, to, 'cross'), after: tilesOf(next, from, from + text.length, 'new'), eq: eqFn() });
       cur = next;
     };
     // Regroup one trade at a time, then write the short forms where there are too many in a row.
@@ -441,7 +460,8 @@
   function regroupPlan(terms) {
     const total = terms.reduce((sum, t) => sum + lenientValue(t), 0);
     const parts = terms.slice();
-    const r = regroupSteps(parts.join(''), `Write the letters of ${terms.join(' and ')} side by side.`);
+    const eq = eqOf(terms, terms.slice(1).map(() => '+'));
+    const r = regroupSteps(parts.join(''), `Write the letters of ${terms.join(' and ')} side by side.`, () => copyEq(eq));
 
     // Open short forms, one number at a time, so a pair is never read across two numbers.
     parts.forEach((part, k) => {
@@ -457,7 +477,7 @@
     r.finish();
 
     const ok = total >= 1 && total <= MAX && r.cur === toRoman(total);
-    r.steps.push({ kind: 'done', tiles: tilesOf(r.cur), ok, result: r.cur });
+    r.steps.push({ kind: 'done', tiles: tilesOf(r.cur), ok, result: r.cur, eq: { ...copyEq(eq), result: r.cur } });
     return { steps: r.steps, result: r.cur, ok, value: total };
   }
 
@@ -466,7 +486,18 @@
   function takeAwayPlan(a, b) {
     const total = lenientValue(a) - lenientValue(b);
     if (total < 1) return { steps: [], result: null, ok: false, value: total };
-    const r = regroupSteps(a, `Start with ${a}. Take away ${b}.`);
+    // The equation on top: the parts of b are crossed out as they are taken away.
+    const eq = eqOf([a, b], ['-']);
+    const bTiles = eq.items[2].tiles;
+    const settle = () => bTiles.forEach((t) => { if (t.st === 'new') t.st = 'normal'; });
+    const r = regroupSteps(a, `Start with ${a}. Take away ${b}.`, () => {
+      const now = copyEq(eq);
+      settle();
+      return now;
+    });
+    const crossB = (ch, n) => {
+      for (const t of bTiles) if (n > 0 && t.st === 'normal' && t.ch === ch) { t.st = 'cross'; n--; }
+    };
     // A short form that both numbers have is taken away whole, before anything is opened.
     const chunkAt = (str, text) => {
       let pos = 0;
@@ -480,6 +511,7 @@
     chunks(b).map((c) => c.text).filter((t) => PAIR_PIECES[t]).forEach((pair) => {
       const at = chunkAt(r.cur, pair);
       if (at < 0) return;
+      crossB(pair, 1);
       r.change(at, at + 2, '', `Take away ${pair}. Both numbers have ${pair}.`);
       rest.splice(rest.indexOf(pair), 1);
     });
@@ -490,7 +522,11 @@
     const restText = rest.join('');
     const take = restText.replace(/IV|IX|XL|XC|CD|CM/g, (pair) => PAIR_PIECES[pair]);
     if (take !== restText) {
-      r.steps.push({ kind: 'repair', label: `${restText} is the same as ${take}. Those are the letters to take away.`, before: tilesOf(restText, 0, restText.length, 'cross'), after: tilesOf(take, 0, take.length, 'new') });
+      // Open b's short forms in the equation too, so each letter to take away has its own tile.
+      const open = bTiles.flatMap((t) => (t.st === 'normal' && PAIR_PIECES[t.ch] ? PAIR_PIECES[t.ch].split('').map((ch) => ({ ch, st: 'new' })) : [t]));
+      bTiles.splice(0, bTiles.length, ...open.flatMap((t) => (t.st === 'normal' && t.ch.length > 1 ? t.ch.split('').map((ch) => ({ ch, st: 'normal' })) : [t])));
+      r.steps.push({ kind: 'repair', label: `${restText} is the same as ${take}. Those are the letters to take away.`, before: tilesOf(restText, 0, restText.length, 'cross'), after: tilesOf(take, 0, take.length, 'new'), eq: copyEq(eq) });
+      settle();
     }
     // Take away one kind of letter at a time, biggest first. The letters are in order, so each kind sits together.
     for (const ch of [...new Set(take)]) {
@@ -503,11 +539,12 @@
         r.change(j, j + 1, TRADE[big], `Not enough ${ch}'s. Trade one ${big} for ${TRADE[big].split('').join(' + ')}.`);
       }
       const at = r.cur.indexOf(ch);
+      crossB(ch, n);
       r.change(at, at + n, '', n === 1 ? `Take away ${ch}.` : `Take away ${words(n)} ${ch}'s.`);
     }
     r.finish();
     const ok = r.cur === toRoman(total);
-    r.steps.push({ kind: 'done', tiles: tilesOf(r.cur), ok, result: r.cur });
+    r.steps.push({ kind: 'done', tiles: tilesOf(r.cur), ok, result: r.cur, eq: eqOf([a, b], ['-'], r.cur) });
     return { steps: r.steps, result: r.cur, ok, value: total };
   }
 
@@ -584,7 +621,7 @@
 
   return {
     VALUE, PAIR_PIECES, TRADE, MAX, LETTER_LIMIT, QUIZ_MAX_TYPES, TRUE_FALSE, DISARRANGEABLE, RANDOM_NUMERALS,
-    lenientValue, toRoman, words, chunks, check, calculate, repairPlan, regroupPlan, takeAwayPlan, firstRepair, parse, disarrange,
+    lenientValue, eqOf, toRoman, words, chunks, check, calculate, repairPlan, regroupPlan, takeAwayPlan, firstRepair, parse, disarrange,
     randomNumeral, randomSum, randomDisarranged,
   };
 });

@@ -90,7 +90,8 @@
   // so its tiles do not replay their animation when the user presses Play steps or Next.
   const steppers = {};
   const stepSpeed = () => Number($('#opt-speed').value) || 1600;
-  function makeStepper(name, { renderRow, onShow }) {
+  // showAll: a new set of steps appears whole, every row at once. Back, Next and Play still step through it.
+  function makeStepper(name, { renderRow, onShow, showAll = false }) {
     const ledger = $(`#${name}-ledger`);
     const playBtn = $(`[data-play="${name}"]`);
     let steps = [];
@@ -136,7 +137,14 @@
         clearRows();
         steps = newSteps;
         emptyText = message;
-        shown = steps.length ? 1 : 0;
+        shown = steps.length ? (showAll ? steps.length : 1) : 0;
+        sync();
+        if (showAll) ledger.scrollTop = 0;
+      },
+      all() {
+        if (!steps.length) return;
+        stop();
+        shown = steps.length;
         sync();
       },
       move(d) {
@@ -217,14 +225,38 @@
     return row;
   }
 
+  // The whole equation, on its own line at the top of a row. Parts already taken away are crossed out,
+  // and the last row adds = and the answer.
+  function eqEl(eq) {
+    const line = el('div', 'eq-full');
+    eq.items.forEach((it) => {
+      if (it.kind === 'op') return line.append(el('span', 'eq-op', it.text));
+      const num = el('span', 'eq-num');
+      num.append(...it.tiles.map((t) => el('span', `tok${t.st === 'cross' ? ' done' : ''}${t.st === 'new' ? ' focus' : ''}`, t.ch)));
+      line.append(num);
+    });
+    if (eq.result) line.append(el('span', 'eq-op', '='), el('span', 'tok res', eq.result));
+    return line;
+  }
+
+  // A caption with more than one sentence gets one line per sentence.
+  function captionEl(text) {
+    const cap = el('div', 'caption');
+    text.split(/(?<=\.)\s+(?=[A-Z])/).forEach((line) => cap.append(el('p', '', line)));
+    return cap;
+  }
+
   function addsubRow(s, i) {
     if (s.kind === 'start' || s.kind === 'repair' || s.kind === 'done') return fixRow(s, i);
     const row = el('div', 'step-row');
     const inner = el('div');
-    // The caption sits outside. The working sits in its own window, so the two never blend.
+    // The caption sits outside. The working sits in its own window, under the whole equation, so the two never blend.
     const work = el('div', 'work');
-    work.append(s.kind === 'places' ? placesEl(s.boxes) : lineEl(s.tokens));
-    inner.append(el('p', 'caption', s.text), work);
+    if (s.eq) work.append(eqEl(s.eq));
+    // A row whose only job is to show the equation has no working under it.
+    if (s.kind === 'places') work.append(placesEl(s.boxes));
+    else if (s.tokens.length) work.append(lineEl(s.tokens));
+    inner.append(captionEl(s.text), work);
     row.append(el('div', 'step-num', Roman.toRoman(i + 1)), inner);
     return row;
   }
@@ -258,6 +290,16 @@
       if (total === 0) return steppers.addsub.load(steps, 'Nothing is left. Romans had no zero.');
       if (total > Roman.MAX) return steppers.addsub.load(steps, `That is more than ${Roman.toRoman(Roman.MAX)}, the biggest this tool writes.`);
       const plan = p.ops[k - 1] === '+' ? Roman.regroupPlan([current, term]) : Roman.takeAwayPlan(current, term);
+      // Each row shows the whole equation still to work: this pair, then the numbers after it.
+      const rest = Roman.eqOf(['', ...p.terms.slice(k + 1)], p.ops.slice(k)).items.slice(1);
+      plan.steps.forEach((st) => {
+        if (st.kind !== 'done') st.eq = { ...st.eq, items: st.eq.items.concat(rest) };
+        else if (rest.length) {
+          const next = Roman.eqOf([plan.result, ...p.terms.slice(k + 1)], p.ops.slice(k));
+          next.items[0].tiles = [{ ch: plan.result, st: 'new' }];
+          st.eq = next;
+        } else st.eq = Roman.eqOf(p.terms, p.ops, plan.result);
+      });
       steps = steps.concat(plan.steps);
       current = plan.result;
     }
@@ -269,15 +311,24 @@
   function fixRow(s, i) {
     const row = el('div', 'step-row');
     const inner = el('div');
+    // With an equation (Add & Subtract), the equation sits on top and the working goes under it in one window.
+    const work = s.eq ? el('div', 'work') : inner;
+    const caption = (text) => (s.eq ? captionEl(text) : el('p', 'caption', text));
+    if (s.eq) work.append(eqEl(s.eq));
     if (s.kind === 'start') {
-      inner.append(el('p', 'caption', s.label || 'Written as typed.'), boardEl(s.tiles));
+      inner.append(caption(s.label || 'Written as typed.'));
+      work.append(boardEl(s.tiles));
     } else if (s.kind === 'repair') {
-      inner.append(el('p', 'caption', s.label));
+      inner.append(caption(s.label));
       const pair = el('div', 'repair-pair');
       pair.append(boardEl(s.before), el('span', 'arrow', '→'), boardEl(s.after));
-      inner.append(pair);
+      work.append(pair);
     } else {
-      inner.append(el('p', 'caption', s.ok ? `Right form: ${s.result}.` : `Simplest form: ${s.result}.`), boardEl(s.tiles));
+      inner.append(caption(s.ok ? `Right form: ${s.result}.` : `Simplest form: ${s.result}.`));
+      work.append(boardEl(s.tiles));
+    }
+    if (work !== inner) inner.append(work);
+    if (s.kind === 'done') {
       const status = el('p', 'value');
       status.append(mark(s.ok), ' ', s.ok ? 'Done' : 'Still not right');
       inner.append(status);
@@ -781,7 +832,7 @@
   }
 
   function init() {
-    steppers.addsub = makeStepper('addsub', { renderRow: addsubRow });
+    steppers.addsub = makeStepper('addsub', { renderRow: addsubRow, showAll: true });
     steppers.fix = makeStepper('fix', { renderRow: fixRow, onShow: showFixRules });
     steppers.regroup = makeStepper('regroup', { renderRow: fixRow });
     steppers.regroup.load([], 'Press Random, or type a sum like XXVII + XVIII.');
@@ -823,6 +874,9 @@
 
     $$('[data-step]').forEach((b) => b.addEventListener('click', () => {
       steppers[b.dataset.step].move(Number(b.dataset.dir));
+    }));
+    $$('[data-all]').forEach((b) => b.addEventListener('click', () => {
+      steppers[b.dataset.all].all();
     }));
     $$('[data-play]').forEach((b) => b.addEventListener('click', () => {
       steppers[b.dataset.play].togglePlay();

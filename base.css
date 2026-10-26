@@ -608,3 +608,12 @@ html[data-one="on"] .ledger .step-row:not(.current) { display: none; }
 .pattern-chain .tile { min-width: 46px; height: 52px; font-size: 1.4rem; }
 .chain-step { font-weight: bold; color: var(--link); }
 .short-forms .example { margin: 6px 0; }
+
+/* Add & Subtract: the whole equation on top of each row, and every row on the page at once (no inner scroll) */
+#addsub-ledger { max-height: none; overflow-y: visible; }
+.eq-full { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; padding-bottom: 8px; border-bottom: 2px dashed var(--ink); font-size: 1.3em; font-weight: bold; font-family: var(--tile-font, inherit); }
+.eq-num { display: inline-flex; gap: 2px; }
+.eq-num .tok { padding: 4px 8px; }
+.step-row div.caption { margin: 2px 0 6px; }
+.step-row div.caption p { margin: 0 0 2px; }
+.eq-full:last-child { border-bottom: 0; margin: 0; padding: 0; }
