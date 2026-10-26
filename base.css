@@ -683,3 +683,14 @@ html[data-tiles="big"] { --big: 1.25; }
 .entry input { min-width: 0; max-width: 100%; box-sizing: border-box; }
 .entry .big-btn { max-width: 100%; }
 .workbench > *, .entry > * { min-width: 0; }
+
+/* Regrouping on one line: the side being worked (left of =, then right of =) is in focus */
+.eq-full .side { display: inline-flex; flex-wrap: nowrap; align-items: center; gap: inherit; padding: 4px 6px; border-radius: 12px; }
+.eq-full .side.on { background: var(--t-M); box-shadow: 0 0 0 2px var(--link) inset; }
+.eq-full.wrap .side { flex-wrap: wrap; row-gap: 6px; }
+.tok.gone { opacity: 0.3; }
+.tok.ask { border-style: dashed; opacity: 0.7; }
+.eq-full .tok.focus { box-shadow: none; background: #fff; }
+.eq-full .made { margin-bottom: 0; padding-bottom: 9px; }
+.eq-full .side { padding-bottom: 6px; }
+.eq-full.piles .eq-num.pile, .eq-full.piles .pile .made { flex-wrap: wrap; row-gap: 6px; }

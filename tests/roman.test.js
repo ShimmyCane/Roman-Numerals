@@ -257,22 +257,49 @@ test('Regroup: every sum up to 200 + 200 ends at the simplest form', () => {
   }
 });
 
-test('Take away by regrouping: XCVI - XCIII takes XC whole, trades one V, then takes three I\'s', () => {
-  const p = Roman.takeAwayPlan('XCVI', 'XCIII');
-  assert.equal(p.result, 'III');
-  assert.deepEqual(p.steps.filter((s) => s.kind === 'repair').map((s) => s.label), [
-    'Take away XC. Both numbers have XC.',
+test('Take away on one line: LXXXV − LXVI crosses L, X and V in one move, trades the last X down, then regroups after =', () => {
+  const p = Roman.takeAwayEquation('LXXXV', 'LXVI');
+  assert.equal(p.result, 'XIX');
+  assert.deepEqual(p.steps.map((s) => s.label), [
+    'Start with LXXXV. Take away LXVI.',
+    'Both numbers have L, X and V. Take them away: cross them out on both sides.',
+    "Not enough I's. Trade one X for V + V.",
     "Not enough I's. Trade one V for I + I + I + I + I.",
-    "Take away three I's.",
+    'Now take away I: cross it out on both sides.',
+    'All of LXVI is taken away. Write what is left after the = sign.',
+    'VIIII is the long way. The short way is IX.',
+    'Right form: XIX.',
   ]);
+  // Every row is one equation line. The left side is in focus until the = side is written.
+  assert.ok(p.steps.every((s) => s.kind === 'eq' && s.eq));
+  assert.deepEqual(p.steps.slice(0, -1).map((s) => s.eq.focus), ['left', 'left', 'left', 'left', 'left', 'right', 'right']);
+  assert.equal(p.steps[0].eq.right, 'ask');
+  // The trade fades the last X and puts V V in its place.
+  assert.deepEqual(p.steps[2].eq.items[0].tiles.map((t) => `${t.st[0]}${t.ch}`), ['cL', 'cX', 'nX', 'gX', 'nV', 'nV', 'cV']);
 });
 
-test('Take away by regrouping: every difference up to 200 ends at the simplest form', () => {
-  for (let a = 2; a <= 200; a += 1) {
-    for (let b = 1; b < a; b += 3) {
-      const p = Roman.takeAwayPlan(Roman.toRoman(a), Roman.toRoman(b));
+test('Take away on one line: every difference up to M ends at the simplest form, with all of the second number crossed out', () => {
+  for (let a = 2; a <= 1000; a += 1) {
+    for (let b = 1; b < a; b += (a > 300 ? 7 : 1)) {
+      const p = Roman.takeAwayEquation(Roman.toRoman(a), Roman.toRoman(b));
       assert.equal(p.result, Roman.toRoman(a - b), `${a}-${b}`);
       assert.equal(p.ok, true);
+      const written = p.steps.find((s) => s.eq.focus === 'right');
+      assert.deepEqual(written.eq.items[2].tiles.filter((t) => t.st !== 'cross'), [], `${a}-${b}`);
+    }
+  }
+});
+
+test('Add on one line: X + LXXV slots straight in; every sum up to DC + DC ends at the simplest form', () => {
+  assert.deepEqual(Roman.addEquation(['X', 'LXXV']).steps.map((s) => s.label), [
+    'Add X and LXXV.',
+    'Put all the letters together after the = sign, biggest first.',
+    'Right form: LXXXV.',
+  ]);
+  for (let a = 1; a <= 600; a += 1) {
+    for (let b = 1; b <= 600; b += (a > 200 ? 5 : 1)) {
+      const p = Roman.addEquation([Roman.toRoman(a), Roman.toRoman(b)]);
+      assert.equal(p.result, Roman.toRoman(a + b), `${a}+${b}`);
     }
   }
 });
@@ -286,7 +313,8 @@ test('No Arabic numerals in any step caption (they belong only on the Long Ago t
       Roman.calculate([A, B], ['+']).steps.forEach((s) => texts.push(s.text));
       if (a > b) Roman.calculate([A, B], ['-']).steps.forEach((s) => texts.push(s.text));
       Roman.regroupPlan([A, B]).steps.forEach((s) => texts.push(s.label || ''));
-      if (a > b) Roman.takeAwayPlan(A, B).steps.forEach((s) => texts.push(s.label || ''));
+      Roman.addEquation([A, B]).steps.forEach((s) => texts.push(s.label));
+      if (a > b) Roman.takeAwayEquation(A, B).steps.forEach((s) => texts.push(s.label));
     }
   }
   ['XXIIII', 'VIIII', 'IIX', 'LXXXXVII', 'MMMM', 'MDCCCLXXXVIII'].forEach((n) => {
@@ -311,29 +339,11 @@ test('Build & Random: random numerals are in simplest form and within the letter
   assert.ok(!Roman.RANDOM_NUMERALS.includes('CCCLXXXVIII'));
 });
 
-test('Add & Subtract: every row carries the whole equation, and the last row has the answer', () => {
+test('Counting board: every row carries the whole equation, and the last row has the answer', () => {
   const text = (eq) => eq.items.map((it) => (it.kind === 'op' ? it.text : it.tiles.map((t) => t.ch).join(''))).join(' ');
-  const crossed = (eq) => eq.items.flatMap((it) => it.tiles || []).filter((t) => t.st === 'cross').map((t) => t.ch).join('');
-  const take = Roman.takeAwayPlan('XCVI', 'XCIII');
-  take.steps.forEach((s) => assert.ok(s.eq, s.label));
-  assert.equal(text(take.steps[0].eq), 'XCVI − XCIII');
-  assert.equal(crossed(take.steps[take.steps.length - 2].eq), 'XCIII');
-  assert.equal(take.steps[take.steps.length - 1].eq.result, 'III');
-  const add = Roman.regroupPlan(['XXIX', 'XXII']);
-  add.steps.forEach((s) => assert.equal(text(s.eq), 'XXIX + XXII'));
-  assert.equal(add.steps[add.steps.length - 1].eq.result, 'LI');
   const board = Roman.calculate(['XL', 'XX', 'IX'], ['+', '-']);
   assert.equal(text(board.steps[0].eq), 'XL + XX − IX');
   assert.equal(board.steps[board.steps.length - 1].eq.result, 'LI');
-  // Every letter taken away is crossed out in the equation by the end.
-  for (let a = 2; a <= 120; a++) {
-    for (let b = 1; b < a; b++) {
-      const p = Roman.takeAwayPlan(Roman.toRoman(a), Roman.toRoman(b));
-      const before = p.steps[p.steps.length - 2].eq;
-      const left = before.items[2].tiles.filter((t) => t.st !== 'cross');
-      assert.deepEqual(left, [], `${Roman.toRoman(a)} − ${Roman.toRoman(b)}`);
-    }
-  }
 });
 
 console.log(`\n${passed} tests passed`);
