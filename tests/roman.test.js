@@ -174,4 +174,48 @@ test('parse reads an expression and rejects bad input', () => {
   assert.ok(Roman.parse('XL + Q').error);
 });
 
+test('Build & Break: the first step is the numeral as typed, and each later step changes one pair or one group', () => {
+  const r = Roman.calculate(['XLIX'], []);
+  assert.equal(r.steps[0].text, 'Start with XLIX = 49.');
+  assert.deepEqual(r.steps[0].tiles.map((t) => t.ch), ['XL', 'IX']);
+  assert.equal(r.steps[1].text, 'Break XL into X X X X.');
+  assert.equal(r.steps[2].text, 'Break IX into V I I I I.');
+  assert.equal(r.steps[r.steps.length - 1].text, 'Build it back up: XLIX.');
+  for (const s of r.steps) assert.equal(s.value, 49, s.text);
+});
+
+test('Add & Subtract: the second number gets its own step before anything is taken away', () => {
+  const r = Roman.calculate(['XL', 'XX'], ['-']);
+  const i = r.steps.findIndex((s) => s.text.startsWith('Second number XX'));
+  assert.ok(i > 0);
+  assert.deepEqual(r.steps[i].tiles.map((t) => t.ch), ['X', 'X']);
+  assert.equal(r.steps[i + 1].text, 'Take away X.');
+  assert.equal(r.steps[i + 2].text, 'Take away X.');
+  assert.equal(r.result, 'XX');
+});
+
+test('Add & Subtract: every take-away step removes exactly one piece', () => {
+  const r = Roman.calculate(['XL', 'IX'], ['-']);
+  const takes = r.steps.filter((s) => s.text.startsWith('Take away'));
+  assert.ok(takes.length > 0);
+  for (const s of takes) assert.equal(s.tiles.filter((t) => t.st === 'cross').length, 1, s.text);
+  assert.equal(r.result, 'XXXI');
+});
+
+test('Fix It: IIII names Rule 1 and Rule 5, and ends with the simplest form IV', () => {
+  const f = Roman.fixSteps('IIII');
+  assert.equal(f.ok, false);
+  assert.ok(f.steps[0].text.startsWith('Rule 1:'));
+  assert.ok(f.steps.some((s) => s.text.startsWith('Rule 5:')));
+  assert.equal(f.result, 'IV');
+  assert.equal(f.steps[f.steps.length - 1].text, 'Build it back up: IV.');
+});
+
+test('Fix It: a good numeral has no rule steps, and its steps still rebuild it', () => {
+  const f = Roman.fixSteps('XLIX');
+  assert.equal(f.ok, true);
+  assert.ok(!f.steps.some((s) => s.text.startsWith('Rule')));
+  assert.equal(f.result, 'XLIX');
+});
+
 console.log(`\n${passed} tests passed`);
