@@ -364,6 +364,27 @@ main { padding: 0 var(--gutter, 16px); }
   cursor: pointer;
   z-index: 6;
 }
+/* Round corner buttons next to the gear: F goes to the Felix page, A goes back */
+.corner-btn {
+  position: fixed;
+  right: 96px;
+  bottom: 14px;
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  font: inherit;
+  font-size: 1.7em;
+  font-weight: 900;
+  color: var(--ink);
+  text-decoration: none;
+  background: var(--t-X);
+  border: var(--edge) var(--edge-style) var(--ink);
+  border-radius: 50%;
+  box-shadow: var(--shadow);
+  z-index: 6;
+}
+.corner-btn:focus-visible { outline: 4px solid var(--link); outline-offset: 3px; }
 .drawer {
   position: fixed;
   right: 14px;
@@ -730,3 +751,26 @@ html[data-tiles="big"] { --big: 1.25; }
 .trivia-index { margin: 6px 0 0; padding-left: 1.2em; }
 .trivia-index li { margin: 6px 0; }
 .trivia-index a { font-weight: bold; }
+
+/* Felix's page: spiral, staircase, squares to scale, and the counting board */
+.felix-art { display: block; width: 100%; max-width: 420px; height: auto; margin: 8px auto 4px; }
+.stairs { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px; min-height: 200px; margin: 12px 0 4px; }
+.stair-col { display: flex; align-items: flex-end; }
+.stair-col .tile { width: 52px; min-width: 0; height: 52px; padding: 0; font-size: 1.1em; }
+.stair-step { align-self: center; font-weight: 900; font-size: 1.05em; color: var(--link); }
+.tile-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin: 16px 0 4px; }
+.tile-cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.tile-sq { border: var(--edge) var(--edge-style) var(--ink); border-radius: var(--r-tile); box-shadow: var(--shadow-tile); }
+.tile-sq.I { background: var(--t-I); } .tile-sq.V { background: var(--t-V); } .tile-sq.X { background: var(--t-X); }
+.tile-sq.L { background: var(--t-L); } .tile-sq.C { background: var(--t-C); } .tile-sq.D { background: var(--t-D); }
+.tile-sq.M { background: var(--t-M); }
+.tile-label { font-weight: bold; font-size: 0.95em; }
+.rods { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 16px 0 8px; }
+.rod { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 72px; }
+.rod-bar { width: 100%; height: 6px; background: var(--ink); border-radius: 3px; }
+.bead { display: grid; place-items: center; width: 40px; height: 40px; border: var(--edge) var(--edge-style) var(--ink); border-radius: 50%; background: #fff; color: #2b2540; font-weight: 900; }
+.bead.on.five { background: var(--t-V); }
+.bead.on.one { background: var(--t-I); }
+.rod-name { font-size: 0.85em; color: var(--ink-soft); }
+.rods-parts { margin-top: 10px; }
+.rods-parts p { margin: 0.3em 0; }

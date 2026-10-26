@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Felix's page: the shape of the system</title>
+  <link rel="stylesheet" href="base.css">
+  <link id="look-css" rel="stylesheet" href="looks/sunny.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Felix's page: the shape of the system</h1>
+    <p class="sub">Look at the letters first. Then find the rule.</p>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab-btn active" role="tab" data-tab="purpose">Purpose</button>
+    <button class="tab-btn" role="tab" data-tab="spiral">Spiral</button>
+    <button class="tab-btn" role="tab" data-tab="steps">Steps</button>
+    <button class="tab-btn" role="tab" data-tab="tiles">Tiles</button>
+    <button class="tab-btn" role="tab" data-tab="rods">Rods</button>
+  </nav>
+
+  <main>
+    <!-- PURPOSE: the story this page tells -->
+    <section class="tab active" id="tab-purpose">
+      <div class="history-grid">
+        <article class="rule-card wide">
+          <h2>The story</h2>
+          <p>Start with a clock. Ten past eight and quarter to nine both sit on the same face, but the marks on the face are not all the same size: the minutes come in fives, and the hours come in twelves. The steps are mixed, and we read them without thinking.</p>
+          <p>The Roman letters have the same kind of mixed steps. Look at the seven letters in order: I, V, X, L, C, D, M. Each step is either <strong>times five</strong> or <strong>times two</strong>, and they keep alternating:</p>
+          <p class="big-value">1 → 5 (×5) → 10 (×2) → 50 (×5) → 100 (×2) → 500 (×5) → 1000 (×2)</p>
+          <p>Every two steps make <strong>times ten</strong>. That is the same as the place value we use every day: 47 means 4 tens and 7 ones, and each column is ten times the one before it.</p>
+        </article>
+
+        <article class="rule-card">
+          <h3>What to notice</h3>
+          <ul class="facts">
+            <li>Each full turn of the spiral is one times ten.</li>
+            <li>V sits about seven-tenths of a turn from I, a little more than halfway round. X comes back to the start.</li>
+            <li>The same shape repeats for every power of ten: I, X, C, M, and V, L, D between them.</li>
+          </ul>
+        </article>
+
+        <article class="rule-card">
+          <h3>Where this leads</h3>
+          <ul class="facts">
+            <li><strong>Decimal.</strong> Every column is times ten.</li>
+            <li><strong>Binary.</strong> Every column is times two: 1, 2, 4, 8. Computers use only two digits.</li>
+            <li><strong>Algorithms.</strong> A rule that you repeat, step by step, to get the answer. Writing a numeral from its parts is one.</li>
+          </ul>
+        </article>
+
+        <article class="rule-card wide">
+          <h3>The order of the tabs</h3>
+          <ol class="purpose-list">
+            <li><strong>Spiral.</strong> The letters on a spiral, one full turn for each times ten.</li>
+            <li><strong>Steps.</strong> The same letters as a staircase, with the times-five and times-two steps marked.</li>
+            <li><strong>Tiles.</strong> Each letter as a square, drawn to scale by its area.</li>
+            <li><strong>Rods.</strong> A counting board, one rod for each column. Type a number and see its parts, then the Roman numeral they make.</li>
+          </ol>
+          <p class="note">This page explores the shape of the system. It is not part of the lesson unless Jimmy says so. Roman numerals are not place value: each letter has its own value, and there is no zero. The rods show how place value and the letters are related, not how the Romans wrote numbers.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- SPIRAL: one full turn for each times ten -->
+    <section class="tab" id="tab-spiral">
+      <div class="layout single">
+        <div class="play">
+          <h2>The letters on a spiral</h2>
+          <p>Each full turn is times ten. The letters step round it: the five comes a little more than halfway round, and the ten finishes the turn.</p>
+          <div class="field">
+            <label for="spiral-n">Show up to</label>
+            <input id="spiral-n" type="range" min="1" max="7" value="7" aria-describedby="spiral-caption">
+          </div>
+          <svg class="felix-art" id="spiral-svg" viewBox="0 0 400 400" role="img" aria-label="A spiral of the seven letters, one full turn for each times ten"></svg>
+          <p class="big-value" id="spiral-caption" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEPS: a staircase with the times-five and times-two steps -->
+    <section class="tab" id="tab-steps">
+      <div class="layout single">
+        <div class="play">
+          <h2>The staircase: times five, times two</h2>
+          <p>Each step up is the next letter. The label between two letters says what the step multiplies by.</p>
+          <div class="field">
+            <label for="steps-n">Show up to</label>
+            <input id="steps-n" type="range" min="1" max="7" value="7">
+          </div>
+          <div class="stairs" id="stairs" aria-live="polite"></div>
+          <p class="big-value" id="steps-caption" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TILES: the letters to scale by area -->
+    <section class="tab" id="tab-tiles">
+      <div class="layout single">
+        <div class="play">
+          <h2>The letters to scale</h2>
+          <p>Each square has the area of its letter's value. Five times as much area is a square about 2.2 times as wide. Compare I with M: 1000 times the area.</p>
+          <div class="tile-row" id="tile-row" aria-label="Squares drawn to scale by value"></div>
+          <p class="big-value" id="tiles-note" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- RODS: a counting board, parts first, then the numeral -->
+    <section class="tab" id="tab-rods">
+      <div class="layout single">
+        <div class="play">
+          <h2>The counting board</h2>
+          <p>Each rod is one column. The bead on top is five; the beads underneath are one each. Type a number from 1 to 3999, or press Random. The parts come first, then the numeral they make.</p>
+          <form class="entry" id="rods-form">
+            <input id="rods-input" type="text" inputmode="numeric" autocomplete="off" placeholder="A number, like 47" maxlength="4" aria-label="Type a number from 1 to 3999">
+            <button class="big-btn" type="submit">Show it</button>
+            <button class="big-btn ghost" type="button" id="rods-random">🎲 Random</button>
+          </form>
+          <div class="rods" id="rods" aria-live="polite"></div>
+          <div class="rods-parts" id="rods-parts" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Corner buttons: A goes back to the main page, the gear opens settings -->
+  <a class="corner-btn page-a" id="to-main" href="index.html" aria-label="A: go back to the main page">A</a>
+  <button class="gear" id="gear" aria-label="Settings" aria-expanded="false">⚙️</button>
+  <div class="drawer" id="drawer" hidden>
+    <h3>Settings</h3>
+    <h4>Look</h4>
+    <div class="look-row" role="group" aria-label="Look">
+      <button class="big-btn look-btn" data-look="candy" aria-pressed="false">Candy</button>
+      <button class="big-btn look-btn" data-look="folder" aria-pressed="false">Folder</button>
+      <button class="big-btn look-btn" data-look="garden" aria-pressed="false">Garden</button>
+      <button class="big-btn look-btn" data-look="poster" aria-pressed="false">Poster</button>
+      <button class="big-btn look-btn" data-look="sunny" aria-pressed="true">Sunny</button>
+    </div>
+    <h4>Pictures</h4>
+    <a class="big-btn ghost" href="assets.html">Pictures to find (planning page)</a>
+    <button class="big-btn ghost" id="drawer-close">Close</button>
+  </div>
+
+  <script src="roman.js"></script>
+  <script src="shared.js"></script>
+  <script src="felix.js"></script>
+</body>
+</html>

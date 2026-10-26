@@ -788,12 +788,10 @@
   }
 
   // ---------- Look: each look is a whole stylesheet in looks/, swapped by the settings buttons ----------
-  const LOOKS = ['sunny', 'candy', 'folder', 'garden', 'poster'];
+  // The look is shared with the other pages (shared.js), so it carries across them.
   function setLook(name) {
-    if (!LOOKS.includes(name)) name = 'sunny';
-    $('#look-css').href = `looks/${name}.css`;
     $('#look-css').addEventListener('load', refitSoon, { once: true });
-    $$('[data-look]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.look === name)));
+    RomanShared.applyLook(name);
   }
 
   // ---------- Letters: the pairs straight away; More shows pairs that never exist ----------
@@ -1130,7 +1128,7 @@
     $('#opt-one').addEventListener('change', (e) => { document.documentElement.dataset.one = e.target.checked ? 'on' : ''; });
     $('#opt-showall').addEventListener('change', (e) => { if (e.target.checked) steppers.addsub.all(); });
     $('#opt-regroup-random').addEventListener('change', (e) => { $('#regroup-random').hidden = !e.target.checked; });
-    setLook('sunny');
+    setLook(RomanShared.savedLook() || 'sunny');
   }
 
   init();
