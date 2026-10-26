@@ -719,6 +719,23 @@
     }
   }
 
+  // Half a chili: two numerals, bigger than the easy ones, and a trade is needed (ones add past ten, or a ones digit must borrow).
+  function randomHalfEquation(rand = Math.random) {
+    for (;;) {
+      const adding = rand() < 0.5;
+      const a = randomInt(11, 89, rand);
+      const b = randomInt(11, 89, rand);
+      if (adding) {
+        if (a % 10 + b % 10 < 10 || a + b > 150) continue;
+        return { text: `${toRoman(a)} + ${toRoman(b)}`, value: a + b };
+      }
+      const big = Math.max(a, b);
+      const small = Math.min(a, b);
+      if (big % 10 >= small % 10 || big === small) continue;
+      return { text: `${toRoman(big)} - ${toRoman(small)}`, value: big - small };
+    }
+  }
+
   // Fix It: a bad numeral made by writing each subtractive pair as its pieces (XL becomes XXXX).
   // Only numbers with a pair are used, so the bad numeral is always wrong and the answer is always the simplest form.
   function disarrange(s) {
@@ -760,6 +777,6 @@
   return {
     VALUE, PAIR_PIECES, TRADE, MAX, LETTER_LIMIT, QUIZ_MAX_TYPES, TRUE_FALSE, DISARRANGEABLE, RANDOM_NUMERALS,
     lenientValue, eqOf, toRoman, words, chunks, check, calculate, repairPlan, regroupPlan, addEquation, takeAwayEquation, firstRepair, parse, disarrange,
-    randomNumeral, randomSum, randomEquation, randomDisarranged,
+    randomNumeral, randomSum, randomEquation, randomHalfEquation, randomDisarranged,
   };
 });

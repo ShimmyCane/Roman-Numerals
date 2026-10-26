@@ -145,7 +145,7 @@
             <h3>Fix It (Tab II)</h3>
             <p>A numeral is written wrong on purpose, for example IIII or LXXXXVII. Press Random wrong numeral, or type your own. Each step fixes one part: the part that is wrong is crossed out, and the fix sits beside it. The rules that were broken are listed above the steps. Press Next step to go one step at a time, or Play steps to watch them go by.</p>
             <h3>Add &amp; Subtract (Tab III)</h3>
-            <p>Type a sum like XLI + XIX, or press a random button. The dice makes an easier equation with two numerals. The chili makes a harder one with three numerals. The first step shows the start only, and a line asks you to think before you press Next step. Each step makes one change, and the sum stays on one line with an equals sign. When the left side is done, the answer is written after the equals sign and regrouped there. Show all steps at once, in settings, turns on the old view. At the bottom, you can record yourself explaining the problem and its solution, and play it back.</p>
+            <p>Type a sum like XLI + XIX, or press a random button. The dice makes an easier equation with two numerals. Half a chili makes a middle one with two numerals and a trade. The chili makes a harder one with three numerals. The first step shows the start only, and a line asks you to think before you press Next step. Each step makes one change, and the sum stays on one line with an equals sign. When the left side is done, the answer is written after the equals sign and regrouped there. Show all steps at once, in settings, turns on the old view. At the bottom, you can record yourself explaining the problem and its solution, and play it back.</p>
             <p class="note">Regrouping is the usual way. The counting board is a setting. Both are teaching models, not a documented Roman method.</p>
             <h3>Quiz (Tab IV)</h3>
             <p>Gentle warm-up questions: letters both ways, and true or false statements about Roman numerals. A miss comes back later as a similar question. Forget my mistakes, in settings, clears them.</p>
@@ -200,7 +200,8 @@
           <div class="workbench">
             <div class="random-pair">
               <button class="big-btn" type="button" data-random="addsub">🎲 Random equation</button>
-              <button class="big-btn chili" type="button" data-random="addsub" data-harder aria-label="Harder random equation, with three numerals" title="Harder: three numerals">🌶️</button>
+              <button class="big-btn chili" type="button" data-random="addsub" data-level="half" aria-label="Half a chili: two numerals, with a trade needed" title="Half a chili: two numerals, with a trade">½🌶️</button>
+              <button class="big-btn chili" type="button" data-random="addsub" data-level="harder" aria-label="Harder random equation, with three numerals" title="Harder: three numerals">🌶️</button>
             </div>
             <form class="entry" data-entry="addsub">
               <input id="addsub-input" type="text" autocomplete="off" placeholder="Or type your own, like XLI + XIX" maxlength="40" aria-label="Type your own sum">
