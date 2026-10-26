@@ -605,6 +605,15 @@
       steppers[b.dataset.play].togglePlay();
     }));
 
+    $$('.subtab').forEach((b) => b.addEventListener('click', () => {
+      const name = b.dataset.sub;
+      $$('.subtab').forEach((x) => {
+        const on = x === b;
+        x.classList.toggle('active', on);
+        x.setAttribute('aria-pressed', String(on));
+      });
+      $$('.subpanel').forEach((p) => p.classList.toggle('active', p.dataset.panel === name));
+    }));
     $('#quiz-next').addEventListener('click', startRound);
     startRound();
 

@@ -125,11 +125,10 @@
 
   // ---------- Add & Subtract ----------
   // The sum is a line of chunks (XL, I, +, X, IX ...) and a board of loose pieces.
-  // Each recorded step does one thing: put a term on the board, break one pair, take away one piece,
+  // Each recorded step does one thing: put a term on the board, break one pair, take away a group of pieces,
   // trade one letter, merge one group, or rebuild. A step records the line, the board and a short caption.
   //   line token: { text, op?, st: 'todo' | 'done', focus?, becomes?, res?, term? }
   //   board tile: { ch, st: 'normal' | 'new' | 'cross', src? }   (src = line token a piece came from)
-  const isPairTile = (t) => t.st !== 'cross' && PAIR_PIECES[t.ch] !== undefined;
   const tileValue = (t) => lenientValue(t.ch);
   const tableValue = (tiles) => tiles.reduce((sum, t) => (t.st === 'cross' ? sum : sum + tileValue(t)), 0);
   const byValueDesc = (a, b) => tileValue(b) - tileValue(a);
@@ -168,7 +167,7 @@
       snap(`Break ${tile.ch} into ${pieces.split('').join(' ')}.`);
     };
     const breakAll = () => {
-      for (let i = board.findIndex(isPairTile); i >= 0; i = board.findIndex(isPairTile)) breakPair(i);
+      for (let i = board.findIndex((t) => t.st !== 'cross' && PAIR_PIECES[t.ch]); i >= 0; i = board.findIndex((t) => t.st !== 'cross' && PAIR_PIECES[t.ch])) breakPair(i);
     };
 
     // Regroup: pieces that join into one bigger letter, one group at a time.
@@ -189,26 +188,57 @@
       }
     };
 
-    // Take one piece away from the board. `src` is the line token that piece belongs to, so the line can show it.
-    const remaining = {};
-    const takeAway = (ch, src) => {
-      while (!board.some((t) => t.ch === ch && t.st !== 'cross')) {
+    // How many uncrossed pieces of exactly this letter are on the board.
+    const countOf = (ch) => board.filter((t) => t.st !== 'cross' && t.ch === ch).length;
+
+    // Make sure the board holds at least n of this letter. If it does not, break or trade the smallest bigger piece, one at a time.
+    const ensure = (ch, n) => {
+      while (countOf(ch) < n) {
         let j = -1;
         board.forEach((t, i) => {
-          if (t.st !== 'cross' && VALUE[t.ch] > VALUE[ch] && (j < 0 || VALUE[t.ch] < VALUE[board[j].ch])) j = i;
+          if (t.st !== 'cross' && tileValue(t) > VALUE[ch] && (j < 0 || tileValue(t) < tileValue(board[j]))) j = i;
         });
         if (j < 0) throw new Error(`Not enough to take away ${ch}`);
-        const big = board[j].ch;
-        board[j].st = 'cross';
-        board.splice(j + 1, 0, ...TRADE[big].split('').map((c) => ({ ch: c, st: 'new' })));
-        snap(`No ${ch} to take away, so trade one ${big} for ${TRADE[big].split('').join(' ')}.`);
+        if (PAIR_PIECES[board[j].ch]) {
+          breakPair(j);
+        } else {
+          const big = board[j].ch;
+          board[j].st = 'cross';
+          board.splice(j + 1, 0, ...TRADE[big].split('').map((c) => ({ ch: c, st: 'new' })));
+          snap(`No ${ch} to take away, so trade one ${big} for ${TRADE[big].split('').join(' ')}.`);
+        }
       }
-      const i = board.findIndex((t) => t.ch === ch && t.st !== 'cross');
-      board[i].st = 'cross';
-      remaining[src] -= 1;
-      line[src].focus = true;
-      if (remaining[src] === 0) line[src].st = 'done';
-      snap(`Take away ${ch}.`);
+    };
+
+    // Pieces still to be taken away from each line token (a second number's pair has several pieces).
+    const remaining = {};
+
+    // A whole part of the second number that matches a part on the board: both are crossed out together.
+    const takeWhole = (item) => {
+      board.find((t) => t.st !== 'cross' && t.ch === item.text).st = 'cross';
+      remaining[item.src] = 0;
+      line[item.src].st = 'done';
+      line[item.src].focus = true;
+      snap(`Take away ${item.text}. The same is on both sides.`);
+    };
+
+    // A run of the same letter from the second number, taken away in one step.
+    const takeGroup = (group) => {
+      const ch = group[0].text;
+      ensure(ch, group.length);
+      let left = group.length;
+      board.forEach((t) => {
+        if (left && t.st !== 'cross' && t.ch === ch) {
+          t.st = 'cross';
+          left--;
+        }
+      });
+      group.forEach(({ src }) => {
+        remaining[src] -= 1;
+        line[src].focus = true;
+        if (remaining[src] === 0) line[src].st = 'done';
+      });
+      snap(group.length === 1 ? `Take away ${ch}.` : `Take away ${group.length} ${ch}'s.`);
     };
 
     try {
@@ -222,26 +252,32 @@
             board.push({ ch: t.text, st: 'new', src: i });
           });
           snap(k === 0 ? `Put ${term} on the board.` : `Add ${term}. Put it on the board.`);
-          breakAll();
+          // A first number that is taken away from stays whole, so its parts can be matched first.
+          if (k > 0 || ops[0] !== '-') breakAll();
           regroup();
         } else {
-          // Subtract: the second number gets its own step, its pairs are broken there, then its pieces are taken away one at a time.
+          // Subtract: the second number is shown whole first. Each part is matched against the board: the same part is
+          // crossed out together. A pair with no match is broken first, and a missing letter is traded for, one step at a time.
           tokens.forEach(({ i }) => { line[i].focus = true; });
           snap(`Second number ${term} = ${lenientValue(term)}.`);
-          tokens.forEach(({ t, i }) => {
-            if (PAIR_PIECES[t.text]) {
-              line[i].focus = true;
-              line[i].becomes = PAIR_PIECES[t.text];
-              snap(`Second number: break ${t.text} into ${PAIR_PIECES[t.text].split('').join(' ')}.`);
+          tokens.forEach(({ t, i }) => { remaining[i] = (PAIR_PIECES[t.text] || t.text).length; });
+          const queue = tokens.map(({ t, i }) => ({ text: t.text, src: i }));
+          while (queue.length) {
+            const item = queue.shift();
+            const onBoard = board.some((t) => t.st !== 'cross' && t.ch === item.text);
+            if (PAIR_PIECES[item.text] && onBoard) {
+              takeWhole(item);
+            } else if (PAIR_PIECES[item.text]) {
+              line[item.src].focus = true;
+              line[item.src].becomes = PAIR_PIECES[item.text];
+              snap(`Break ${item.text} into ${PAIR_PIECES[item.text].split('').join(' ')}.`);
+              queue.unshift(...PAIR_PIECES[item.text].split('').map((ch) => ({ text: ch, src: item.src })));
+            } else {
+              const group = [item];
+              while (queue.length && queue[0].text === item.text) group.push(queue.shift());
+              takeGroup(group);
             }
-          });
-          const pieces = [];
-          tokens.forEach(({ t, i }) => {
-            const ps = (PAIR_PIECES[t.text] || t.text).split('');
-            remaining[i] = ps.length;
-            ps.forEach((ch) => pieces.push({ ch, src: i }));
-          });
-          pieces.forEach((p) => takeAway(p.ch, p.src));
+          }
           regroup();
         }
       });
@@ -281,6 +317,19 @@
     return s.split('').map((ch, i) => ({ ch, st: i >= from && i < to ? cls : 'normal' }));
   }
 
+  // The smallest part of a numeral that must change to reach the target. Only that part is crossed out and replaced.
+  // LXLVII to XCVII changes LXL to XC, and keeps VII.
+  function span(cur, target) {
+    let p = 0;
+    while (p < cur.length && p < target.length && cur[p] === target[p]) p++;
+    let q = 0;
+    while (q < cur.length - p && q < target.length - p && cur[cur.length - 1 - q] === target[target.length - 1 - q]) q++;
+    const to = target.slice(p, target.length - q);
+    const next = cur.slice(0, p) + to + cur.slice(cur.length - q);
+    if (next !== target || lenientValue(next) !== lenientValue(cur)) return { start: 0, end: cur.length, to: target };
+    return { start: p, end: cur.length - q, to };
+  }
+
   // The first bad part of a numeral, and its fix. Returns null when nothing is left to fix.
   function firstRepair(cur) {
     const r = check(cur);
@@ -303,10 +352,10 @@
       return { rule: 5, label: `${pair.ch}${pair.ch} is one bigger letter`, start: pair.start, end: pair.end, to: toRoman(lenientValue(pair.ch.repeat(pair.n))) };
     }
     if (r.issues.some((i) => i.rule === 3)) {
-      return { rule: 3, label: 'Only one smaller letter before a bigger one', start: 0, end: cur.length, to: r.simplest };
+      return { rule: 3, label: 'Only one smaller letter before a bigger one', ...span(cur, r.simplest) };
     }
     if (r.simplest !== cur) {
-      return { rule: 5, label: 'Write the simplest form', start: 0, end: cur.length, to: r.simplest };
+      return { rule: 5, label: 'Write the simplest form', ...span(cur, r.simplest) };
     }
     return null;
   }

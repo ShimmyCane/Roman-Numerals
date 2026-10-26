@@ -97,12 +97,36 @@ test('calculate: a broken pair is shown on the line with its arrow, and the othe
   assert.equal(brk.line.find((t) => t.focus).becomes, 'XXXX');
 });
 
-test('calculate: every take-away step removes exactly one piece', () => {
+test('calculate: every take-away step crosses out as many pieces as its caption says', () => {
   const r = Roman.calculate(['XL', 'IX'], ['-']);
   const takes = r.steps.filter((s) => s.text.startsWith('Take away'));
   assert.ok(takes.length > 0);
-  for (const s of takes) assert.equal(s.board.filter((t) => t.st === 'cross').length, 1, s.text);
+  for (const s of takes) {
+    const m = s.text.match(/^Take away (\d+) /);
+    const n = m ? Number(m[1]) : 1;
+    assert.equal(s.board.filter((t) => t.st === 'cross').length, n, s.text);
+  }
   assert.equal(r.result, 'XXXI');
+});
+
+test("calculate: XCVI - XCIII matches the same XC on both sides, then trades one V for I's", () => {
+  const r = Roman.calculate(['XCVI', 'XCIII'], ['-']);
+  assert.equal(r.steps[1].text, 'Put XCVI on the board.');
+  assert.deepEqual(r.steps[1].board.map((t) => t.ch), ['XC', 'V', 'I']);
+  assert.equal(r.steps[3].text, 'Take away XC. The same is on both sides.');
+  assert.ok(r.steps.some((s) => s.text === 'No I to take away, so trade one V for I I I I I.'));
+  assert.equal(r.steps.find((s) => s.text === "Take away 3 I's.").board.filter((t) => t.st === 'cross').length, 3);
+  assert.equal(r.result, 'III');
+});
+
+test("Fix It: LXXXXVII changes only LXL to XC, and keeps VII", () => {
+  const p = Roman.repairPlan('LXXXXVII');
+  const last = p.steps.filter((s) => s.kind === 'repair').pop();
+  assert.equal(last.label, 'Write the simplest form');
+  assert.equal(last.before.map((t) => t.ch).join(''), 'LXLVII');
+  assert.deepEqual(last.before.map((t) => t.st), ['cross', 'cross', 'cross', 'normal', 'normal', 'normal']);
+  assert.equal(last.after.map((t) => t.ch).join(''), 'XCVII');
+  assert.equal(p.result, 'XCVII');
 });
 
 test('calculate: XL + XX - IX = LI (multi-step, needs a trade)', () => {
@@ -165,6 +189,16 @@ test('Fix It: the repair grays out the bad part and puts the fix beside it', () 
   const rep = p.steps[1];
   assert.deepEqual(rep.before.map((t) => t.st), ['normal', 'normal', 'cross', 'cross', 'cross', 'cross']);
   assert.deepEqual(rep.after.map((t) => t.ch).join(''), 'XXIV');
+});
+
+test('Fix It: LXXXXVII changes only LXL to XC, and keeps VII', () => {
+  const p = Roman.repairPlan('LXXXXVII');
+  const last = p.steps.filter((s) => s.kind === 'repair').pop();
+  assert.equal(last.label, 'Write the simplest form');
+  assert.equal(last.before.map((t) => t.ch).join(''), 'LXLVII');
+  assert.deepEqual(last.before.map((t) => t.st).join(','), 'cross,cross,cross,normal,normal,normal'.replace(/normal/g, 'normal'));
+  assert.equal(last.after.map((t) => t.ch).join(''), 'XCVII');
+  assert.equal(p.result, 'XCVII');
 });
 
 test('Fix It: VIIII takes two repairs, then IX', () => {
