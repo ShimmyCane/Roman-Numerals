@@ -842,9 +842,10 @@
   function buildLetterRow() {
     const row = $('#letter-row');
     LETTERS.forEach((ch) => {
-      const b = el('button', `tile ${ch}`, ch);
+      const b = el('button', `tile ${ch}`);
+      b.append(ch, el('span', 'arabic', String(VALUE[ch])));
       b.addEventListener('click', () => {
-        $('#letter-hint').textContent = `${ch} is worth ${Roman.words(VALUE[ch])}.`;
+        $('#letter-hint').textContent = `${ch} is worth ${Roman.words(VALUE[ch])} (${VALUE[ch]}).`;
         beep([VALUE[ch] > 100 ? 392 : 523 + VALUE[ch] / 10]);
       });
       row.append(b);

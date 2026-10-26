@@ -782,3 +782,6 @@ html[data-tiles="big"] { --big: 1.25; }
 button.bead { font: inherit; padding: 0; cursor: pointer; color: #2b2540; }
 button.bead:focus-visible { outline: 4px solid var(--link); outline-offset: 3px; }
 .rods-parts .label { display: inline-block; min-width: 6.5em; font-size: 0.8em; color: var(--ink-soft); }
+
+/* Arabic value under each letter tile */
+.arabic { display: block; font-size: 0.45em; font-weight: 700; line-height: 1.1; }
