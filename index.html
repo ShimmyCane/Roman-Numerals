@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Roman Numerals</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Rough edges for tiles and boards -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <filter id="rough">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7"/>
+      <feDisplacementMap in="SourceGraphic" scale="4"/>
+    </filter>
+  </svg>
+
+  <header class="top">
+    <h1>Roman Numerals</h1>
+    <p class="sub">Break numbers apart, put them together, fix them.</p>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab-btn active" role="tab" data-tab="letters">Letters</button>
+    <button class="tab-btn" role="tab" data-tab="build">Build &amp; Break</button>
+    <button class="tab-btn" role="tab" data-tab="addsub">Add &amp; Subtract</button>
+    <button class="tab-btn" role="tab" data-tab="fix">Fix It</button>
+    <button class="tab-btn" role="tab" data-tab="rules">Rules</button>
+    <button class="tab-btn" role="tab" data-tab="history">Long Ago</button>
+  </nav>
+
+  <main>
+    <!-- LETTERS -->
+    <section class="tab active" id="tab-letters">
+      <div class="layout">
+        <div class="play">
+          <h2>Learn the letters</h2>
+          <p class="hint" id="letter-hint">Tap a tile to hear its value.</p>
+          <div class="letter-row" id="letter-row"></div>
+
+          <h2>Quiz</h2>
+          <div class="quiz-head">
+            <span id="quiz-round">Round 1</span>
+            <span id="quiz-left"></span>
+          </div>
+          <div class="prompt" id="quiz-prompt"></div>
+          <div class="options" id="quiz-options"></div>
+          <button class="big-btn" id="quiz-next" hidden>Next round</button>
+        </div>
+        <aside class="ref">
+          <h3>Quick check</h3>
+          <p>Tap the answer. Five in a round. Misses come back until they are right.</p>
+          <p id="quiz-feedback" class="feedback" aria-live="polite"></p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- BUILD & BREAK -->
+    <section class="tab" id="tab-build">
+      <div class="layout">
+        <div class="play">
+          <form class="entry" data-entry="build">
+            <input id="build-input" type="text" inputmode="text" autocomplete="off" placeholder="Type a numeral, like XL" maxlength="20">
+            <button class="big-btn" type="submit">Break it</button>
+            <button class="big-btn ghost" type="button" data-undo="build">Undo</button>
+          </form>
+          <div class="board" id="build-board"></div>
+          <p class="caption" id="build-caption">Type a numeral to begin.</p>
+          <p class="value" id="build-value"></p>
+          <div class="controls">
+            <button class="big-btn ghost" data-step="build" data-dir="-1">Back</button>
+            <button class="big-btn ghost" data-play="build">Play steps</button>
+            <button class="big-btn" data-step="build" data-dir="1">Next</button>
+          </div>
+        </div>
+        <aside class="ref">
+          <h3>How to read this</h3>
+          <p>Each numeral is broken into its real pieces, then put back together in the simplest form.</p>
+          <p class="note">This is a teaching model. It is not how Romans calculated. See <strong>Long Ago</strong>.</p>
+          <div class="tally" id="build-tally"></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ADD & SUBTRACT -->
+    <section class="tab" id="tab-addsub">
+      <div class="layout">
+        <div class="play">
+          <form class="entry" data-entry="addsub">
+            <input id="addsub-input" type="text" autocomplete="off" placeholder="XL + XX - IX" maxlength="40">
+            <button class="big-btn" type="submit">Work it out</button>
+            <button class="big-btn ghost" type="button" data-undo="addsub">Undo</button>
+          </form>
+          <div class="board" id="addsub-board"></div>
+          <p class="caption" id="addsub-caption">Try XL - XX, or XL + XX - IX.</p>
+          <p class="value" id="addsub-value"></p>
+          <div class="controls">
+            <button class="big-btn ghost" data-step="addsub" data-dir="-1">Back</button>
+            <button class="big-btn ghost" data-play="addsub">Play steps</button>
+            <button class="big-btn" data-step="addsub" data-dir="1">Next</button>
+          </div>
+        </div>
+        <aside class="ref">
+          <h3>How to read this</h3>
+          <p>Each numeral becomes its pieces. Taking away a piece that is missing means trading a bigger piece for smaller ones first.</p>
+          <div class="tally" id="addsub-tally"></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- FIX IT -->
+    <section class="tab" id="tab-fix">
+      <div class="layout">
+        <div class="play">
+          <form class="entry" data-entry="fix">
+            <input id="fix-input" type="text" autocomplete="off" placeholder="Type a numeral, like IIII" maxlength="20">
+            <button class="big-btn" type="submit">Check it</button>
+            <button class="big-btn ghost" type="button" data-undo="fix">Undo</button>
+          </form>
+          <div class="verdict" id="fix-verdict"></div>
+          <div class="issues" id="fix-issues"></div>
+          <div class="board" id="fix-board"></div>
+          <p class="caption" id="fix-caption"></p>
+          <p class="value" id="fix-value"></p>
+          <div class="controls">
+            <button class="big-btn ghost" data-step="fix" data-dir="-1">Back</button>
+            <button class="big-btn ghost" data-play="fix">Play steps</button>
+            <button class="big-btn" data-step="fix" data-dir="1">Next</button>
+          </div>
+        </div>
+        <aside class="ref">
+          <h3>How to read this</h3>
+          <p>The checker names each rule the numeral breaks. The steps show how it gets repaired.</p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- RULES -->
+    <section class="tab" id="tab-rules">
+      <div class="rules">
+        <article class="rule-card">
+          <h3>Rule 1</h3>
+          <p>Equal letters in a row are added. No more than three in a row.</p>
+          <div class="strip">III = 3</div>
+          <div class="strip bad">IIII ✗</div>
+        </article>
+        <article class="rule-card">
+          <h3>Rule 2</h3>
+          <p>A smaller letter on the right of a bigger one is added. No more than three.</p>
+          <div class="strip">VI = 6</div>
+          <div class="strip">XVIII = 18</div>
+          <div class="strip bad">VIIII ✗</div>
+        </article>
+        <article class="rule-card">
+          <h3>Rule 3</h3>
+          <p>A smaller letter on the left of a bigger one is taken away. Only one, never a few.</p>
+          <div class="strip">IV = 4</div>
+          <div class="strip">XL = 40</div>
+          <div class="strip bad">IIV ✗</div>
+        </article>
+        <article class="rule-card">
+          <h3>Rule 5</h3>
+          <p>Always write it in the simplest form.</p>
+          <div class="strip">IIII ✗ → IV ✓</div>
+          <div class="strip">VV ✗ → X ✓</div>
+        </article>
+        <p class="rules-foot">Letters: I = 1 · V = 5 · X = 10 · L = 50 · C = 100 · D = 500 · M = 1000</p>
+      </div>
+    </section>
+
+    <!-- LONG AGO -->
+    <section class="tab" id="tab-history">
+      <div class="rules">
+        <article class="rule-card">
+          <h3>Did Romans use Roman numerals?</h3>
+          <p>Yes. They wrote numbers on buildings, tombs and monuments with these letters.</p>
+        </article>
+        <article class="rule-card">
+          <h3>How did they do math?</h3>
+          <p>Mostly on a counting board, moving small pebbles (<em>calculi</em>, Latin for "little pebbles") in columns. The numerals were used to write down the answer.</p>
+        </article>
+        <article class="rule-card">
+          <h3>Did they write IV and IX?</h3>
+          <p>Sometimes. But IIII and VIIII are also found on Roman inscriptions and clock faces. The IV and IX style became the usual form much later.</p>
+        </article>
+        <article class="rule-card">
+          <h3>Did they have zero?</h3>
+          <p>No zero letter. There was no Roman numeral for zero.</p>
+        </article>
+        <article class="rule-card">
+          <h3>So is this app how Romans did it?</h3>
+          <p>Not exactly. Breaking numbers into pieces is a <strong>teaching model</strong> to see what each letter is worth. It helps you learn the numbers, even if it is not the way the Romans worked them out.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <!-- Error panel: only shown when Show errors is on -->
+  <div class="errors" id="errors" hidden>
+    <strong>Errors</strong>
+    <span id="errors-text"></span>
+  </div>
+
+  <button class="gear" id="gear" aria-label="Settings" aria-expanded="false">⚙️</button>
+  <div class="drawer" id="drawer" hidden>
+    <h3>Settings</h3>
+    <label class="toggle"><input type="checkbox" id="opt-sound" checked> Sounds</label>
+    <label class="toggle"><input type="checkbox" id="opt-pictures" checked> Picture steps</label>
+    <label class="toggle"><input type="checkbox" id="opt-errors"> Show errors</label>
+    <button class="big-btn ghost" id="drawer-close">Close</button>
+  </div>
+
+  <script src="roman.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
