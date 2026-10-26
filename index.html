@@ -4,10 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Roman Numerals</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="base.css">
+  <link id="look-css" rel="stylesheet" href="looks/sunny.css">
 </head>
 <body>
   <!-- Rough edges for tiles and boards -->
@@ -25,11 +23,10 @@
 
   <nav class="tabs" role="tablist">
     <button class="tab-btn active" role="tab" data-tab="letters">Letters</button>
-    <button class="tab-btn" role="tab" data-tab="quiz">Quiz</button>
-    <button class="tab-btn" role="tab" data-tab="build">Build &amp; Break</button>
-    <button class="tab-btn" role="tab" data-tab="addsub">Add &amp; Subtract</button>
-    <button class="tab-btn" role="tab" data-tab="fix">Fix It</button>
     <button class="tab-btn" role="tab" data-tab="rules">Rules</button>
+    <button class="tab-btn" role="tab" data-tab="fix">Fix It</button>
+    <button class="tab-btn" role="tab" data-tab="addsub">Add &amp; Subtract</button>
+    <button class="tab-btn" role="tab" data-tab="quiz">Quiz</button>
     <button class="tab-btn" role="tab" data-tab="history">Long Ago</button>
   </nav>
 
@@ -57,6 +54,81 @@
       </div>
     </section>
 
+    <!-- RULES: five rules on the left, examples on the right -->
+    <section class="tab" id="tab-rules">
+      <p class="note-box">Rule wording here is a working summary. It will be replaced with the ORC wording once it is supplied.</p>
+      <div class="split">
+        <nav class="rule-list" aria-label="Rules">
+          <button class="rule-btn active" data-rule="1" aria-pressed="true"><b>1</b> Same letters in a row</button>
+          <button class="rule-btn" data-rule="2" aria-pressed="false"><b>2</b> Smaller letters after a bigger one</button>
+          <button class="rule-btn" data-rule="3" aria-pressed="false"><b>3</b> Smaller letter before a bigger one</button>
+          <button class="rule-btn" data-rule="4" aria-pressed="false"><b>4</b> Pairs</button>
+          <button class="rule-btn" data-rule="5" aria-pressed="false"><b>5</b> Simplest form</button>
+        </nav>
+        <section class="play rule-panel" aria-live="polite">
+          <h2 id="rule-title">Rule 1</h2>
+          <p id="rule-text"></p>
+          <div id="rule-examples"></div>
+        </section>
+      </div>
+      <p class="rules-foot">Letters: I = 1 · V = 5 · X = 10 · L = 50 · C = 100 · D = 500 · M = 1000</p>
+    </section>
+
+    <!-- FIX IT: start with a bad numeral; rules broken go on the right -->
+    <section class="tab" id="tab-fix">
+      <div class="layout">
+        <div class="play">
+          <div class="workbench">
+            <button class="big-btn" type="button" data-random="fixbad">🎲 Random bad numeral</button>
+            <form class="entry" data-entry="fix">
+              <input id="fix-input" type="text" autocomplete="off" placeholder="Or type your own, like IIII" maxlength="20" aria-label="Type your own numeral to fix">
+              <button class="big-btn" type="submit">Fix it</button>
+              <button class="big-btn ghost" type="button" data-undo="fix">Undo</button>
+            </form>
+          </div>
+          <div class="verdict" id="fix-verdict" aria-live="polite"></div>
+          <div class="ledger" id="fix-ledger" aria-live="polite"></div>
+          <div class="controls">
+            <button class="big-btn ghost" data-step="fix" data-dir="-1">Back</button>
+            <button class="big-btn ghost" data-play="fix">Play steps</button>
+            <button class="big-btn" data-step="fix" data-dir="1">Next step</button>
+          </div>
+        </div>
+        <aside class="ref">
+          <h3>Rules broken</h3>
+          <ol class="broken" id="fix-rules"></ol>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ADD & SUBTRACT: the full sum on a line, with pieces on a board below -->
+    <section class="tab" id="tab-addsub">
+      <div class="layout">
+        <div class="play">
+          <div class="workbench">
+            <button class="big-btn" type="button" data-random="addsub">🎲 Random sum</button>
+            <form class="entry" data-entry="addsub">
+              <input id="addsub-input" type="text" autocomplete="off" placeholder="Or type your own, like XLI + XIX" maxlength="40" aria-label="Type your own sum">
+              <button class="big-btn" type="submit">Work it out</button>
+              <button class="big-btn ghost" type="button" data-undo="addsub">Undo</button>
+            </form>
+          </div>
+          <div class="ledger" id="addsub-ledger" aria-live="polite"></div>
+          <div class="controls">
+            <button class="big-btn ghost" data-step="addsub" data-dir="-1">Back</button>
+            <button class="big-btn ghost" data-play="addsub">Play steps</button>
+            <button class="big-btn" data-step="addsub" data-dir="1">Next step</button>
+          </div>
+        </div>
+        <aside class="ref">
+          <h3>How to read this</h3>
+          <p>The sum stays on the line. Crossed-out parts are done. The arrow shows what a part became.</p>
+          <p>The pieces sit on the board. If there is nothing to take away, trade a bigger piece first.</p>
+          <div class="tally" id="addsub-tally"></div>
+        </aside>
+      </div>
+    </section>
+
     <!-- QUIZ: letters and true / false / ambiguous -->
     <section class="tab" id="tab-quiz">
       <div class="layout">
@@ -78,137 +150,6 @@
       </div>
     </section>
 
-    <!-- BUILD & BREAK -->
-    <section class="tab" id="tab-build">
-      <div class="layout">
-        <div class="play">
-          <div class="workbench">
-            <button class="big-btn" type="button" data-random="build">🎲 Random numeral</button>
-            <form class="entry" data-entry="build">
-              <input id="build-input" type="text" inputmode="text" autocomplete="off" placeholder="Or type your own, like XL" maxlength="20" aria-label="Type your own numeral">
-              <button class="big-btn" type="submit">Break it</button>
-              <button class="big-btn ghost" type="button" data-undo="build">Undo</button>
-            </form>
-          </div>
-          <div class="ledger" id="build-ledger" aria-live="polite"></div>
-          <div class="controls">
-            <button class="big-btn ghost" data-step="build" data-dir="-1">Back</button>
-            <button class="big-btn ghost" data-play="build">Play steps</button>
-            <button class="big-btn" data-step="build" data-dir="1">Next step</button>
-          </div>
-        </div>
-        <aside class="ref">
-          <h3>How to read this</h3>
-          <p>Each step changes one thing. The numeral is taken apart, then built back up in the simplest form.</p>
-          <p class="note">This is a teaching model. It is not how Romans calculated. See <strong>Long Ago</strong>.</p>
-          <div class="tally" id="build-tally"></div>
-        </aside>
-      </div>
-    </section>
-
-    <!-- ADD & SUBTRACT -->
-    <section class="tab" id="tab-addsub">
-      <div class="layout">
-        <div class="play">
-          <div class="workbench">
-            <button class="big-btn" type="button" data-random="addsub">🎲 Random sum</button>
-            <form class="entry" data-entry="addsub">
-              <input id="addsub-input" type="text" autocomplete="off" placeholder="Or type your own, like XL - XX" maxlength="40" aria-label="Type your own sum">
-              <button class="big-btn" type="submit">Work it out</button>
-              <button class="big-btn ghost" type="button" data-undo="addsub">Undo</button>
-            </form>
-          </div>
-          <div class="ledger" id="addsub-ledger" aria-live="polite"></div>
-          <div class="controls">
-            <button class="big-btn ghost" data-step="addsub" data-dir="-1">Back</button>
-            <button class="big-btn ghost" data-play="addsub">Play steps</button>
-            <button class="big-btn" data-step="addsub" data-dir="1">Next step</button>
-          </div>
-        </div>
-        <aside class="ref">
-          <h3>How to read this</h3>
-          <p>Both numbers are broken into parts. The second number is shown on its own row, then its parts are taken away one at a time.</p>
-          <p>If there is nothing to take away, trade a bigger piece first.</p>
-          <div class="tally" id="addsub-tally"></div>
-        </aside>
-      </div>
-    </section>
-
-    <!-- FIX IT: same steps as Build & Break, with bad numerals -->
-    <section class="tab" id="tab-fix">
-      <div class="layout">
-        <div class="play">
-          <div class="workbench">
-            <div class="random-row">
-              <button class="big-btn" type="button" data-random="fixgood">🎲 Random good numeral</button>
-              <button class="big-btn" type="button" data-random="fixbad">🎲 Random bad numeral</button>
-            </div>
-            <form class="entry" data-entry="fix">
-              <input id="fix-input" type="text" autocomplete="off" placeholder="Or type your own, like IIII" maxlength="20" aria-label="Type your own numeral to fix">
-              <button class="big-btn" type="submit">Fix it</button>
-              <button class="big-btn ghost" type="button" data-undo="fix">Undo</button>
-            </form>
-          </div>
-          <div class="verdict" id="fix-verdict" aria-live="polite"></div>
-          <div class="issues" id="fix-issues"></div>
-          <div class="ledger" id="fix-ledger" aria-live="polite"></div>
-          <div class="controls">
-            <button class="big-btn ghost" data-step="fix" data-dir="-1">Back</button>
-            <button class="big-btn ghost" data-play="fix">Play steps</button>
-            <button class="big-btn" data-step="fix" data-dir="1">Next step</button>
-          </div>
-        </div>
-        <aside class="ref">
-          <h3>How to read this</h3>
-          <p>A good numeral is rebuilt step by step to show it is right. A bad numeral first names each rule it breaks, then gets repaired.</p>
-          <p class="note">Check the Rules tab for the examples.</p>
-        </aside>
-      </div>
-    </section>
-
-    <!-- RULES -->
-    <section class="tab" id="tab-rules">
-      <div class="rules">
-        <p class="note-box">Rule wording here is a working summary. It will be replaced with the ORC wording once it is supplied.</p>
-
-        <article class="rule-card">
-          <h3>Rule 1</h3>
-          <p>Equal letters in a row are added. No more than three in a row.</p>
-          <div class="example"><span class="strip">III</span> <span class="equals">= 3</span> <span class="mark good" aria-label="right"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
-          <div class="example"><span class="strip">XXX</span> <span class="equals">= 30</span> <span class="mark good" aria-label="right"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
-          <div class="example"><span class="strip">IIII</span> <span class="mark bad" aria-label="wrong"><svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></span> <span class="arrow">→</span> <span class="strip">IV</span> <span class="mark good" aria-label="right"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
-          <div class="example"><span class="strip">XXXX</span> <span class="mark bad" aria-label="wrong"><svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></span> <span class="arrow">→</span> <span class="strip">XL</span> <span class="mark good" aria-label="right"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
-        </article>
-
-        <article class="rule-card">
-          <h3>Rule 2</h3>
-          <p>A smaller letter on the right of a bigger one is added. No more than three.</p>
-          <div class="example"><span class="strip">VI</span> <span class="equals">= 6</span> <span class="mark good" aria-label="right"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
-          <div class="example"><span class="strip">XVIII</span> <span class="equals">= 18</span> <span class="mark good" aria-label="right"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
-          <div class="example"><span class="strip">VIIII</span> <span class="mark bad" aria-label="wrong"><svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></span> <span class="arrow">→</span> <span class="strip">IX</span> <span class="mark good" aria-label="right"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
-        </article>
-
-        <article class="rule-card">
-          <h3>Rule 3</h3>
-          <p>A smaller letter on the left of a bigger one is taken away. Only one, never a few.</p>
-          <div class="example"><span class="strip">IV</span> <span class="equals">= 4</span> <span class="mark good" aria-label="right"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
-          <div class="example"><span class="strip">XL</span> <span class="equals">= 40</span> <span class="mark good" aria-label="right"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
-          <div class="example"><span class="strip">CM</span> <span class="equals">= 900</span> <span class="mark good" aria-label="right"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
-          <div class="example"><span class="strip">IIX</span> <span class="mark bad" aria-label="wrong"><svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></span> <span class="arrow">→</span> <span class="strip">IX</span> <span class="mark good" aria-label="right"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span> <span class="note">only one I before the X</span></div>
-        </article>
-
-        <article class="rule-card">
-          <h3>Rule 5</h3>
-          <p>Always write it in the simplest form.</p>
-          <div class="example"><span class="strip">VV</span> <span class="mark bad" aria-label="wrong"><svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></span> <span class="arrow">→</span> <span class="strip">X</span> <span class="mark good" aria-label="right"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
-          <div class="example"><span class="strip">LL</span> <span class="mark bad" aria-label="wrong"><svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></span> <span class="arrow">→</span> <span class="strip">C</span> <span class="mark good" aria-label="right"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
-          <div class="example"><span class="strip">IIII</span> <span class="mark bad" aria-label="wrong"><svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></span> <span class="arrow">→</span> <span class="strip">IV</span> <span class="mark good" aria-label="right"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></div>
-        </article>
-
-        <p class="rules-foot">Letters: I = 1 · V = 5 · X = 10 · L = 50 · C = 100 · D = 500 · M = 1000</p>
-      </div>
-    </section>
-
     <!-- LONG AGO -->
     <section class="tab" id="tab-history">
       <div class="rules">
@@ -220,7 +161,7 @@
         <article class="rule-card">
           <h3>How did they count?</h3>
           <p>On a counting board or a hand abacus, moving small stones called <em>calculi</em> (Latin for "little stones") across columns. Each column stood for a place: tens, ones, and so on. The answer was written down in numerals at the end.</p>
-          <p>A surviving hand abacus has seven columns. Each column has four beads in its lower slot and one bead in its upper slot.</p>
+          <p>A surviving Roman hand abacus has seven columns. Each column has four beads in its lower slot and one bead in its upper slot.</p>
           <div class="figure" data-figure="4,7"></div>
           <p class="caption-small">47 on a counting board: 4 pebbles in the tens, 7 in the ones.</p>
         </article>
@@ -240,6 +181,16 @@
           <p>Take the pebbles away from the board. When a column does not have enough, trade one pebble from the next column up for ten in this one. Romans had no negative numbers, so you trade first.</p>
           <h4>Example: 40 − 18</h4>
           <div class="demo" data-demo="subtract"></div>
+        </article>
+
+        <article class="rule-card">
+          <h3>Pictures to look up</h3>
+          <p>These objects are shown with photographs on their own pages. Open them to see the real thing.</p>
+          <ul class="sources">
+            <li><a href="https://en.wikipedia.org/wiki/Salamis_Tablet" target="_blank" rel="noopener">Salamis Tablet (Wikipedia)</a>: a Greek counting board of about 300 BCE, with its photograph</li>
+            <li><a href="https://en.wikipedia.org/wiki/Roman_abacus" target="_blank" rel="noopener">Roman abacus (Wikipedia)</a>: the surviving hand abacus, and the counting board</li>
+            <li><a href="https://en.wikipedia.org/wiki/Roman_numerals" target="_blank" rel="noopener">Roman numerals (Wikipedia)</a>: IV and IX, IIII on clock faces, and the numbered gates of the Colosseum</li>
+          </ul>
         </article>
 
         <article class="rule-card">
@@ -293,7 +244,6 @@
           <h3>Read more</h3>
           <ul class="sources">
             <li><a href="https://en.wikipedia.org/wiki/Roman_numerals" target="_blank" rel="noopener">Roman numerals (Wikipedia)</a>: IIII on the Colosseum gates, and the history of IV</li>
-            <li><a href="https://en.wikipedia.org/wiki/Roman_abacus" target="_blank" rel="noopener">Roman abacus (Wikipedia)</a>: the hand abacus and the counting board</li>
             <li><a href="https://arxiv.org/pdf/1206.4349" target="_blank" rel="noopener">Ancient Computers (arXiv)</a>: the seven columns of the hand abacus, four beads and one in each</li>
             <li><a href="https://cacm.acm.org/blogcacm/how-did-the-romans-calculate" target="_blank" rel="noopener">How did the Romans calculate? (ACM)</a>: an overview for non-specialists</li>
             <li><a href="https://historyofinformation.com/detail.php?id=14" target="_blank" rel="noopener">Computus (History of Information)</a>: how <em>nulla</em> stood for zero in Easter tables</li>
@@ -318,11 +268,11 @@
   <div class="drawer" id="drawer" hidden>
     <h3>Settings</h3>
     <h4>Look</h4>
-    <div class="style-row" role="group" aria-label="Picture style">
-      <button class="big-btn style-btn" data-style-choice="sunny" aria-pressed="true">Sunny</button>
-      <button class="big-btn style-btn" data-style-choice="bold" aria-pressed="false">Bold</button>
-      <button class="big-btn style-btn" data-style-choice="mint" aria-pressed="false">Mint</button>
-      <button class="big-btn style-btn" data-style-choice="night" aria-pressed="false">Night</button>
+    <div class="look-row" role="group" aria-label="Look">
+      <button class="big-btn look-btn" data-look="sunny" aria-pressed="true">Sunny</button>
+      <button class="big-btn look-btn" data-look="chalk" aria-pressed="false">Chalk</button>
+      <button class="big-btn look-btn" data-look="notebook" aria-pressed="false">Notebook</button>
+      <button class="big-btn look-btn" data-look="candy" aria-pressed="false">Candy</button>
     </div>
     <h4>Help</h4>
     <label class="toggle"><input type="checkbox" id="opt-sound" checked> Sounds</label>

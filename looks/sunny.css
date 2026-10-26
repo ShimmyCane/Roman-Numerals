@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&display=swap');
+/* Sunny: cream paper, serif type, thick outlines, rough tiles. */
+:root, html {
+  --font: "Merriweather", Georgia, "Times New Roman", serif;
+  --font-head: "Merriweather", Georgia, serif;
+  --font-size: 18px;
+  --paper: #fff8ec;
+  --paper-image: none;
+  --card: #ffffff;
+  --card-ink: #2b2540;
+  --ink: #2b2540;
+  --ink-soft: #5b5470;
+  --edge: 3px;
+  --edge-style: solid;
+  --r-card: 22px;
+  --r-btn: 24px 16px 22px 18px;
+  --r-tile: 40% 60% 46% 54% / 54% 46% 60% 40%;
+  --r-tab: 28px 18px 26px 16px;
+  --shadow: 0 4px 0 #2b2540;
+  --shadow-tile: 0 4px 0 #2b2540;
+  --btn-h: 60px;
+  --btn-fs: 1.05rem;
+  --tile-w: 64px;
+  --tile-h: 72px;
+  --tile-fs: 1.9rem;
+  --tile-ink: #2b2540;
+  --t-I: #c4eedb; --t-V: #ffd2b0; --t-X: #cde8bf; --t-L: #ffb4ad;
+  --t-C: #c6e6f8; --t-D: #e0d4f5; --t-M: #ffe9a6;
+  --accent: #ffe9a6;
+  --good: #cde8bf;
+  --bad: #ffb4ad;
+  --mark-good: #2e9e5b;
+  --mark-bad: #d8372b;
+  --link: #1f4fa8;
+  --dots: #2b254018;
+  --input-bg: #ffffff;
+  --filter: url(#rough);
+  --line-gap: 14px;
+  --gutter: 16px;
+}

@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Architects+Daughter&display=swap');
+/* Notebook: ruled paper, blue ink, a handwriting font, highlighter accents. */
+:root, html {
+  --font: "Architects Daughter", "Comic Sans MS", cursive;
+  --font-head: "Architects Daughter", "Comic Sans MS", cursive;
+  --font-size: 21px;
+  --paper: #fffdf4;
+  --paper-image: repeating-linear-gradient(to bottom, transparent 0 31px, #b9d3ee 31px 32px);
+  --card: #ffffff;
+  --card-ink: #1d3a73;
+  --ink: #1d3a73;
+  --ink-soft: #4d6396;
+  --edge: 2px;
+  --edge-style: solid;
+  --r-card: 6px;
+  --r-btn: 6px;
+  --r-tile: 8px;
+  --r-tab: 6px;
+  --shadow: 2px 2px 0 #1d3a7355;
+  --shadow-tile: 2px 2px 0 #1d3a7355;
+  --btn-h: 56px;
+  --btn-fs: 1.2rem;
+  --tile-w: 60px;
+  --tile-h: 66px;
+  --tile-fs: 1.9rem;
+  --tile-ink: #1d3a73;
+  --t-I: #d6efe3; --t-V: #ffe0c7; --t-X: #e2f3cc; --t-L: #ffd1cc;
+  --t-C: #d4eaff; --t-D: #ebe1ff; --t-M: #fff2a8;
+  --accent: #fff2a8;
+  --good: #d2efd0;
+  --bad: #ffcfc8;
+  --mark-good: #2f8f52;
+  --mark-bad: #cc3b2e;
+  --link: #2a5cc7;
+  --dots: #1d3a7318;
+  --input-bg: #ffffff;
+  --filter: url(#rough);
+  --line-gap: 16px;
+  --gutter: 20px;
+}

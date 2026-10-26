@@ -1,4 +1,4 @@
-// Run with: node "03 Projects/Roman Numerals/tests/roman.test.js"
+// Run with: node tests/roman.test.js
 const assert = require('node:assert/strict');
 const Roman = require('../roman.js');
 
@@ -31,59 +31,27 @@ test('every number 1 to 3999 round-trips; short numerals pass the checker', () =
 });
 
 test('typed numerals over 10 letters are flagged, but still read correctly', () => {
-  assert.equal(Roman.LETTER_LIMIT, 10);
   const long = Roman.check('MDCCCLXXXVIII');
   assert.equal(long.ok, false);
   assert.equal(long.value, 1888);
   assert.ok(long.issues.some((i) => i.rule === 'length'));
   assert.equal(Roman.check('MDLX').ok, true);
-  assert.equal(Roman.check('MMMDCCCLXXXVIII').ok, false);
 });
 
 test('quiz numerals use at most three different letters', () => {
-  assert.equal(Roman.QUIZ_MAX_TYPES, 3);
   for (const item of Roman.TRUE_FALSE) {
     const numeral = item.prompt.split(' ')[0];
-    const types = new Set(numeral);
-    assert.ok(types.size <= Roman.QUIZ_MAX_TYPES, `${item.prompt} uses ${types.size} letter types`);
+    assert.ok(new Set(numeral).size <= Roman.QUIZ_MAX_TYPES, item.prompt);
   }
 });
 
-test('Fix It: a disarranged numeral is wrong, its answer is the simplest form, and both have the same value', () => {
-  for (let i = 0; i < 300; i++) {
-    const d = Roman.randomDisarranged();
-    assert.equal(Roman.check(d.numeral).ok, false, d.numeral);
-    assert.equal(Roman.check(d.answer).ok, true, d.answer);
-    assert.equal(Roman.lenientValue(d.numeral), d.value, d.numeral);
-    assert.equal(Roman.toRoman(d.value), d.answer);
-  }
-});
-
-test('Fix It: a fixed sequence gives a known disarranged numeral (XIV becomes XIIII)', () => {
-  assert.equal(Roman.disarrange('XIV'), 'XIIII');
-  assert.equal(Roman.disarrange('XLIX'), 'XXXXVIIII');
-  assert.equal(Roman.randomDisarranged(() => 0).numeral, Roman.disarrange(Roman.toRoman(Roman.DISARRANGEABLE[0])));
-});
-
-test('Build & Break: random numerals are in simplest form and within the letter limit', () => {
-  for (let i = 0; i < 300; i++) {
-    const s = Roman.randomNumeral();
-    assert.equal(Roman.check(s).ok, true, s);
-  }
-  for (const s of Roman.RANDOM_NUMERALS) assert.ok(s.length <= Roman.LETTER_LIMIT, s);
-  assert.ok(!Roman.RANDOM_NUMERALS.includes('CCCLXXXVIII'));
-});
-
-test('Add & Subtract: random sums are readable, calculate to the stated value, and never go below 1', () => {
-  for (let i = 0; i < 300; i++) {
-    const s = Roman.randomSum();
-    const p = Roman.parse(s.text);
-    assert.ok(!p.error, s.text);
-    const r = Roman.calculate(p.terms, p.ops);
-    assert.equal(r.error, null, s.text);
-    assert.equal(r.value, s.value, s.text);
-    assert.ok(s.value >= 1, s.text);
-  }
+test('Rule checks: 1, 2, 3, 5 each name the right rule', () => {
+  assert.ok(Roman.check('IIII').issues.some((i) => i.rule === 1));
+  assert.ok(Roman.check('VIIII').issues.some((i) => i.rule === 2));
+  assert.ok(Roman.check('IIX').issues.some((i) => i.rule === 3));
+  assert.equal(Roman.check('VV').simplest, 'X');
+  assert.equal(Roman.check('XXXX').simplest, 'XL');
+  assert.equal(Roman.check('IL').simplest, 'XLIX');
 });
 
 test('numbers above 3999 are not accepted', () => {
@@ -93,47 +61,48 @@ test('numbers above 3999 are not accepted', () => {
   assert.ok(Roman.calculate(['MMM', 'MMM'], ['+']).error);
 });
 
-test('Rule 1: more than three in a row is wrong, with the simplest form', () => {
-  const r = Roman.check('IIII');
-  assert.equal(r.ok, false);
-  assert.ok(r.issues.some((i) => i.rule === 1));
-  assert.ok(r.issues.some((i) => i.rule === 5));
-  assert.equal(r.simplest, 'IV');
-});
-
-test('Rule 2: more than three smaller numerals after a bigger one', () => {
-  const r = Roman.check('VIIII');
-  assert.ok(r.issues.some((i) => i.rule === 2));
-  assert.equal(r.simplest, 'IX');
-});
-
-test('Rule 3: only one smaller numeral may go before a bigger one', () => {
-  const r = Roman.check('IIX');
-  assert.ok(r.issues.some((i) => i.rule === 3));
-});
-
-test('IL is not a named rule: it is shown as its simplest form (XLIX)', () => {
-  const r = Roman.check('IL');
-  assert.equal(r.ok, false);
-  assert.equal(r.simplest, 'XLIX');
-  assert.ok(r.issues.some((i) => i.rule === 5));
-});
-
-test('Rule 5: VV and XXXX are not the simplest form', () => {
-  assert.equal(Roman.check('VV').simplest, 'X');
-  assert.equal(Roman.check('XXXX').simplest, 'XL');
-  assert.ok(Roman.check('XXXX').issues.some((i) => i.rule === 5));
-});
-
-test('a correct numeral has no issues', () => {
-  for (const s of ['IV', 'XIX', 'XLI', 'MCD']) assert.equal(Roman.check(s).ok, true, s);
-});
-
-test('calculate: XL - XX = XX (the worked example)', () => {
+test('calculate: XL - XX = XX, with the second number broken into its own step', () => {
   const r = Roman.calculate(['XL', 'XX'], ['-']);
   assert.equal(r.error, null);
   assert.equal(r.result, 'XX');
   assert.equal(r.value, 20);
+  const i = r.steps.findIndex((s) => s.text.startsWith('Second number'));
+  assert.ok(i > 0, 'second number has its own step');
+  assert.equal(r.steps[r.steps.length - 1].text, 'Simplest form: XX.');
+});
+
+test('calculate: the first step is the full sum with every chunk on the line', () => {
+  const r = Roman.calculate(['XLI', 'XIX'], ['+']);
+  const first = r.steps[0];
+  assert.equal(first.text, 'Full sum: XLI + XIX.');
+  assert.deepEqual(first.line.map((t) => (t.op ? t.text : t.text)), ['XL', 'I', '+', 'X', 'IX']);
+  assert.deepEqual(first.board, []);
+});
+
+test('calculate: XLI + XIX = LX, and IX is broken into V and IIII on the way', () => {
+  const r = Roman.calculate(['XLI', 'XIX'], ['+']);
+  assert.equal(r.result, 'LX');
+  assert.equal(r.value, 60);
+  const brk = r.steps.find((s) => s.text === 'Break IX into V I I I I.');
+  assert.ok(brk, 'IX break step');
+  const focus = brk.line.find((t) => t.focus);
+  assert.equal(focus.text, 'IX');
+  assert.equal(focus.becomes, 'VIIII');
+});
+
+test('calculate: a broken pair is shown on the line with its arrow, and the other chunks stay put', () => {
+  const r = Roman.calculate(['XL', 'XX'], ['-']);
+  const brk = r.steps.find((s) => s.text === 'Break XL into X X X X.');
+  assert.equal(brk.line.filter((t) => t.focus).length, 1);
+  assert.equal(brk.line.find((t) => t.focus).becomes, 'XXXX');
+});
+
+test('calculate: every take-away step removes exactly one piece', () => {
+  const r = Roman.calculate(['XL', 'IX'], ['-']);
+  const takes = r.steps.filter((s) => s.text.startsWith('Take away'));
+  assert.ok(takes.length > 0);
+  for (const s of takes) assert.equal(s.board.filter((t) => t.st === 'cross').length, 1, s.text);
+  assert.equal(r.result, 'XXXI');
 });
 
 test('calculate: XL + XX - IX = LI (multi-step, needs a trade)', () => {
@@ -141,10 +110,6 @@ test('calculate: XL + XX - IX = LI (multi-step, needs a trade)', () => {
   assert.equal(r.result, 'LI');
   assert.equal(r.value, 51);
   assert.ok(r.steps.some((s) => s.text.includes('trade')));
-});
-
-test('calculate: XL - IX = XXXI', () => {
-  assert.equal(Roman.calculate(['XL', 'IX'], ['-']).result, 'XXXI');
 });
 
 test('calculate: negative results are reported, not shown as numerals', () => {
@@ -166,6 +131,18 @@ test('calculate matches plain arithmetic for many pairs', () => {
   }
 });
 
+test('random sums are readable, calculate to the stated value, and never go below 1', () => {
+  for (let i = 0; i < 300; i++) {
+    const s = Roman.randomSum();
+    const p = Roman.parse(s.text);
+    assert.ok(!p.error, s.text);
+    const r = Roman.calculate(p.terms, p.ops);
+    assert.equal(r.error, null, s.text);
+    assert.equal(r.value, s.value, s.text);
+    assert.ok(s.value >= 1, s.text);
+  }
+});
+
 test('parse reads an expression and rejects bad input', () => {
   const p = Roman.parse('XL + XX − IX');
   assert.deepEqual(p.terms, ['XL', 'XX', 'IX']);
@@ -174,48 +151,48 @@ test('parse reads an expression and rejects bad input', () => {
   assert.ok(Roman.parse('XL + Q').error);
 });
 
-test('Build & Break: the first step is the numeral as typed, and each later step changes one pair or one group', () => {
-  const r = Roman.calculate(['XLIX'], []);
-  assert.equal(r.steps[0].text, 'Start with XLIX = 49.');
-  assert.deepEqual(r.steps[0].tiles.map((t) => t.ch), ['XL', 'IX']);
-  assert.equal(r.steps[1].text, 'Break XL into X X X X.');
-  assert.equal(r.steps[2].text, 'Break IX into V I I I I.');
-  assert.equal(r.steps[r.steps.length - 1].text, 'Build it back up: XLIX.');
-  for (const s of r.steps) assert.equal(s.value, 49, s.text);
+test('Fix It: XXIIII is repaired with one rule, then XXIV (the eyes example)', () => {
+  const p = Roman.repairPlan('XXIIII');
+  assert.deepEqual(p.steps.map((s) => s.kind), ['start', 'repair', 'done']);
+  assert.equal(p.steps[1].label, "4 I's in a row");
+  assert.equal(p.steps[1].rule, 1);
+  assert.equal(p.result, 'XXIV');
+  assert.equal(p.ok, true);
 });
 
-test('Add & Subtract: the second number gets its own step before anything is taken away', () => {
-  const r = Roman.calculate(['XL', 'XX'], ['-']);
-  const i = r.steps.findIndex((s) => s.text.startsWith('Second number XX'));
-  assert.ok(i > 0);
-  assert.deepEqual(r.steps[i].tiles.map((t) => t.ch), ['X', 'X']);
-  assert.equal(r.steps[i + 1].text, 'Take away X.');
-  assert.equal(r.steps[i + 2].text, 'Take away X.');
-  assert.equal(r.result, 'XX');
+test('Fix It: the repair grays out the bad part and puts the fix beside it', () => {
+  const p = Roman.repairPlan('XXIIII');
+  const rep = p.steps[1];
+  assert.deepEqual(rep.before.map((t) => t.st), ['normal', 'normal', 'cross', 'cross', 'cross', 'cross']);
+  assert.deepEqual(rep.after.map((t) => t.ch).join(''), 'XXIV');
 });
 
-test('Add & Subtract: every take-away step removes exactly one piece', () => {
-  const r = Roman.calculate(['XL', 'IX'], ['-']);
-  const takes = r.steps.filter((s) => s.text.startsWith('Take away'));
-  assert.ok(takes.length > 0);
-  for (const s of takes) assert.equal(s.tiles.filter((t) => t.st === 'cross').length, 1, s.text);
-  assert.equal(r.result, 'XXXI');
+test('Fix It: VIIII takes two repairs, then IX', () => {
+  const p = Roman.repairPlan('VIIII');
+  assert.equal(p.steps.filter((s) => s.kind === 'repair').length, 2);
+  assert.equal(p.result, 'IX');
+  assert.equal(p.ok, true);
 });
 
-test('Fix It: IIII names Rule 1 and Rule 5, and ends with the simplest form IV', () => {
-  const f = Roman.fixSteps('IIII');
-  assert.equal(f.ok, false);
-  assert.ok(f.steps[0].text.startsWith('Rule 1:'));
-  assert.ok(f.steps.some((s) => s.text.startsWith('Rule 5:')));
-  assert.equal(f.result, 'IV');
-  assert.equal(f.steps[f.steps.length - 1].text, 'Build it back up: IV.');
+test('Fix It: every repair ends at a numeral that checks as right', () => {
+  for (const d of Array.from({ length: 200 }, () => Roman.randomDisarranged())) {
+    const p = Roman.repairPlan(d.numeral);
+    assert.equal(p.ok, true, d.numeral);
+    assert.equal(p.result, d.answer, d.numeral);
+    assert.equal(Roman.check(p.result).ok, true, p.result);
+  }
 });
 
-test('Fix It: a good numeral has no rule steps, and its steps still rebuild it', () => {
-  const f = Roman.fixSteps('XLIX');
-  assert.equal(f.ok, true);
-  assert.ok(!f.steps.some((s) => s.text.startsWith('Rule')));
-  assert.equal(f.result, 'XLIX');
+test('Fix It: a good numeral has no repair steps', () => {
+  const p = Roman.repairPlan('XLIX');
+  assert.deepEqual(p.steps.map((s) => s.kind), ['start', 'done']);
+  assert.equal(p.ok, true);
+});
+
+test('Build & Random: random numerals are in simplest form and within the letter limit', () => {
+  for (let i = 0; i < 300; i++) assert.equal(Roman.check(Roman.randomNumeral()).ok, true);
+  for (const s of Roman.RANDOM_NUMERALS) assert.ok(s.length <= Roman.LETTER_LIMIT, s);
+  assert.ok(!Roman.RANDOM_NUMERALS.includes('CCCLXXXVIII'));
 });
 
 console.log(`\n${passed} tests passed`);

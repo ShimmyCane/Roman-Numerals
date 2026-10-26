@@ -123,56 +123,64 @@
     return { ok: issues.length === 0 && simplest === s, value, simplest, issues };
   }
 
-  // Board tiles: { ch, st }. ch is one letter, or a subtractive pair (XL, IX, ...) until it is broken.
-  // st is 'normal', 'new' (just appeared) or 'cross' (being taken away).
+  // ---------- Add & Subtract ----------
+  // The sum is a line of chunks (XL, I, +, X, IX ...) and a board of loose pieces.
+  // Each recorded step does one thing: put a term on the board, break one pair, take away one piece,
+  // trade one letter, merge one group, or rebuild. A step records the line, the board and a short caption.
+  //   line token: { text, op?, st: 'todo' | 'done', focus?, becomes?, res?, term? }
+  //   board tile: { ch, st: 'normal' | 'new' | 'cross', src? }   (src = line token a piece came from)
   const isPairTile = (t) => t.st !== 'cross' && PAIR_PIECES[t.ch] !== undefined;
   const tileValue = (t) => lenientValue(t.ch);
   const tableValue = (tiles) => tiles.reduce((sum, t) => (t.st === 'cross' ? sum : sum + tileValue(t)), 0);
   const byValueDesc = (a, b) => tileValue(b) - tileValue(a);
 
-  // Walk through a sum (or one numeral). Each step does one thing (break one pair, take away one piece,
-  // trade one letter, merge one group, or rebuild), and is recorded with a board snapshot.
   function calculate(terms, ops) {
     const steps = [];
-    let table = [];
-    const copy = (tiles) => tiles.map((t) => ({ ...t }));
+    const line = [];
+    let board = [];
 
-    // Record the board (crossed tiles still showing), then clear the crosses so the next step starts clean.
+    terms.forEach((term, k) => {
+      if (k > 0) line.push({ op: true, text: ops[k - 1] === '+' ? '+' : '−' });
+      chunks(term).forEach((c) => line.push({ text: c.text, st: 'todo', term: k }));
+    });
+
+    const copyLine = () => line.map((t) => ({ ...t }));
+    const copyBoard = () => board.map((t) => ({ ...t }));
+    const boardShown = () => (board.some((t) => t.st !== 'cross') ? tableValue(board) : null);
+
+    // Record one step, then clear the transient marks (focus, becomes) and the crosses for the next step.
     const snap = (text) => {
-      steps.push({ text, tiles: copy(table), value: tableValue(table) });
-      table = table.filter((t) => t.st !== 'cross').map((t) => ({ ch: t.ch, st: 'normal' }));
+      steps.push({ text, line: copyLine(), board: copyBoard(), value: boardShown() });
+      line.forEach((t) => { delete t.focus; delete t.becomes; });
+      board = board.filter((t) => t.st !== 'cross').map((t) => ({ ch: t.ch, st: 'normal', src: t.src }));
     };
 
-    // A step that shows a number on its own, without changing the board. Used for the second number of a subtraction.
-    const showOnly = (text, tiles) => steps.push({ text, tiles: copy(tiles), value: tableValue(tiles) });
-
-    // Break one subtractive pair on the board (XL becomes XXXX), then record it.
+    // Break one pair on the board (XL becomes XXXX). The line token it came from is highlighted with the arrow.
     const breakPair = (i) => {
-      const old = table[i].ch;
-      const pieces = PAIR_PIECES[old].split('');
-      table[i].st = 'cross';
-      table.splice(i + 1, 0, ...pieces.map((ch) => ({ ch, st: 'new' })));
-      snap(`Break ${old} into ${pieces.join(' ')}.`);
+      const tile = board[i];
+      const pieces = PAIR_PIECES[tile.ch];
+      tile.st = 'cross';
+      board.splice(i + 1, 0, ...pieces.split('').map((ch) => ({ ch, st: 'new', src: tile.src })));
+      if (tile.src !== undefined) {
+        line[tile.src].focus = true;
+        line[tile.src].becomes = pieces;
+      }
+      snap(`Break ${tile.ch} into ${pieces.split('').join(' ')}.`);
     };
     const breakAll = () => {
-      for (let i = table.findIndex(isPairTile); i >= 0; i = table.findIndex(isPairTile)) breakPair(i);
+      for (let i = board.findIndex(isPairTile); i >= 0; i = board.findIndex(isPairTile)) breakPair(i);
     };
 
-    // Put a term's pieces on the board. Its pairs are broken in a later step.
-    const putOn = (term) => {
-      table.push(...chunks(term).map((c) => ({ ch: c.text, st: 'new' })));
-    };
-
-    // Pieces that join into one bigger letter once there are enough of them.
+    // Regroup: pieces that join into one bigger letter, one group at a time.
     const regroup = () => {
       let merged = true;
       while (merged) {
         merged = false;
         for (const [from, to, n] of MERGE) {
-          const have = table.filter((t) => t.ch === from && t.st !== 'cross');
+          const have = board.filter((t) => t.ch === from && t.st !== 'cross');
           if (have.length >= n) {
             have.slice(0, n).forEach((t) => { t.st = 'cross'; });
-            table.push({ ch: to, st: 'new' });
+            board.push({ ch: to, st: 'new' });
             snap(`Put ${n} ${from}'s together. They make one ${to}.`);
             merged = true;
             break;
@@ -181,85 +189,149 @@
       }
     };
 
-    const takeAway = (ch) => {
-      while (!table.some((t) => t.ch === ch && t.st !== 'cross')) {
+    // Take one piece away from the board. `src` is the line token that piece belongs to, so the line can show it.
+    const remaining = {};
+    const takeAway = (ch, src) => {
+      while (!board.some((t) => t.ch === ch && t.st !== 'cross')) {
         let j = -1;
-        table.forEach((t, i) => {
-          if (t.st !== 'cross' && VALUE[t.ch] > VALUE[ch] && (j < 0 || VALUE[t.ch] < VALUE[table[j].ch])) j = i;
+        board.forEach((t, i) => {
+          if (t.st !== 'cross' && VALUE[t.ch] > VALUE[ch] && (j < 0 || VALUE[t.ch] < VALUE[board[j].ch])) j = i;
         });
         if (j < 0) throw new Error(`Not enough to take away ${ch}`);
-        const big = table[j].ch;
-        table[j].st = 'cross';
-        table.splice(j + 1, 0, ...TRADE[big].split('').map((c) => ({ ch: c, st: 'new' })));
+        const big = board[j].ch;
+        board[j].st = 'cross';
+        board.splice(j + 1, 0, ...TRADE[big].split('').map((c) => ({ ch: c, st: 'new' })));
         snap(`No ${ch} to take away, so trade one ${big} for ${TRADE[big].split('').join(' ')}.`);
       }
-      const i = table.findIndex((t) => t.ch === ch && t.st !== 'cross');
-      table[i].st = 'cross';
+      const i = board.findIndex((t) => t.ch === ch && t.st !== 'cross');
+      board[i].st = 'cross';
+      remaining[src] -= 1;
+      line[src].focus = true;
+      if (remaining[src] === 0) line[src].st = 'done';
       snap(`Take away ${ch}.`);
     };
 
     try {
-      putOn(terms[0]);
-      snap(`Start with ${terms[0]} = ${lenientValue(terms[0])}.`);
-      breakAll();
-      regroup();
+      snap(`Full sum: ${terms.map((t, k) => (k ? `${ops[k - 1] === '+' ? '+' : '−'} ${t}` : t)).join(' ')}.`);
 
-      for (let k = 1; k < terms.length; k++) {
-        const term = terms[k];
-        if (ops[k - 1] === '+') {
-          putOn(term);
-          snap(`Add ${term} = ${lenientValue(term)}. Put it on the board.`);
+      terms.forEach((term, k) => {
+        const tokens = line.map((t, i) => ({ t, i })).filter((x) => x.t.term === k);
+        if (k === 0 || ops[k - 1] === '+') {
+          tokens.forEach(({ t, i }) => {
+            t.st = 'done';
+            board.push({ ch: t.text, st: 'new', src: i });
+          });
+          snap(k === 0 ? `Put ${term} on the board.` : `Add ${term}. Put it on the board.`);
           breakAll();
           regroup();
         } else {
-          // The second number gets its own row. Its pairs are broken there, then each piece is taken away from the board.
-          const second = chunks(term).map((c) => ({ ch: c.text, st: 'normal' }));
-          showOnly(`Second number ${term} = ${lenientValue(term)}. Break it into parts.`, second);
-          for (let i = second.findIndex(isPairTile); i >= 0; i = second.findIndex(isPairTile)) {
-            const old = second[i].ch;
-            const pieces = PAIR_PIECES[old].split('').map((ch) => ({ ch, st: 'normal' }));
-            second.splice(i, 1, ...pieces);
-            showOnly(`Break ${old} into ${pieces.map((p) => p.ch).join(' ')}.`, second);
-          }
-          second.flatMap((t) => t.ch.split('')).forEach(takeAway);
+          // Subtract: the second number gets its own step, its pairs are broken there, then its pieces are taken away one at a time.
+          tokens.forEach(({ i }) => { line[i].focus = true; });
+          snap(`Second number ${term} = ${lenientValue(term)}.`);
+          tokens.forEach(({ t, i }) => {
+            if (PAIR_PIECES[t.text]) {
+              line[i].focus = true;
+              line[i].becomes = PAIR_PIECES[t.text];
+              snap(`Second number: break ${t.text} into ${PAIR_PIECES[t.text].split('').join(' ')}.`);
+            }
+          });
+          const pieces = [];
+          tokens.forEach(({ t, i }) => {
+            const ps = (PAIR_PIECES[t.text] || t.text).split('');
+            remaining[i] = ps.length;
+            ps.forEach((ch) => pieces.push({ ch, src: i }));
+          });
+          pieces.forEach((p) => takeAway(p.ch, p.src));
           regroup();
         }
-      }
+      });
     } catch (err) {
       const error = 'Romans had no negative numbers. Try a bigger first number.';
-      steps.push({ text: 'Stop here. There is not enough to take away, and Romans had no negative numbers.', tiles: copy(table), value: null });
+      steps.push({ text: 'Stop here. There is not enough to take away, and Romans had no negative numbers.', line: copyLine(), board: copyBoard(), value: null });
       return { steps, value: null, result: null, error };
     }
 
-    const value = tableValue(table);
+    const value = tableValue(board);
     if (value < 1 || value > MAX) {
       const error = value < 1 ? 'Zero has no Roman numeral.' : `That is more than ${MAX}, the biggest this tool writes.`;
-      steps.push({ text: error, tiles: copy(table), value });
+      steps.push({ text: error, line: copyLine(), board: copyBoard(), value });
       return { steps, value, result: null, error };
     }
 
     const result = toRoman(value);
-    table = table.filter((t) => t.st !== 'cross').sort(byValueDesc);
-    const loose = table.map((t) => t.ch).join('');
+    board = board.filter((t) => t.st !== 'cross').sort(byValueDesc).map((t) => ({ ch: t.ch, st: 'normal' }));
+    const loose = board.map((t) => t.ch).join('');
+    line.push({ op: true, text: '=' }, { text: result, st: 'done', res: true });
     if (loose !== result) {
-      snap(`Put the pieces in order: ${loose} = ${value}.`);
-      table = chunks(result).map((c) => ({ ch: c.text, st: 'new' }));
+      snap(`Put the pieces in order: ${loose}.`);
+      board = chunks(result).map((c) => ({ ch: c.text, st: 'new' }));
+      line[line.length - 1].focus = true;
       snap(`Build it back up: ${result}.`);
     } else {
+      line[line.length - 1].focus = true;
       snap(`Simplest form: ${result}.`);
     }
     return { steps, value, result, error: null };
   }
 
-  // Fix It: the steps to repair a numeral. Each broken rule is named first, then the rebuild uses the same steps as Build & Break.
-  function fixSteps(s) {
-    const r = check(s);
-    const calc = calculate([s], []);
-    const first = calc.steps[0];
-    const named = r.issues
-      .filter((i) => i.rule !== null)
-      .map((i) => ({ text: `Rule ${i.rule}: ${i.text}`, tiles: first.tiles, value: first.value }));
-    return { ok: r.ok, check: r, steps: [...named, ...calc.steps], result: calc.result, error: calc.error };
+  // ---------- Fix It ----------
+  // A repair works on one bad part at a time, so the rules are shown only as they are needed.
+  // Each repair step records the numeral before (the bad part crossed out) and after (the fix in its place).
+  function tilesOf(s, from = -1, to = -1, cls = 'normal') {
+    return s.split('').map((ch, i) => ({ ch, st: i >= from && i < to ? cls : 'normal' }));
+  }
+
+  // The first bad part of a numeral, and its fix. Returns null when nothing is left to fix.
+  function firstRepair(cur) {
+    const r = check(cur);
+    if (r.value === null || r.value < 1 || r.value > MAX) return null;
+
+    const runs = [];
+    for (let i = 0; i < cur.length;) {
+      let j = i;
+      while (j < cur.length && cur[j] === cur[i]) j++;
+      runs.push({ ch: cur[i], start: i, end: j, n: j - i });
+      i = j;
+    }
+
+    const run = runs.find((x) => x.n > 3);
+    if (run) {
+      return { rule: 1, label: `${run.n} ${run.ch}'s in a row`, start: run.start, end: run.end, to: toRoman(lenientValue(run.ch.repeat(run.n))) };
+    }
+    const pair = runs.find((x) => x.n > 1 && 'VLD'.includes(x.ch));
+    if (pair) {
+      return { rule: 5, label: `${pair.ch}${pair.ch} is one bigger letter`, start: pair.start, end: pair.end, to: toRoman(lenientValue(pair.ch.repeat(pair.n))) };
+    }
+    if (r.issues.some((i) => i.rule === 3)) {
+      return { rule: 3, label: 'Only one smaller letter before a bigger one', start: 0, end: cur.length, to: r.simplest };
+    }
+    if (r.simplest !== cur) {
+      return { rule: 5, label: 'Write the simplest form', start: 0, end: cur.length, to: r.simplest };
+    }
+    return null;
+  }
+
+  // Fix It: the steps to repair a numeral, starting from what was typed and ending at the simplest form.
+  function repairPlan(s) {
+    const steps = [{ kind: 'start', tiles: tilesOf(s) }];
+    let cur = s;
+    for (let guard = 0; guard < 12; guard++) {
+      const fix = firstRepair(cur);
+      if (!fix) break;
+      const next = cur.slice(0, fix.start) + fix.to + cur.slice(fix.end);
+      steps.push({
+        kind: 'repair',
+        rule: fix.rule,
+        label: fix.label,
+        before: tilesOf(cur, fix.start, fix.end, 'cross'),
+        after: tilesOf(next, fix.start, fix.start + fix.to.length, 'new'),
+      });
+      cur = next;
+    }
+    const r = check(cur);
+    const ok = r.value !== null && r.value >= 1 && r.value <= MAX && r.simplest === cur;
+    steps.push({ kind: 'done', tiles: tilesOf(cur), ok, result: cur });
+    return { steps, result: cur, ok, start: s };
   }
 
   // Read "XL + XX - IX" into terms and operators.
@@ -336,7 +408,7 @@
 
   return {
     VALUE, PAIR_PIECES, TRADE, MAX, LETTER_LIMIT, QUIZ_MAX_TYPES, TRUE_FALSE, DISARRANGEABLE, RANDOM_NUMERALS,
-    lenientValue, toRoman, chunks, check, calculate, fixSteps, parse, disarrange,
+    lenientValue, toRoman, chunks, check, calculate, repairPlan, firstRepair, parse, disarrange,
     randomNumeral, randomSum, randomDisarranged,
   };
 });
