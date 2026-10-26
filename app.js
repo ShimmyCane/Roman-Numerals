@@ -168,7 +168,7 @@
 
   // ---------- undo: each entry box remembers the inputs it ran before ----------
   const lastRun = {};
-  const undoStack = { addsub: [], fix: [] };
+  const undoStack = { addsub: [], fix: [], regroup: [] };
   function remember(name, text) {
     if (lastRun[name] !== undefined && lastRun[name] !== text) undoStack[name].push(lastRun[name]);
     lastRun[name] = text;
@@ -252,7 +252,7 @@
     const row = el('div', 'step-row');
     const inner = el('div');
     if (s.kind === 'start') {
-      inner.append(el('p', 'caption', 'Written as typed.'), boardEl(s.tiles));
+      inner.append(el('p', 'caption', s.label || 'Written as typed.'), boardEl(s.tiles));
     } else if (s.kind === 'repair') {
       inner.append(el('p', 'caption', s.label));
       const pair = el('div', 'repair-pair');
@@ -314,12 +314,80 @@
     steppers.fix.load(plan.steps);
   }
 
+  // ---------- Regroup: the ladder, the pattern, the short forms, and a playground ----------
+  const LADDER = [['I', 5, 'V'], ['V', 2, 'X'], ['X', 5, 'L'], ['L', 2, 'C'], ['C', 5, 'D'], ['D', 2, 'M']];
+  const SHORTS = [['IIII', 'IV'], ['VIIII', 'IX'], ['XXXX', 'XL'], ['LXXXX', 'XC'], ['CCCC', 'CD'], ['DCCCC', 'CM']];
+
+  // One card per rung. Tapping it slides the small letters together into the bigger one, and tapping again undoes it.
+  function buildLadder() {
+    $('#ladder').replaceChildren(...LADDER.map(([from, n, to]) => {
+      const card = el('button', 'ladder-card');
+      card.type = 'button';
+      card.setAttribute('aria-pressed', 'false');
+      card.setAttribute('aria-label', `${n} ${from}'s make one ${to}. Tap to regroup.`);
+      const loose = el('div', 'ladder-loose');
+      loose.append(...Array.from({ length: n }, () => tileEl({ ch: from, st: 'normal' })));
+      const merged = el('div', 'ladder-merged');
+      merged.append(tileEl({ ch: to, st: 'normal' }));
+      card.append(loose, el('span', 'arrow', '→'), merged, el('p', 'ladder-caption', `${n} ${from}'s = ${to} (${VALUE[to]})`));
+      card.addEventListener('click', () => {
+        const on = card.classList.toggle('merged');
+        card.setAttribute('aria-pressed', String(on));
+        sfx.tap();
+      });
+      return card;
+    }));
+    const chain = $('#pattern-chain');
+    const bits = [tileEl({ ch: 'I', st: 'normal' })];
+    LADDER.forEach(([, n, to]) => bits.push(el('span', 'chain-step', `× ${n} →`), tileEl({ ch: to, st: 'normal' })));
+    chain.replaceChildren(...bits);
+    $('#short-forms').replaceChildren(...SHORTS.map(([long, short]) => {
+      const row = el('div', 'example');
+      row.append(el('span', 'strip', long), mark(false), el('span', 'arrow', '→'), el('span', 'strip', short), mark(true), el('span', 'equals', `= ${Roman.lenientValue(short)}`));
+      return row;
+    }));
+  }
+
+  // A random sum for the playground: always adding.
+  function randomAddition() {
+    for (;;) {
+      const t = Roman.randomSum().text;
+      if (t.includes('+')) return t;
+    }
+  }
+
+  function runRegroup(text) {
+    const p = Roman.parse(text);
+    if (p.error) {
+      setError(p.error);
+      steppers.regroup.load([], 'Type a sum like XXVII + XVIII.');
+      return;
+    }
+    if (p.ops.some((o) => o !== '+')) {
+      steppers.regroup.load([], 'Regrouping here is for adding. Use the Add & Subtract tab to take away.');
+      return;
+    }
+    const wrong = p.terms.find((t) => !Roman.check(t).ok);
+    if (wrong) {
+      steppers.regroup.load([], `"${wrong}": ${Roman.check(wrong).issues[0].text} Try the Fix It tab first.`);
+      return;
+    }
+    const plan = Roman.regroupPlan(p.terms);
+    if (plan.value > Roman.MAX) {
+      steppers.regroup.load([], `That is more than ${Roman.MAX}, the biggest this tool writes.`);
+      return;
+    }
+    setError('');
+    steppers.regroup.load(plan.steps);
+  }
+
   // ---------- Random: each button makes a numeral or sum, then runs it like a typed one ----------
   const randomMakers = {
     addsub: { entry: 'addsub', make: () => Roman.randomSum().text },
     fixbad: { entry: 'fix', make: () => Roman.randomDisarranged().numeral },
+    regroup: { entry: 'regroup', make: randomAddition },
   };
-  const runners = { addsub: runAddSub, fix: runFix };
+  const runners = { addsub: runAddSub, fix: runFix, regroup: runRegroup };
 
   function runRandom(key) {
     const { entry, make } = randomMakers[key];
@@ -696,6 +764,9 @@
   function init() {
     steppers.addsub = makeStepper('addsub', { renderRow: addsubRow });
     steppers.fix = makeStepper('fix', { renderRow: fixRow, onShow: showFixRules });
+    steppers.regroup = makeStepper('regroup', { renderRow: fixRow });
+    steppers.regroup.load([], 'Press Random, or type a sum like XXVII + XVIII.');
+    buildLadder();
     steppers.addsub.load([], 'Press Random, or type a sum like XLI + XIX.');
     steppers.fix.load([], 'Press Random bad numeral, or type your own.');
     buildLetterRow();

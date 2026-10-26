@@ -384,6 +384,63 @@
     return { steps, result: cur, ok, start: s };
   }
 
+  // ---------- Regroup ----------
+  // The combine-and-regroup way to add, as most guides teach it: write all the letters together, open any short
+  // forms (IV is IIII), put the letters in order, regroup (five I's make a V, two V's make an X ...), then write
+  // the short forms again where there are too many in a row. Steps use the same shape as Fix It, so they show
+  // before → after: start, repair, done.
+  const REGROUP_WORDS = { 5: 'Five', 2: 'Two' };
+  const SHORT_FORMS = [['DCCCC', 'CM'], ['CCCC', 'CD'], ['LXXXX', 'XC'], ['XXXX', 'XL'], ['VIIII', 'IX'], ['IIII', 'IV']];
+
+  function regroupPlan(terms) {
+    const total = terms.reduce((sum, t) => sum + lenientValue(t), 0);
+    const parts = terms.slice();
+    let cur = parts.join('');
+    const steps = [{ kind: 'start', tiles: tilesOf(cur), label: `Write the letters of ${terms.join(' and ')} side by side.` }];
+    const change = (start, end, to, label) => {
+      const next = cur.slice(0, start) + to + cur.slice(end);
+      steps.push({ kind: 'repair', label, before: tilesOf(cur, start, end, 'cross'), after: tilesOf(next, start, start + to.length, 'new') });
+      cur = next;
+    };
+
+    // 1. Open short forms, one number at a time, so a pair is never read across two numbers.
+    parts.forEach((part, k) => {
+      for (let m = /IV|IX|XL|XC|CD|CM/.exec(parts[k]); m; m = /IV|IX|XL|XC|CD|CM/.exec(parts[k])) {
+        const offset = parts.slice(0, k).join('').length + m.index;
+        const open = PAIR_PIECES[m[0]];
+        parts[k] = parts[k].slice(0, m.index) + open + parts[k].slice(m.index + 2);
+        change(offset, offset + 2, open, `${m[0]} is a short way to write ${open}. Open it up.`);
+      }
+    });
+
+    // 2. Put the letters in order, biggest first.
+    const sorted = cur.split('').sort((a, b) => VALUE[b] - VALUE[a]).join('');
+    if (sorted !== cur) change(0, cur.length, sorted, 'Put the letters in order, biggest first.');
+
+    // 3. Regroup, one group at a time.
+    for (let grew = true; grew;) {
+      grew = false;
+      for (const [from, to, n] of MERGE) {
+        const at = cur.indexOf(from.repeat(n));
+        if (at >= 0) {
+          change(at, at + n, to, `${REGROUP_WORDS[n]} ${from}'s make one ${to}.`);
+          grew = true;
+          break;
+        }
+      }
+    }
+
+    // 4. Too many in a row: write the short form.
+    for (const [long, short] of SHORT_FORMS) {
+      const at = cur.indexOf(long);
+      if (at >= 0) change(at, at + long.length, short, `${long} is ${lenientValue(long)}. The short way to write ${lenientValue(long)} is ${short}.`);
+    }
+
+    const ok = total >= 1 && total <= MAX && cur === toRoman(total);
+    steps.push({ kind: 'done', tiles: tilesOf(cur), ok, result: cur });
+    return { steps, result: cur, ok, value: total };
+  }
+
   // Read "XL + XX - IX" into terms and operators.
   function parse(text) {
     const parts = text.trim().toUpperCase().split(/\s*([+\-−])\s*/).filter(Boolean);
@@ -457,7 +514,7 @@
 
   return {
     VALUE, PAIR_PIECES, TRADE, MAX, LETTER_LIMIT, QUIZ_MAX_TYPES, TRUE_FALSE, DISARRANGEABLE, RANDOM_NUMERALS,
-    lenientValue, toRoman, chunks, check, calculate, repairPlan, firstRepair, parse, disarrange,
+    lenientValue, toRoman, chunks, check, calculate, repairPlan, regroupPlan, firstRepair, parse, disarrange,
     randomNumeral, randomSum, randomDisarranged,
   };
 });

@@ -228,6 +228,34 @@ test('Fix It: a good numeral has no repair steps', () => {
   assert.equal(p.ok, true);
 });
 
+test('Regroup: XXVII + XVIII puts the letters in order, regroups, then writes XL', () => {
+  const p = Roman.regroupPlan(['XXVII', 'XVIII']);
+  assert.equal(p.result, 'XLV');
+  const labels = p.steps.filter((s) => s.kind === 'repair').map((s) => s.label);
+  assert.deepEqual(labels, [
+    'Put the letters in order, biggest first.',
+    "Five I's make one V.",
+    "Two V's make one X.",
+    'XXXX is 40. The short way to write 40 is XL.',
+  ]);
+});
+
+test('Regroup: a short form is opened inside its own number, never across two numbers', () => {
+  // XXVII + XVIII joined is XXVIIXVIII, which contains IX across the join. It must not be opened.
+  const p = Roman.regroupPlan(['XXVII', 'XVIII']);
+  assert.ok(!p.steps.some((s) => s.label && s.label.startsWith('IX is a short way')));
+});
+
+test('Regroup: every sum up to 200 + 200 ends at the simplest form', () => {
+  for (let a = 1; a <= 200; a += 3) {
+    for (let b = 1; b <= 200; b += 7) {
+      const p = Roman.regroupPlan([Roman.toRoman(a), Roman.toRoman(b)]);
+      assert.equal(p.result, Roman.toRoman(a + b), `${a}+${b}`);
+      assert.equal(p.ok, true);
+    }
+  }
+});
+
 test('Build & Random: random numerals are in simplest form and within the letter limit', () => {
   for (let i = 0; i < 300; i++) assert.equal(Roman.check(Roman.randomNumeral()).ok, true);
   for (const s of Roman.RANDOM_NUMERALS) assert.ok(s.length <= Roman.LETTER_LIMIT, s);
