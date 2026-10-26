@@ -128,3 +128,10 @@ These came from the conversation that built Felix's page: the F button, the art 
 3. **Put the tuning in settings.** Shake sensitivity is a setting, not a hard-coded number, because phones and hands differ.
 4. **Shorten words that repeat the number.** "X is worth ten (10)" became "X is worth 10". The word is in the Letters tab's other text; the number alone is clearer for a young reader.
 5. **Keep a todo list.** Ideas that are not designed yet (the merging game) go to `TODO.md`, not into the tool.
+
+### Round F8
+
+1. **Start small, and let the child open more.** Rods begin at I to X (ones and tens). A setting adds hundreds and thousands, so the first screen is not overwhelming.
+2. **One row per press.** Halving and doubling shows one row at a time, from the buttons, never on a timer. Each row says what changes ("13 is odd: keep 6"), and the kept numbers are added at the end.
+3. **Keep the controls in one place.** Random, back and next sit above the picture, the same on Maya, China and halving.
+4. **Keep the starting state inside the range.** The rods began at 47 and had to be fixed to VII, so the range has to be set before the first screen.

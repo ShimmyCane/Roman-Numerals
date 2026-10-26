@@ -177,17 +177,17 @@
         <div class="play">
           <h2>Maya numbers</h2>
           <p>Dot is one. Bar is five.</p>
+          <div class="controls tri">
+            <button class="big-btn ghost tall" type="button" id="maya-random" aria-label="Random number">🎲</button>
+            <button class="big-btn tall" type="button" id="maya-next" aria-label="Add one">+</button>
+            <button class="big-btn ghost tall" type="button" id="maya-back" aria-label="Take away one">−</button>
+          </div>
           <div class="side-by-side">
             <svg class="maya-art" id="maya-svg" viewBox="0 0 140 260" role="img" aria-label="The number in Maya dots and bars"></svg>
             <div class="pair-lines" aria-live="polite">
               <div class="counter-roman" id="maya-roman"></div>
               <div class="counter-arabic" id="maya-arabic"></div>
             </div>
-          </div>
-          <div class="controls">
-            <button class="big-btn ghost tall" type="button" id="maya-back" aria-label="One less">−</button>
-            <button class="big-btn tall" type="button" id="maya-next" aria-label="One more">+</button>
-            <button class="big-btn ghost tall" type="button" id="maya-random" aria-label="Random number">🎲</button>
           </div>
           <p class="source-note">Inspired by:
             <a href="https://math.libretexts.org/Courses/Chabot_College/Math_in_Society_(Zhang)/03%3A_Historical_Counting_Systems/3.05%3A_The_Mayan_Numeral_System" target="_blank" rel="noopener">The Mayan numeral system (LibreTexts)</a>,
@@ -202,15 +202,15 @@
       <div class="layout single">
         <div class="play">
           <h2>Counting rods</h2>
+          <div class="controls tri">
+            <button class="big-btn ghost tall" type="button" id="china-random" aria-label="Random number">🎲</button>
+            <button class="big-btn tall" type="button" id="china-next" aria-label="Add one">+</button>
+            <button class="big-btn ghost tall" type="button" id="china-back" aria-label="Take away one">−</button>
+          </div>
           <svg class="felix-art" id="china-svg" viewBox="0 0 360 140" role="img" aria-label="The number in Chinese counting rods"></svg>
           <div class="pair-lines center" aria-live="polite">
             <div class="counter-roman" id="china-roman"></div>
             <div class="counter-arabic" id="china-arabic"></div>
-          </div>
-          <div class="controls">
-            <button class="big-btn ghost tall" type="button" id="china-back" aria-label="One less">−</button>
-            <button class="big-btn tall" type="button" id="china-next" aria-label="One more">+</button>
-            <button class="big-btn ghost tall" type="button" id="china-random" aria-label="Random number">🎲</button>
           </div>
           <p class="source-note">Inspired by:
             <a href="https://en.wikipedia.org/wiki/Counting_rods" target="_blank" rel="noopener">Counting rods (Wikipedia)</a>,
@@ -220,19 +220,22 @@
       </div>
     </section>
 
-    <!-- DOUBLE: multiply by halving and doubling; the kept rows are the binary digits -->
+    <!-- DOUBLE: halve on the left, double on the right; one row at a time -->
     <section class="tab" id="tab-double">
       <div class="layout single">
         <div class="play">
           <h2>Halve and double</h2>
+          <div class="controls tri">
+            <button class="big-btn ghost tall" type="button" id="double-random" aria-label="New sum">🎲</button>
+            <button class="big-btn ghost tall" type="button" id="double-back" aria-label="Back one row">◀</button>
+            <button class="big-btn tall" type="button" id="double-next" aria-label="Next row">▶</button>
+          </div>
           <div class="double-sum" id="double-sum" aria-live="polite"></div>
           <div class="double-rows" id="double-rows"></div>
+          <p class="note" id="double-note" aria-live="polite"></p>
           <div class="pair-lines center" aria-live="polite">
             <div class="counter-roman" id="double-roman"></div>
             <div class="counter-arabic" id="double-arabic"></div>
-          </div>
-          <div class="controls">
-            <button class="big-btn" type="button" id="double-random" aria-label="New sum">🎲</button>
           </div>
           <p class="source-note">Inspired by:
             <a href="https://thenakedscientists.com/articles/questions/how-did-romans-multiply-their-numerals" target="_blank" rel="noopener">How did the Romans multiply? (Naked Scientists)</a>,
@@ -286,6 +289,8 @@
       <button class="big-btn look-btn" data-look="poster" aria-pressed="false">Poster</button>
       <button class="big-btn look-btn" data-look="sunny" aria-pressed="true">Sunny</button>
     </div>
+    <h4>Counting board</h4>
+    <label class="toggle"><input type="checkbox" id="opt-more-rods"> More places (hundreds and thousands)</label>
     <h4>Shake</h4>
     <label class="field">Sensitivity
       <input id="opt-shake" type="range" min="1" max="3" step="1" value="2" aria-label="Shake sensitivity: 1 needs a hard shake, 3 a light one">

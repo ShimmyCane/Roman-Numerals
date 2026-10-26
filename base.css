@@ -838,3 +838,8 @@ button.bead:focus-visible { outline: 4px solid var(--link); outline-offset: 3px;
 .clock-drag { touch-action: none; cursor: grab; }
 .big-btn, .tab-btn, button { touch-action: manipulation; }
 .big-btn.tall { min-height: calc(var(--btn-h, 56px) * 2); }
+
+/* Halve and double, step by step */
+.double-row.now { outline: 3px solid var(--link); outline-offset: 2px; animation: pop-small 0.45s ease-out; }
+#double-note { min-height: 2.2em; font-weight: bold; }
+.controls.tri .big-btn { flex: 1 1 0; min-width: 0; }
