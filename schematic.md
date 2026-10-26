@@ -86,6 +86,7 @@ See `convo/convo v0.1.md`. Key ones: ORC Rules 1–5 wording, the number range, 
 
 ## 9. Status log
 
+- 2026-10-26: Felix's page round seven. Maya and China: controls above the picture (random, +, −). Halve and double: one row per ◀ ▶ press, with a note for each step and the kept numbers added at the end. Rods: start with I to X (ones and tens); "More places" in Settings opens hundreds and thousands. 39 logic tests pass.
 - 2026-10-26: Felix's page round six. Steps: three staircases on one log scale (Roman letters, Arabic decimal ×10, binary ×2), with the Roman line dashed in colour behind the other two. 39 logic tests pass.
 - 2026-10-26: Felix's page round five. Shake: pieces sized on a log scale; a violent shake throws them and the agitation decays; sensitivity setting in Settings. Steps: Roman/Arabic toggle on the same stairs; solid outline. Letters (both pages): "ten (10)" shortened to "10". TODO.md added (merging game idea). 38 logic tests pass.
 - 2026-10-26: Felix's page round four. Steps: ×5 steps are five units tall, ×2 steps two, and the stairs carry on past M. Shake: pieces float and bump in a narrow cup, follow the phone's tilt; one Shake button. Clock: drag the hands. Maya and China: twice-height buttons; no double-tap zoom on buttons. Halve and double paused for a new approach. 38 logic tests pass.
