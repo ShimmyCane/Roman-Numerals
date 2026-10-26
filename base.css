@@ -385,3 +385,28 @@ main { padding: 0 var(--gutter, 16px); }
   .tile.new { animation: none; }
   .tile { transition: none; }
 }
+
+/* Long Ago: cards flow into columns on wide screens; the wide ones span the full row */
+.history-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.history-grid .wide { grid-column: 1 / -1; }
+
+/* Count / Add / Subtract: one box with three panels */
+.subtabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+.subtab {
+  min-height: 48px;
+  padding: 0 16px;
+  font: inherit;
+  font-weight: bold;
+  color: var(--ink);
+  background: var(--card);
+  border: var(--edge) var(--edge-style) var(--ink);
+  border-radius: var(--r-btn);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.subtab.active { background: var(--accent); }
+.subpanel { display: none; }
+.subpanel.active { display: block; }
+
+/* Demo steps sit side by side on wide screens, and stack on phones */
+.demo { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); align-items: start; }

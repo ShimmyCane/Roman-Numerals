@@ -152,107 +152,99 @@
 
     <!-- LONG AGO -->
     <section class="tab" id="tab-history">
-      <div class="rules">
-        <article class="rule-card big-answer">
-          <h3>So is this app how the Romans did it?</h3>
-          <p>Not exactly. Breaking numbers into single letters and cancelling them is a <strong>teaching model</strong>. It helps you see what each letter is worth. The Romans mostly did their sums on a counting board and wrote only the answer in letters.</p>
+      <div class="history-grid">
+        <article class="rule-card big-answer wide">
+          <h3>Is this app how the Romans did it?</h3>
+          <p>Not exactly. This app breaks numbers into letters, so you can see what each letter is worth. The Romans mostly counted with small stones on a board, and wrote only the answer with letters.</p>
+        </article>
+
+        <article class="rule-card wide">
+          <h3>How the Romans did math</h3>
+          <div class="subtabs" role="tablist" aria-label="Count, add or subtract">
+            <button class="subtab active" data-sub="count" aria-pressed="true">Count</button>
+            <button class="subtab" data-sub="add" aria-pressed="false">Add</button>
+            <button class="subtab" data-sub="subtract" aria-pressed="false">Subtract</button>
+          </div>
+          <section class="subpanel active" data-panel="count">
+            <p>They counted with small stones called <em>calculi</em>, Latin for "little stones". Each column is a place: tens, then ones.</p>
+            <div class="figure" data-figure="4,7"></div>
+            <p class="caption-small">47: 4 stones in the tens column, 7 in the ones.</p>
+          </section>
+          <section class="subpanel" data-panel="add">
+            <p>Put the first number on the board. Then add the second number's stones to the same columns.</p>
+            <h4>23 + 14</h4>
+            <div class="demo" data-demo="add-simple"></div>
+            <h4>27 + 18: a trade</h4>
+            <p class="caption-small">7 + 8 is 15 ones. Ten ones trade for one ten.</p>
+            <div class="demo" data-demo="add-carry"></div>
+          </section>
+          <section class="subpanel" data-panel="subtract">
+            <p>Take the stones away. If a column is short, trade one stone from the column before for ten in this one. Romans had no negative numbers, so you trade first.</p>
+            <h4>40 − 18</h4>
+            <div class="demo" data-demo="subtract"></div>
+          </section>
         </article>
 
         <article class="rule-card">
-          <h3>How did they count?</h3>
-          <p>On a counting board or a hand abacus, moving small stones called <em>calculi</em> (Latin for "little stones") across columns. Each column stood for a place: tens, ones, and so on. The answer was written down in numerals at the end.</p>
-          <p>A surviving Roman hand abacus has seven columns. Each column has four beads in its lower slot and one bead in its upper slot.</p>
-          <div class="figure" data-figure="4,7"></div>
-          <p class="caption-small">47 on a counting board: 4 pebbles in the tens, 7 in the ones.</p>
+          <h3>No zero</h3>
+          <p>The Romans had no symbol for zero. In tables, they wrote the Latin word <em>nulla</em>, which means "none".</p>
         </article>
 
         <article class="rule-card">
-          <h3>How did they add?</h3>
-          <p>Put the first number on the board, then add the second number's pebbles to the same columns. A reconstruction of the method, not a recorded Roman procedure, but it is how a counting board works.</p>
-          <h4>Example 1: 23 + 14</h4>
-          <div class="demo" data-demo="add-simple"></div>
-          <h4>Example 2: 27 + 18 (a trade in the ones)</h4>
-          <p class="caption-small">7 + 8 makes 15 ones. Ten ones swap for one ten.</p>
-          <div class="demo" data-demo="add-carry"></div>
+          <h3>No negative numbers</h3>
+          <p>A sum below zero had no Roman answer. Roman accounts kept money <em>received</em> (<em>acceptum</em>) and money <em>spent</em> (<em>expensum</em>) in two lists.</p>
         </article>
 
         <article class="rule-card">
-          <h3>How did they subtract?</h3>
-          <p>Take the pebbles away from the board. When a column does not have enough, trade one pebble from the next column up for ten in this one. Romans had no negative numbers, so you trade first.</p>
-          <h4>Example: 40 − 18</h4>
-          <div class="demo" data-demo="subtract"></div>
+          <h3>IV or IIII?</h3>
+          <p>Both were used. The gates of the Colosseum use IIII for 4, but XL for 40. Clocks still use IIII. IV became the common form much later.</p>
+        </article>
+
+        <article class="rule-card wide">
+          <h3>Roman numbers through time</h3>
+          <ol class="timeline">
+            <li><strong>Ancient Rome:</strong> letters are carved on buildings and monuments.</li>
+            <li><strong>About 500 CE:</strong> Indian mathematicians write numbers with place value.</li>
+            <li><strong>628 CE:</strong> Brahmagupta writes rules for calculating with zero.</li>
+            <li><strong>1202:</strong> Fibonacci brings the new numbers to Europe.</li>
+            <li><strong>Today:</strong> Roman numbers are still used on Super Bowls, clocks and book chapters.</li>
+          </ol>
         </article>
 
         <article class="rule-card">
-          <h3>Pictures to look up</h3>
-          <p>These objects are shown with photographs on their own pages. Open them to see the real thing.</p>
+          <h3>Where we still see them</h3>
+          <ul class="facts">
+            <li><strong>Super Bowls.</strong> The NFL numbers them in Roman numerals. Super Bowl LIX was in February 2025.</li>
+            <li><strong>Clocks.</strong> Many clock faces show IIII for 4.</li>
+            <li><strong>Kings and queens.</strong> King Charles III.</li>
+          </ul>
+        </article>
+
+        <article class="rule-card">
+          <h3>Roman and our numbers</h3>
+          <table class="compare">
+            <tr><th></th><th>Roman</th><th>Our numbers</th></tr>
+            <tr><td>Symbols</td><td>I V X L C D M</td><td>0 1 2 3 4 5 6 7 8 9</td></tr>
+            <tr><td>Zero</td><td>None</td><td>0</td></tr>
+            <tr><td>Place</td><td>Letters only</td><td>47 means 4 tens and 7 ones</td></tr>
+          </table>
+          <p class="note">Our numbers came from India, with zero and place value. That is why they are easier to add and subtract on paper.</p>
+        </article>
+
+        <article class="rule-card wide">
+          <h3>Read more (for grown-ups)</h3>
           <ul class="sources">
             <li><a href="https://en.wikipedia.org/wiki/Salamis_Tablet" target="_blank" rel="noopener">Salamis Tablet (Wikipedia)</a>: a Greek counting board of about 300 BCE, with its photograph</li>
             <li><a href="https://en.wikipedia.org/wiki/Roman_abacus" target="_blank" rel="noopener">Roman abacus (Wikipedia)</a>: the surviving hand abacus, and the counting board</li>
-            <li><a href="https://en.wikipedia.org/wiki/Roman_numerals" target="_blank" rel="noopener">Roman numerals (Wikipedia)</a>: IV and IX, IIII on clock faces, and the numbered gates of the Colosseum</li>
+            <li><a href="https://en.wikipedia.org/wiki/Roman_numerals" target="_blank" rel="noopener">Roman numerals (Wikipedia)</a>: IV and IX, IIII on clock faces, and the Colosseum gates</li>
+            <li><a href="https://arxiv.org/pdf/1206.4349" target="_blank" rel="noopener">Ancient Computers (arXiv)</a>: the seven columns of the hand abacus</li>
+            <li><a href="https://cacm.acm.org/blogcacm/how-did-the-romans-calculate" target="_blank" rel="noopener">How did the Romans calculate? (ACM)</a></li>
+            <li><a href="https://historyofinformation.com/detail.php?id=14" target="_blank" rel="noopener">Computus (History of Information)</a>: how <em>nulla</em> stood for zero</li>
+            <li><a href="https://www.mentalfloss.com/article/24578/why-do-some-clocks-use-roman-numeral-iiii" target="_blank" rel="noopener">Why do some clocks use IIII? (Mental Floss)</a></li>
+            <li><a href="https://doaj.org/article/a5e95ef46d4f4d79a282905f75a0bf1e" target="_blank" rel="noopener">Roman accounting terms (2023 article)</a></li>
+            <li><a href="https://en.wikipedia.org/wiki/History_of_the_Hindu%E2%80%93Arabic_numeral_system" target="_blank" rel="noopener">History of the Hindu–Arabic numeral system (Wikipedia)</a></li>
           </ul>
-        </article>
-
-        <article class="rule-card">
-          <h3>Did they have zero?</h3>
-          <p>No. Roman numerals had no symbol for zero. In tables they wrote the Latin word <em>nulla</em> ("none") instead. In 525 Dionysius Exiguus used <em>nulla</em> this way in his Easter tables.</p>
-        </article>
-
-        <article class="rule-card">
-          <h3>Did they have negative numbers?</h3>
-          <p>No. Roman arithmetic had no negative numbers, so a sum that would go below zero had no Roman answer. Roman accounts kept money <em>received</em> (<em>acceptum</em>) and money <em>spent</em> (<em>expensum</em>) as separate lists. Scholars still debate how far they balanced these.</p>
-        </article>
-
-        <article class="rule-card">
-          <h3>Did they write IV and IX?</h3>
-          <p>Both forms appear. The Colosseum's numbered gates use <strong>IIII</strong> for 4 but <strong>XL</strong> for 40, so gate 44 is XLIIII. Clock faces still use IIII today. The IV and IX style became the usual form much later.</p>
-        </article>
-
-        <article class="rule-card">
-          <h3>Trivia</h3>
-          <ul class="facts">
-            <li>Medieval England's Exchequer, the government money office, took its name from a checkered cloth on a table. Counters on the squares stood for pounds, shillings and pence.</li>
-            <li>The NFL numbers its Super Bowls in Roman numerals. Super Bowl LIX was played in February 2025.</li>
-            <li>Kings and queens still use them: King Charles III, and Queen Elizabeth II before him.</li>
-            <li>Roman numerals are still used on clock faces, in book chapters and outlines, and in movie copyright dates.</li>
-          </ul>
-        </article>
-
-        <article class="rule-card">
-          <h3>Where our numbers came from: Hindu-Arabic numerals</h3>
-          <p>The 1, 2, 3 we use today came from India, not from Rome. Two ideas made them work: <strong>zero</strong> and <strong>place value</strong>, where a digit's position sets its size.</p>
-          <ul class="timeline">
-            <li><strong>By about 500 CE:</strong> Indian mathematicians write numbers with place value.</li>
-            <li><strong>628 CE:</strong> Brahmagupta writes the first rules for calculating with zero.</li>
-            <li><strong>About 825:</strong> al-Khwarizmi describes the Indian system in a book, and the word "algorithm" comes from his name.</li>
-            <li><strong>1202:</strong> Fibonacci's <em>Liber Abaci</em> introduces the system to European merchants.</li>
-          </ul>
-          <h4>Roman and Hindu-Arabic, side by side</h4>
-          <table class="compare">
-            <tr><th></th><th>Roman</th><th>Hindu-Arabic</th></tr>
-            <tr><td>Symbols</td><td>7 letters: I V X L C D M</td><td>10 digits: 0 1 2 3 4 5 6 7 8 9</td></tr>
-            <tr><td>Zero</td><td>None</td><td>0</td></tr>
-            <tr><td>Position matters</td><td>No. Letter order only changes size with a few pairs</td><td>Yes. 47 means 4 tens and 7 ones</td></tr>
-            <tr><td>1994</td><td>MCMXCIV</td><td>1994</td></tr>
-            <tr><td>Adding</td><td>Combine letters, then simplify</td><td>Add column by column, carry the extra ten</td></tr>
-            <tr><td>Subtracting</td><td>Trade a bigger letter, then take away</td><td>Borrow a ten from the next column</td></tr>
-          </table>
-          <p class="note">Why it matters: Roman numerals are good for writing and reading numbers, but calculation with them is slow. Place value with zero is what made paper arithmetic practical.</p>
-        </article>
-
-        <article class="rule-card">
-          <h3>Read more</h3>
-          <ul class="sources">
-            <li><a href="https://en.wikipedia.org/wiki/Roman_numerals" target="_blank" rel="noopener">Roman numerals (Wikipedia)</a>: IIII on the Colosseum gates, and the history of IV</li>
-            <li><a href="https://arxiv.org/pdf/1206.4349" target="_blank" rel="noopener">Ancient Computers (arXiv)</a>: the seven columns of the hand abacus, four beads and one in each</li>
-            <li><a href="https://cacm.acm.org/blogcacm/how-did-the-romans-calculate" target="_blank" rel="noopener">How did the Romans calculate? (ACM)</a>: an overview for non-specialists</li>
-            <li><a href="https://historyofinformation.com/detail.php?id=14" target="_blank" rel="noopener">Computus (History of Information)</a>: how <em>nulla</em> stood for zero in Easter tables</li>
-            <li><a href="https://www.mentalfloss.com/article/24578/why-do-some-clocks-use-roman-numeral-iiii" target="_blank" rel="noopener">Why do some clocks use IIII? (Mental Floss)</a>: the clock-face story and its explanations</li>
-            <li><a href="https://doaj.org/article/a5e95ef46d4f4d79a282905f75a0bf1e" target="_blank" rel="noopener">Roman accounting terms (2023 article)</a>: the words for money received and spent</li>
-            <li><a href="https://en.wikipedia.org/wiki/Exchequer" target="_blank" rel="noopener">Exchequer (Wikipedia)</a>: the checkered counting cloth and the name</li>
-            <li><a href="https://en.wikipedia.org/wiki/History_of_the_Hindu%E2%80%93Arabic_numeral_system" target="_blank" rel="noopener">History of the Hindu–Arabic numeral system (Wikipedia)</a>: Brahmagupta, al-Khwarizmi, Fibonacci</li>
-          </ul>
-          <p class="note">Some of the dates and attributions above come from popular web pages. Check them against a history book before quoting them in class.</p>
+          <p class="note">Some dates above come from popular web pages. Check them against a history book before quoting them in class.</p>
         </article>
       </div>
     </section>
