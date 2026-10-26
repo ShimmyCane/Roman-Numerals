@@ -783,5 +783,53 @@ button.bead { font: inherit; padding: 0; cursor: pointer; color: #2b2540; }
 button.bead:focus-visible { outline: 4px solid var(--link); outline-offset: 3px; }
 .rods-parts .label { display: inline-block; min-width: 6.5em; font-size: 0.8em; color: var(--ink-soft); }
 
-/* Arabic value under each letter tile */
-.arabic { display: block; font-size: 0.45em; font-weight: 700; line-height: 1.1; }
+/* Letter tiles with their Arabic value on a row just below, outside the tile */
+.letter-cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.letter-num { font-size: 1.25em; font-weight: 900; color: var(--ink); }
+
+/* Felix's page, round three */
+.spiral-box { position: relative; }
+.counter { position: absolute; left: 10px; bottom: 8px; text-align: left; pointer-events: none; }
+.counter-roman { font-size: 1.7em; font-weight: 900; line-height: 1.1; }
+.counter-arabic { font-size: 1.1em; font-weight: 700; color: var(--ink-soft); }
+.pair-lines { display: flex; flex-direction: column; }
+.pair-lines.center, .controls.center { align-items: center; justify-content: center; text-align: center; }
+.controls.center .big-btn { flex: 0 0 auto; min-width: 96px; }
+.tile-num { font-size: 0.85em; font-weight: 700; color: var(--ink-soft); }
+.tile-label { line-height: 1.1; }
+.source-note { margin-top: 14px; font-size: 0.8em; color: var(--ink-soft); }
+.source-note a { color: var(--link); }
+
+/* Steps: blocks climb onto the sketched stairs */
+.block-new { animation: climb 0.5s ease-out; transform-box: fill-box; }
+@keyframes climb { from { transform: translate(-30px, 30px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Shake: the pieces pour from the top right into the bucket */
+.shake-top { display: flex; align-items: center; gap: 16px; margin-bottom: 10px; }
+.shake-top .big-btn { flex: 0 0 auto; min-width: 80px; }
+.bucket-box { position: relative; height: 320px; margin: 8px 0 12px; overflow: hidden; }
+.bucket-outline { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--ink); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.bucket-outline path { stroke-width: 3; vector-effect: non-scaling-stroke; }
+.token { position: absolute; display: grid; place-items: center; font-weight: 900; color: #2b2540; border-radius: 10px;
+  transition: left 0.7s ease-in-out, top 0.7s cubic-bezier(0.5, 0, 0.9, 1); }
+
+/* Rods: bars in one line, the amount under each rod, colour bars matching raw and organized */
+.bead.placeholder { visibility: hidden; }
+.rod-amount { min-width: 2.5em; text-align: center; font-weight: 900; border-bottom: 6px solid transparent; padding-bottom: 2px; }
+.grp { display: inline-block; border-bottom: 6px solid transparent; padding: 0 2px 2px; margin-right: 4px; }
+
+/* Board: tap a row to add a pebble */
+.board-hit { cursor: pointer; }
+.pebble-new { animation: pop-small 0.45s ease-out; transform-box: fill-box; transform-origin: center; }
+
+/* Maya and doubling */
+.side-by-side { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.maya-art { width: 140px; height: auto; }
+.double-sum { margin-bottom: 10px; }
+.double-rows { display: grid; gap: 8px; margin-bottom: 12px; }
+.double-row { display: grid; grid-template-columns: 28px 1fr 1fr; align-items: center; gap: 10px; padding: 6px 10px; border-bottom: 2px dashed var(--dots); }
+.double-row.crossed .double-cell { opacity: 0.35; text-decoration: line-through; }
+.double-cell .cell-roman { font-size: 1.3em; font-weight: 900; }
+.double-cell .cell-arabic { font-size: 0.85em; color: var(--ink-soft); }
+.light { width: 22px; height: 22px; border-radius: 50%; border: 3px solid var(--ink); background: transparent; }
+.light.on { background: #ffd23f; box-shadow: 0 0 10px #ffd23f; }

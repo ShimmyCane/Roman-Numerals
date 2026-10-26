@@ -799,7 +799,8 @@
 
   const pairChip = (p) => {
     const chip = el('div', 'pair-chip ok');
-    chip.append(el('b', '', p), el('span', '', `= ${Roman.words(Roman.lenientValue(p))}`));
+    const v = Roman.lenientValue(p);
+    chip.append(el('b', '', p), el('span', '', `= ${Roman.words(v)} (${v})`));
     return chip;
   };
   const neverChip = (p) => {
@@ -841,14 +842,16 @@
 
   function buildLetterRow() {
     const row = $('#letter-row');
+    // Each letter with its Arabic value on a row just below it, outside the tile
     LETTERS.forEach((ch) => {
-      const b = el('button', `tile ${ch}`);
-      b.append(ch, el('span', 'arabic', String(VALUE[ch])));
+      const cell = el('div', 'letter-cell');
+      const b = el('button', `tile ${ch}`, ch);
       b.addEventListener('click', () => {
         $('#letter-hint').textContent = `${ch} is worth ${Roman.words(VALUE[ch])} (${VALUE[ch]}).`;
         beep([VALUE[ch] > 100 ? 392 : 523 + VALUE[ch] / 10]);
       });
-      row.append(b);
+      cell.append(b, el('span', 'letter-num', String(VALUE[ch])));
+      row.append(cell);
     });
   }
 

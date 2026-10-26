@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Felix's page</title>
+  <title>Felix learns about Roman numerals</title>
   <link rel="stylesheet" href="base.css">
   <link id="look-css" rel="stylesheet" href="looks/sunny.css">
 </head>
 <body>
   <header class="top">
-    <h1>Felix's page</h1>
+    <h1>Felix learns about Roman numerals</h1>
   </header>
 
   <nav class="tabs" role="tablist">
@@ -18,11 +18,16 @@
     <button class="tab-btn" role="tab" data-tab="steps">Steps</button>
     <button class="tab-btn" role="tab" data-tab="shake">Shake</button>
     <button class="tab-btn" role="tab" data-tab="rods">Rods</button>
+    <button class="tab-btn" role="tab" data-tab="board">Board</button>
+    <button class="tab-btn" role="tab" data-tab="clock">Clock</button>
+    <button class="tab-btn" role="tab" data-tab="maya">Maya</button>
+    <button class="tab-btn" role="tab" data-tab="china">China</button>
+    <button class="tab-btn" role="tab" data-tab="double">Double</button>
     <button class="tab-btn" role="tab" data-tab="resources">Grown-ups</button>
   </nav>
 
   <main>
-    <!-- START: what the letters are, each one as a square to scale -->
+    <!-- START: the letters, their values on a row below, then the squares to scale -->
     <section class="tab active" id="tab-start">
       <div class="layout single">
         <div class="play">
@@ -35,41 +40,60 @@
       </div>
     </section>
 
-    <!-- SPIRAL: one spiral, scroll to travel along it -->
+    <!-- SPIRAL: one spiral, scroll to travel along it; the counter sits in the bottom-left corner -->
     <section class="tab" id="tab-spiral">
       <div class="layout single">
         <div class="play">
           <h2>Round and round</h2>
           <div class="spiral-box" id="spiral-box" tabindex="0" role="slider" aria-label="Scroll along the spiral" aria-valuemin="1" aria-valuemax="3999" aria-valuenow="1">
-            <svg class="felix-art" id="spiral-svg" viewBox="-40 -40 480 480" aria-hidden="true"></svg>
+            <svg class="felix-art" id="spiral-svg" viewBox="0 0 400 400" aria-hidden="true"></svg>
+            <div class="counter" aria-live="polite">
+              <div class="counter-roman" id="spiral-roman">I</div>
+              <div class="counter-arabic" id="spiral-arabic">1</div>
+            </div>
+          </div>
+          <div class="controls">
+            <button class="big-btn ghost" type="button" id="spiral-back" aria-label="Back one">◀</button>
+            <button class="big-btn" type="button" id="spiral-next" aria-label="Forward one">▶</button>
           </div>
           <p class="note">Scroll or drag.</p>
+          <div class="controls">
+            <button class="big-btn ghost" type="button" id="zoom-in">🔍 +</button>
+            <button class="big-btn ghost" type="button" id="zoom-out">🔍 −</button>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- STEPS: a staircase (to be rethought, see the proposal) -->
+    <!-- STEPS: a staircase sketched first, then a block climbs onto each step -->
     <section class="tab" id="tab-steps">
       <div class="layout single">
         <div class="play">
           <h2>Up the stairs</h2>
-          <div class="field">
-            <label for="steps-n">Show</label>
-            <input id="steps-n" type="range" min="1" max="7" value="7">
+          <svg class="felix-art" id="stairs-svg" viewBox="0 0 360 300" role="img" aria-label="A staircase. Each step is the next letter."></svg>
+          <div class="controls">
+            <button class="big-btn ghost" type="button" id="steps-back" aria-label="Down one step">◀</button>
+            <button class="big-btn" type="button" id="steps-next" aria-label="Up one step">▶</button>
           </div>
-          <div class="stairs" id="stairs" aria-live="polite"></div>
-          <p class="big-value" id="steps-caption" aria-live="polite"></p>
         </div>
       </div>
     </section>
 
-    <!-- SHAKE: a random number of stones falls into the bucket -->
+    <!-- SHAKE: pick a number, then its pieces pour into the bucket -->
     <section class="tab" id="tab-shake">
       <div class="layout single">
         <div class="play">
           <h2>Shake</h2>
-          <canvas class="bucket" id="bucket" aria-label="Stones falling into a bucket"></canvas>
-          <p class="big-value" id="bucket-caption" aria-live="polite"></p>
+          <div class="shake-top">
+            <button class="big-btn" type="button" id="shake-random" aria-label="Pick a number">🎲</button>
+            <div class="pair-lines" aria-live="polite">
+              <div class="counter-roman" id="shake-roman"></div>
+              <div class="counter-arabic" id="shake-arabic"></div>
+            </div>
+          </div>
+          <div class="bucket-box" id="bucket-box" aria-label="Bucket">
+            <svg class="bucket-outline" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="M2 2 L98 2 L90 98 L10 98 Z"/></svg>
+          </div>
           <div class="controls">
             <button class="big-btn" type="button" id="pour">Pour</button>
             <button class="big-btn ghost" type="button" id="shake-on">Shake to pour</button>
@@ -78,29 +102,163 @@
       </div>
     </section>
 
-    <!-- RODS: tap the beads, see the raw beads and the organized numeral -->
+    <!-- RODS: tap the beads; raw, organized and Arabic rows, with matching colour bars -->
     <section class="tab" id="tab-rods">
       <div class="layout single">
         <div class="play">
           <h2>Counting board</h2>
           <div class="rods" id="rods"></div>
-          <div class="controls">
-            <button class="big-btn" type="button" id="rods-random">🎲</button>
+          <div class="controls center">
+            <button class="big-btn" type="button" id="rods-random" aria-label="Random number">🎲</button>
           </div>
           <div class="rods-parts">
             <p class="big-value"><span class="label">Raw</span> <span id="rods-raw"></span></p>
             <p class="big-value"><span class="label">Organized</span> <span id="rods-organized"></span></p>
+            <p class="big-value"><span class="label">Arabic</span> <span id="rods-arabic"></span></p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- GROWN-UPS: a few links, kept out of the way -->
+    <!-- BOARD: lines and spaces, pebbles trade up -->
+    <section class="tab" id="tab-board">
+      <div class="layout single">
+        <div class="play">
+          <h2>Pebble board</h2>
+          <p>Tap a line or a space to add a pebble.</p>
+          <svg class="felix-art" id="board-svg" viewBox="0 0 360 340" role="img" aria-label="A counting board with lines and spaces"></svg>
+          <div class="pair-lines center" aria-live="polite">
+            <div class="counter-roman" id="board-roman">—</div>
+            <div class="counter-arabic" id="board-arabic">0</div>
+          </div>
+          <div class="controls">
+            <button class="big-btn ghost" type="button" id="board-clear">Clear</button>
+            <button class="big-btn" type="button" id="board-random" aria-label="Random number">🎲</button>
+          </div>
+          <p class="source-note">Inspired by:
+            <a href="https://en.wikipedia.org/wiki/Counting_board" target="_blank" rel="noopener">Counting board</a>,
+            <a href="https://en.wikipedia.org/wiki/Salamis_Tablet" target="_blank" rel="noopener">Salamis Tablet</a>,
+            <a href="https://en.wikipedia.org/wiki/Roman_abacus" target="_blank" rel="noopener">Roman abacus</a> (Wikipedia).
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLOCK: minutes in fives, and IIII or IV -->
+    <section class="tab" id="tab-clock">
+      <div class="layout single">
+        <div class="play">
+          <h2>Clock</h2>
+          <svg class="felix-art" id="clock-svg" viewBox="0 0 360 360" role="img" aria-label="A clock with Roman numerals"></svg>
+          <div class="pair-lines center" aria-live="polite">
+            <div class="counter-roman" id="clock-roman"></div>
+            <div class="counter-arabic" id="clock-arabic"></div>
+          </div>
+          <div class="controls">
+            <button class="big-btn ghost" type="button" id="clock-back" aria-label="Five minutes back">◀ 5</button>
+            <button class="big-btn" type="button" id="clock-next" aria-label="Five minutes on">5 ▶</button>
+            <button class="big-btn ghost" type="button" id="clock-four" aria-pressed="true">IIII</button>
+          </div>
+          <p class="source-note">Inspired by:
+            <a href="https://www.mentalfloss.com/article/24578/why-do-some-clocks-use-roman-numeral-iiii" target="_blank" rel="noopener">Why do some clocks use IIII? (Mental Floss)</a>,
+            <a href="https://monochrome-watches.com/why-do-clocks-and-watches-use-roman-numeral-iiii-instead-of-iv/" target="_blank" rel="noopener">Monochrome Watches</a>.
+            Nobody is sure why clocks use IIII.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAYA: dot is one, bar is five, places of twenty -->
+    <section class="tab" id="tab-maya">
+      <div class="layout single">
+        <div class="play">
+          <h2>Maya numbers</h2>
+          <p>Dot is one. Bar is five.</p>
+          <div class="side-by-side">
+            <svg class="maya-art" id="maya-svg" viewBox="0 0 140 260" role="img" aria-label="The number in Maya dots and bars"></svg>
+            <div class="pair-lines" aria-live="polite">
+              <div class="counter-roman" id="maya-roman"></div>
+              <div class="counter-arabic" id="maya-arabic"></div>
+            </div>
+          </div>
+          <div class="controls">
+            <button class="big-btn ghost" type="button" id="maya-back" aria-label="One less">−</button>
+            <button class="big-btn" type="button" id="maya-next" aria-label="One more">+</button>
+            <button class="big-btn ghost" type="button" id="maya-random" aria-label="Random number">🎲</button>
+          </div>
+          <p class="source-note">Inspired by:
+            <a href="https://math.libretexts.org/Courses/Chabot_College/Math_in_Society_(Zhang)/03%3A_Historical_Counting_Systems/3.05%3A_The_Mayan_Numeral_System" target="_blank" rel="noopener">The Mayan numeral system (LibreTexts)</a>,
+            <a href="https://mayan.org/civilization/mayan-mathematics/" target="_blank" rel="noopener">Mayan mathematics (mayan.org)</a>.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHINA: counting rods, standing and lying by turns -->
+    <section class="tab" id="tab-china">
+      <div class="layout single">
+        <div class="play">
+          <h2>Counting rods</h2>
+          <svg class="felix-art" id="china-svg" viewBox="0 0 360 140" role="img" aria-label="The number in Chinese counting rods"></svg>
+          <div class="pair-lines center" aria-live="polite">
+            <div class="counter-roman" id="china-roman"></div>
+            <div class="counter-arabic" id="china-arabic"></div>
+          </div>
+          <div class="controls">
+            <button class="big-btn ghost" type="button" id="china-back" aria-label="One less">−</button>
+            <button class="big-btn" type="button" id="china-next" aria-label="One more">+</button>
+            <button class="big-btn ghost" type="button" id="china-random" aria-label="Random number">🎲</button>
+          </div>
+          <p class="source-note">Inspired by:
+            <a href="https://en.wikipedia.org/wiki/Counting_rods" target="_blank" rel="noopener">Counting rods (Wikipedia)</a>,
+            <a href="https://maa.org/book/export/html/3403381" target="_blank" rel="noopener">Reflections on Chinese Numeration Systems (MAA)</a>.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- DOUBLE: multiply by halving and doubling; the kept rows are the binary digits -->
+    <section class="tab" id="tab-double">
+      <div class="layout single">
+        <div class="play">
+          <h2>Halve and double</h2>
+          <div class="double-sum" id="double-sum" aria-live="polite"></div>
+          <div class="double-rows" id="double-rows"></div>
+          <div class="pair-lines center" aria-live="polite">
+            <div class="counter-roman" id="double-roman"></div>
+            <div class="counter-arabic" id="double-arabic"></div>
+          </div>
+          <div class="controls">
+            <button class="big-btn" type="button" id="double-random" aria-label="New sum">🎲</button>
+          </div>
+          <p class="source-note">Inspired by:
+            <a href="https://thenakedscientists.com/articles/questions/how-did-romans-multiply-their-numerals" target="_blank" rel="noopener">How did the Romans multiply? (Naked Scientists)</a>,
+            <a href="https://pims.math.ca/~hoek/teanum/Rom" target="_blank" rel="noopener">How did the Romans calculate? (PIMS)</a>.
+            Historians are not sure the Romans did it this way.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- GROWN-UPS: links, kept out of the way -->
     <section class="tab" id="tab-resources">
       <div class="history-grid">
         <article class="rule-card wide">
           <h2>For grown-ups</h2>
-          <p class="note">Links from web searches. Check licence and suitability first.</p>
+          <p class="note">Links come from web searches. I could not open the pages themselves from here, so check licence and suitability first.</p>
+        </article>
+        <article class="rule-card">
+          <h3>Sources for the tabs</h3>
+          <ul class="sources">
+            <li>Board: <a href="https://en.wikipedia.org/wiki/Counting_board" target="_blank" rel="noopener">Counting board</a>, <a href="https://en.wikipedia.org/wiki/Salamis_Tablet" target="_blank" rel="noopener">Salamis Tablet</a>, <a href="https://en.wikipedia.org/wiki/Roman_abacus" target="_blank" rel="noopener">Roman abacus</a></li>
+            <li>Clock: <a href="https://www.mentalfloss.com/article/24578/why-do-some-clocks-use-roman-numeral-iiii" target="_blank" rel="noopener">Mental Floss</a>, <a href="https://monochrome-watches.com/why-do-clocks-and-watches-use-roman-numeral-iiii-instead-of-iv/" target="_blank" rel="noopener">Monochrome Watches</a></li>
+            <li>Maya: <a href="https://math.libretexts.org/Courses/Chabot_College/Math_in_Society_(Zhang)/03%3A_Historical_Counting_Systems/3.05%3A_The_Mayan_Numeral_System" target="_blank" rel="noopener">LibreTexts</a>, <a href="https://mayan.org/civilization/mayan-mathematics/" target="_blank" rel="noopener">mayan.org</a></li>
+            <li>China: <a href="https://en.wikipedia.org/wiki/Counting_rods" target="_blank" rel="noopener">Counting rods</a>, <a href="https://maa.org/book/export/html/3403381" target="_blank" rel="noopener">MAA</a></li>
+            <li>Double: <a href="https://thenakedscientists.com/articles/questions/how-did-romans-multiply-their-numerals" target="_blank" rel="noopener">Naked Scientists</a>, <a href="https://pims.math.ca/~hoek/teanum/Rom" target="_blank" rel="noopener">PIMS</a></li>
+          </ul>
+        </article>
+        <article class="rule-card">
+          <h3>More to explore</h3>
           <ul class="sources">
             <li><a href="https://www.mathematik.uni-marburg.de/~thormae/lectures/ti1/code/abacus/soroban.html" target="_blank" rel="noopener">Soroban and suanpan simulator</a></li>
             <li><a href="https://observablehq.com/@jrus/drawing-logarithmic-spirals-with-bezplot" target="_blank" rel="noopener">Logarithmic spirals (Observable)</a></li>
