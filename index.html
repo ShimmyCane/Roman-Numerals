@@ -31,36 +31,19 @@
   </nav>
 
   <main>
-    <!-- LETTERS: tap a letter to see its pairs -->
+    <!-- LETTERS: the letters, then the pairs straight away -->
     <section class="tab active" id="tab-letters">
-      <div class="layout">
+      <div class="layout single">
         <div class="play">
-          <h2>Tap a letter</h2>
+          <h2>The seven letters</h2>
           <div class="letter-row" id="letter-row"></div>
           <p class="big-value" id="letter-hint" aria-live="polite">Tap a letter to see what it is worth.</p>
           <div class="pair-box">
-            <h3 id="pair-title">I pairs that exist</h3>
+            <h3 id="pair-title">Pairs that exist</h3>
             <div class="pair-list" id="pair-list"></div>
             <button class="big-btn ghost" id="pair-more" type="button">Show pairs that never exist</button>
           </div>
         </div>
-        <aside class="ref">
-          <h3>The seven letters</h3>
-          <table class="letter-table">
-            <tr><td class="I">I</td><td>1</td></tr>
-            <tr><td class="V">V</td><td>5</td></tr>
-            <tr><td class="X">X</td><td>10</td></tr>
-            <tr><td class="L">L</td><td>50</td></tr>
-            <tr><td class="C">C</td><td>100</td></tr>
-            <tr><td class="D">D</td><td>500</td></tr>
-            <tr><td class="M">M</td><td>1000</td></tr>
-          </table>
-          <div id="extended-box" hidden>
-            <h3>Past 1000</h3>
-            <p class="note">A line over a letter makes it a thousand times bigger. For reference only; the checker does not use these yet.</p>
-            <div class="ext-list" id="extended-list"></div>
-          </div>
-        </aside>
       </div>
     </section>
 
@@ -78,9 +61,9 @@
       <p class="rules-foot">Letters: I = 1 · V = 5 · X = 10 · L = 50 · C = 100 · D = 500 · M = 1000</p>
     </section>
 
-    <!-- FIX IT: start with a bad numeral; rules broken go on the right -->
+    <!-- FIX IT: start with a bad numeral; rules broken sit above the steps -->
     <section class="tab" id="tab-fix">
-      <div class="layout">
+      <div class="layout single">
         <div class="play">
           <div class="workbench">
             <button class="big-btn" type="button" data-random="fixbad">🎲 Random bad numeral</button>
@@ -91,6 +74,10 @@
             </form>
           </div>
           <div class="verdict" id="fix-verdict" aria-live="polite"></div>
+          <div class="rules-broken">
+            <h3>Rules broken</h3>
+            <ol class="broken" id="fix-rules"></ol>
+          </div>
           <div class="ledger" id="fix-ledger" aria-live="polite"></div>
           <div class="controls">
             <button class="big-btn ghost" data-step="fix" data-dir="-1">Back</button>
@@ -98,10 +85,6 @@
             <button class="big-btn" data-step="fix" data-dir="1">Next step</button>
           </div>
         </div>
-        <aside class="ref">
-          <h3>Rules broken</h3>
-          <ol class="broken" id="fix-rules"></ol>
-        </aside>
       </div>
     </section>
 
@@ -189,6 +172,11 @@
         </article>
 
         <article class="rule-card">
+          <h3>Past 1000</h3>
+          <p>The Romans put a line over a letter to make it a thousand times bigger. An overlined I is 1,000, which is the same as M. That is why this app stops at M.</p>
+        </article>
+
+        <article class="rule-card">
           <h3>No zero</h3>
           <p>The Romans had no symbol for zero. In tables, they wrote the Latin word <em>nulla</em>, which means "none".</p>
         </article>
@@ -264,12 +252,11 @@
     <h3>Settings</h3>
     <h4>Look</h4>
     <div class="look-row" role="group" aria-label="Look">
-      <button class="big-btn look-btn" data-look="sunny" aria-pressed="true">Sunny</button>
-      <button class="big-btn look-btn" data-look="chalk" aria-pressed="false">Chalk</button>
       <button class="big-btn look-btn" data-look="candy" aria-pressed="false">Candy</button>
-      <button class="big-btn look-btn" data-look="poster" aria-pressed="false">Poster</button>
       <button class="big-btn look-btn" data-look="folder" aria-pressed="false">Folder</button>
       <button class="big-btn look-btn" data-look="garden" aria-pressed="false">Garden</button>
+      <button class="big-btn look-btn" data-look="poster" aria-pressed="false">Poster</button>
+      <button class="big-btn look-btn" data-look="sunny" aria-pressed="true">Sunny</button>
     </div>
     <h4>Reading and motion</h4>
     <label class="field">Text size
@@ -287,8 +274,11 @@
       </select>
     </label>
     <label class="toggle"><input type="checkbox" id="opt-calm"> Calm motion (no bouncing)</label>
-    <h4>Numbers</h4>
-    <label class="toggle"><input type="checkbox" id="opt-extended"> Show letters past 1000</label>
+    <h4>Ideas to try</h4>
+    <p class="note">Turn these on to see if they help. Tell me which to keep.</p>
+    <label class="toggle"><input type="checkbox" id="opt-aloud"> Read each step aloud</label>
+    <label class="toggle"><input type="checkbox" id="opt-bigtiles"> Bigger tiles</label>
+    <label class="toggle"><input type="checkbox" id="opt-one"> Show only the current step</label>
     <h4>Help</h4>
     <label class="toggle"><input type="checkbox" id="opt-sound" checked> Sounds</label>
     <label class="toggle"><input type="checkbox" id="opt-pictures" checked> Pictures on steps</label>
