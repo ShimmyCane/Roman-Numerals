@@ -774,3 +774,11 @@ html[data-tiles="big"] { --big: 1.25; }
 .rod-name { font-size: 0.85em; color: var(--ink-soft); }
 .rods-parts { margin-top: 10px; }
 .rods-parts p { margin: 0.3em 0; }
+
+/* Felix's page, round two: spiral you scroll, shake bucket, tappable beads */
+.spiral-box { touch-action: none; cursor: ns-resize; border-radius: var(--r-card); }
+.spiral-box:focus-visible { outline: 4px solid var(--link); outline-offset: 4px; }
+.bucket { display: block; width: 100%; height: 280px; margin: 8px 0 12px; }
+button.bead { font: inherit; padding: 0; cursor: pointer; color: #2b2540; }
+button.bead:focus-visible { outline: 4px solid var(--link); outline-offset: 3px; }
+.rods-parts .label { display: inline-block; min-width: 6.5em; font-size: 0.8em; color: var(--ink-soft); }
