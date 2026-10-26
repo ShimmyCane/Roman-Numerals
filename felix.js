@@ -210,39 +210,46 @@
     $('#zoom-out').addEventListener('click', () => { zoomIndex = Math.min(ZOOMS.length - 1, zoomIndex + 1); renderSpiral(); });
   }
 
-  // ---------- Steps: each staircase is drawn on a log scale, so a step's height is the log of its times number ----------
-  // Roman: the letters (times five, times two, alternating). Arabic: decimal (times ten). Binary: times two.
-  // All three share one height scale, so 1000 sits at the same height on each, and the Roman line stays behind as a dashed guide.
-  const ST = { x0: 6, base: 292, col: 37, H: 220 };
+  // ---------- Steps: each staircase is drawn on a log scale, so a step's height is the log of its value ----------
+  // Roman letters (times five, times two, alternating), decimal (times ten), binary (times two, in bits).
+  // All three share one height scale, so 1000 sits at the same height on each. The systems not showing are dashed.
+  const ST = { x0: 6, base: 292, col: 34, H: 220, labelY: 322 };
   const STAIR_K = ST.H / 3.5; // one unit of log height; 1 sits half a unit up, 1000 sits at 3.5 units
   const LETTER_OF = Object.fromEntries(LETTERS.map(({ letter, value }) => [value, letter]));
   const ROMAN_STEPS = LETTERS.map(({ letter, value }) => ({ value, big: letter, small: String(value) }));
   const DECIMAL_STEPS = [1, 10, 100, 1000].map((value) => ({ value, big: String(value), small: toRoman(value) }));
-  const BINARY_STEPS = [1, 2, 4, 8, 16, 32, 64].map((value) => ({ value, big: value.toString(2), small: String(value) }));
+  const BINARY_STEPS = [2, 4, 8, 16, 32, 64, 128, 256].map((value) => ({ value, big: String(value), small: value.toString(2) }));
   const STAIR_MODES = { roman: ROMAN_STEPS, arabic: DECIMAL_STEPS, binary: BINARY_STEPS };
+  const SYSTEM_COLOUR = { roman: '#2e86c1', arabic: '#27ae60', binary: '#8e44ad' };
   const FADE = 2; // the outline carries on past the last step, fading
   let stepsShown = 1;
   let stepsMode = 'roman';
 
   const treadY = (value) => ST.base - (Math.log10(value) + 0.5) * STAIR_K;
 
+  // The outline of a staircase: up from the floor, along each tread, and up again
+  function outlinePoints(steps) {
+    const pts = [[ST.x0, ST.base]];
+    steps.forEach((s, i) => {
+      const t = treadY(s.value);
+      pts.push([ST.x0 + i * ST.col, t], [ST.x0 + (i + 1) * ST.col, t]);
+    });
+    return pts;
+  }
+
   function renderStairs() {
     const svg = $('#stairs-svg');
     svg.replaceChildren();
-    const { x0, base, col } = ST;
+    const { x0, base, col, labelY } = ST;
     const steps = STAIR_MODES[stepsMode];
 
-    // The outline of the current staircase, with a fade run past its end
-    const pts = [[x0, base]];
-    steps.forEach((s, i) => {
-      const t = treadY(s.value);
-      pts.push([x0 + i * col, t], [x0 + (i + 1) * col, t]);
-    });
+    // The current staircase: a solid fill and outline, with a fade run past its end
+    const pts = outlinePoints(steps);
     const last = steps[steps.length - 1].value;
     const lastRise = treadY(steps[steps.length - 2].value) - treadY(last);
-    let my = treadY(last);
+    svg.appendChild(svgEl('polygon', { points: [...pts, [x0 + steps.length * col, base]].map((p) => p.join(',')).join(' '), fill: 'var(--card)', stroke: 'var(--ink)', 'stroke-width': 2.5, 'stroke-linejoin': 'round' }));
     let mx = x0 + steps.length * col;
-    svg.appendChild(svgEl('polygon', { points: [...pts, [mx, base]].map((p) => p.join(',')).join(' '), fill: 'var(--card)', stroke: 'var(--ink)', 'stroke-width': 2.5, 'stroke-linejoin': 'round' }));
+    let my = treadY(last);
     for (let k = 0; k < FADE; k++) {
       const ny = my - lastRise;
       svg.appendChild(svgEl('polyline', { points: `${mx},${my} ${mx},${ny} ${mx + col},${ny}`, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2.5, opacity: 0.45 - k * 0.15 }));
@@ -250,15 +257,11 @@
       my = ny;
     }
 
-    // The Roman line on top of the fill, dashed and coloured, when Arabic or binary is on
-    if (stepsMode !== 'roman') {
-      const pts = [[x0, base]];
-      ROMAN_STEPS.forEach((s, i) => {
-        const t = treadY(s.value);
-        pts.push([x0 + i * col, t], [x0 + (i + 1) * col, t]);
-      });
-      svg.appendChild(svgEl('polyline', { points: pts.map((p) => p.join(',')).join(' '), fill: 'none', stroke: 'var(--link)', 'stroke-width': 2.5, 'stroke-dasharray': '6 5', 'stroke-linejoin': 'round' }));
-    }
+    // The other systems, dashed and coloured, on top of the fill so they can be compared
+    Object.entries(STAIR_MODES).forEach(([key, list]) => {
+      if (key === stepsMode) return;
+      svg.appendChild(svgEl('polyline', { points: outlinePoints(list).map((p) => p.join(',')).join(' '), fill: 'none', stroke: SYSTEM_COLOUR[key], 'stroke-width': 2.5, 'stroke-dasharray': '6 5', 'stroke-linejoin': 'round' }));
+    });
 
     steps.forEach((s, i) => {
       const t = treadY(s.value);
@@ -271,16 +274,18 @@
       const colour = LETTER_OF[s.value] ? `var(--t-${LETTER_OF[s.value]})` : 'var(--paper)';
       const g = svgEl('g', { class: i === stepsShown - 1 ? 'block-new' : '' });
       g.appendChild(svgEl('rect', { x: x0 + i * col + 2, y: t - block, width: col - 4, height: block, rx: 5, fill: colour, stroke: 'var(--ink)', 'stroke-width': i === stepsShown - 1 ? 3.5 : 2 }));
-      const big = s.big;
-      const bigSize = stepsMode === 'roman' ? 17 : Math.max(8, Math.min(11, Math.floor(60 / big.length)));
+      const bigSize = stepsMode === 'roman' ? 17 : Math.max(8, Math.min(11, Math.floor(60 / s.big.length)));
       if (block >= 26) {
-        g.appendChild(svgEl('text', { x: cx, y: t - block / 2 + (bigSize / 3), 'text-anchor': 'middle', 'font-size': bigSize, 'font-weight': 900, fill: '#2b2540' }, big));
+        g.appendChild(svgEl('text', { x: cx, y: t - block / 2 + (bigSize / 3), 'text-anchor': 'middle', 'font-size': bigSize, 'font-weight': 900, fill: '#2b2540' }, s.big));
         g.appendChild(svgEl('text', { x: cx, y: t - 4, 'text-anchor': 'middle', 'font-size': 9, 'font-weight': 700, fill: '#2b2540' }, s.small));
       } else {
-        g.appendChild(svgEl('text', { x: cx, y: t - block - 3, 'text-anchor': 'middle', 'font-size': bigSize, 'font-weight': 900, fill: 'var(--ink)' }, big));
+        g.appendChild(svgEl('text', { x: cx, y: t - block - 3, 'text-anchor': 'middle', 'font-size': bigSize, 'font-weight': 900, fill: 'var(--ink)' }, s.big));
       }
       svg.appendChild(g);
     });
+
+    // Lower right: the Arabic numbers of the steps shown so far
+    svg.appendChild(svgEl('text', { x: 354, y: labelY, 'text-anchor': 'end', 'font-size': 14, 'font-weight': 900, fill: 'var(--ink)' }, steps.slice(0, stepsShown).map((s) => s.value).join(' · ')));
 
     $('#steps-back').disabled = stepsShown <= 1;
     $('#steps-next').disabled = stepsShown >= steps.length;
@@ -443,7 +448,7 @@
     { name: 'tens', one: 'X', five: 'L', max: 9, place: 10, color: '#27ae60' },
     { name: 'ones', one: 'I', five: 'V', max: 9, place: 1, color: '#8e44ad' },
   ];
-  let digits = [0, 0, 0, 7]; // VII, inside the I to X start
+  let digits = [0, 0, 0, 7]; // VII
 
   const valueOfDigits = () => digits.reduce((acc, d) => acc * 10 + d, 0);
   const rawOf = (rod, d) => (d >= 5 && rod.five ? rod.five : '') + rod.one.repeat(d % 5);
@@ -459,17 +464,14 @@
     target.replaceChildren(...(spans.length ? spans : [document.createTextNode('—')]));
   }
 
-  // Start with I to X: only the ones and tens rods, values 1 to 10. The "More places" setting opens the rest.
+  // Up to 99: only the ones and tens rods. The "More places" setting opens hundreds and thousands.
   let moreRods = false;
 
-  // Keep the digits inside the chosen range. A change to tens or ones (index 2 or 3) decides which one stays.
-  function fitDigits(changed) {
+  // Without "More places" the rods show up to 99: only the ones and tens digits are used.
+  function fitDigits() {
     if (moreRods) return;
     digits[0] = 0;
     digits[1] = 0;
-    if (digits[2] > 1) digits[2] = 1;
-    if (changed === 2 && digits[2] === 1) digits[3] = 0;
-    if (changed === 3 && digits[3] > 0) digits[2] = 0;
   }
 
   function renderRods() {
@@ -487,7 +489,6 @@
         heaven.setAttribute('aria-label', `${rod.name} five`);
         heaven.addEventListener('click', () => {
           digits[i] = d >= 5 ? d - 5 : d + 5;
-          fitDigits(i);
           renderRods();
         });
         col.appendChild(heaven);
@@ -507,7 +508,6 @@
         bead.addEventListener('click', () => {
           const fives = d >= 5 && rod.five ? 5 : 0;
           digits[i] = fives + (k < d % 5 ? k : k + 1);
-          fitDigits(i);
           renderRods();
         });
         col.appendChild(bead);
@@ -526,8 +526,8 @@
 
   function randomRods() {
     if (!moreRods) {
-      const n = randomInt(1, 10);
-      digits = [0, 0, n === 10 ? 1 : 0, n === 10 ? 0 : n];
+      const n = randomInt(1, 99);
+      digits = [0, 0, Math.floor(n / 10), n % 10];
     } else {
       do {
         digits = RODS.map((rod) => randomInt(0, rod.max));

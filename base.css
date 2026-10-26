@@ -843,3 +843,10 @@ button.bead:focus-visible { outline: 4px solid var(--link); outline-offset: 3px;
 .double-row.now { outline: 3px solid var(--link); outline-offset: 2px; animation: pop-small 0.45s ease-out; }
 #double-note { min-height: 2.2em; font-weight: bold; }
 .controls.tri .big-btn { flex: 1 1 0; min-width: 0; }
+
+/* Stairs legend: dashed swatches match the dashed guides */
+.legend { font-size: 0.85em; margin: 2px 0 10px; }
+.legend .sw { display: inline-block; width: 22px; border-top: 3px dashed; vertical-align: middle; margin: 0 4px 0 10px; }
+.legend .sw.roman { border-color: #2e86c1; }
+.legend .sw.arabic { border-color: #27ae60; }
+.legend .sw.binary { border-color: #8e44ad; }
