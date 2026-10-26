@@ -410,3 +410,109 @@ main { padding: 0 var(--gutter, 16px); }
 
 /* Demo steps sit side by side on wide screens, and stack on phones */
 .demo { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); align-items: start; }
+
+/* Tiles can have their own font (the Roman numerals in a serif face in some looks) */
+.tile, .letter-row button { font-family: var(--tile-font, inherit); }
+
+/* Add & Subtract: the sum on one line */
+.eq-line { font-size: 1.25em; }
+.tok.right { background: #eef8ff; }
+.tok.became { background: var(--t-V); }
+.tok.focus { box-shadow: 0 0 0 4px var(--link) inset; }
+.eq-sign { font-size: 1.5em; font-weight: 900; color: var(--ink); padding: 0 4px; }
+.tok.appear { animation: pop-small 0.45s ease-out; }
+@keyframes pop-small {
+  0% { transform: scale(0.4); opacity: 0; }
+  70% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+/* Letters: pairing panel */
+.pair-box { margin-top: 18px; padding-top: 12px; border-top: 2px dashed var(--dots); }
+.pair-list { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 14px; }
+.pair-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 1.25em;
+  color: #2b2540;
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: var(--r-tile);
+}
+.pair-chip b { font-size: 1.1em; }
+.pair-chip span { font-size: 0.8em; }
+.pair-chip.ok { background: #e8f7ec; }
+.pair-chip.never { background: #ffe9e6; }
+.letter-row button.picked { outline: 4px solid var(--ink); outline-offset: 3px; }
+.ext-list { display: grid; gap: 6px; }
+.ext-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-bottom: 2px dashed var(--dots); font-weight: bold; }
+.ext-letter { font-size: 1.4em; font-family: var(--tile-font, inherit); }
+
+/* Rules: full wording on the left, examples on the right */
+.rule-list { display: grid; gap: 10px; align-content: start; }
+.rule-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: var(--btn-h);
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 0.95em;
+  line-height: 1.3;
+  text-align: left;
+  color: var(--ink);
+  background: var(--card);
+  border: var(--edge) var(--edge-style) var(--ink);
+  border-radius: var(--r-btn);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.rule-btn b { flex: 0 0 auto; }
+
+/* Settings: labelled controls */
+.field { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 44px; margin: 6px 0; }
+.field select { font: inherit; min-height: 40px; padding: 0 8px; border: 2px solid var(--ink); border-radius: var(--r-tile); background: #fff; color: #2b2540; }
+
+/* Long Ago: timeline with plain ages */
+.timeline-visual { list-style: none; margin: 0; padding: 0; position: relative; }
+.timeline-visual li {
+  display: grid;
+  grid-template-columns: minmax(150px, 200px) minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 0 10px 22px;
+  border-left: 4px solid var(--ink);
+  position: relative;
+}
+.timeline-visual li::before {
+  content: '';
+  position: absolute;
+  left: -11px;
+  top: 14px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--t-M);
+  border: 3px solid var(--ink);
+}
+.timeline-visual .when { font-weight: 900; }
+.timeline-visual .what { font-size: 1em; }
+@media (max-width: 560px) { .timeline-visual li { grid-template-columns: 1fr; } }
+
+/* Long Ago: counting-board pebbles slide on, one after another, when their panel opens */
+.subpanel.active .peb, .demo .peb, .figure .peb { animation: slide-on 0.6s both; animation-delay: var(--d, 0s); }
+@keyframes slide-on {
+  from { transform: translateY(-40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Text size */
+html[data-size="large"] body { zoom: 1.15; }
+html[data-size="xlarge"] body { zoom: 1.3; }
+
+/* Calm motion: nothing bounces or slides */
+html[data-calm="on"] *, html[data-calm="on"] *::before, html[data-calm="on"] *::after {
+  animation: none !important;
+  transition: none !important;
+}

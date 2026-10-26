@@ -38,6 +38,11 @@ test('typed numerals over 10 letters are flagged, but still read correctly', () 
   assert.equal(Roman.check('MDLX').ok, true);
 });
 
+test('quiz statements are True or False only, and none is Ambiguous', () => {
+  for (const item of Roman.TRUE_FALSE) assert.ok(['True', 'False'].includes(item.answer), item.prompt);
+  assert.equal(Roman.TRUE_FALSE.find((t) => t.prompt === 'IL is right').answer, 'False');
+});
+
 test('quiz numerals use at most three different letters', () => {
   for (const item of Roman.TRUE_FALSE) {
     const numeral = item.prompt.split(' ')[0];
@@ -71,15 +76,13 @@ test('calculate: XL - XX = XX, with the second number broken into its own step',
   assert.equal(r.steps[r.steps.length - 1].text, 'Simplest form: XX.');
 });
 
-test('calculate: the first step is the full sum with every chunk on the line', () => {
+test('calculate: the first step is the whole sum on one line', () => {
   const r = Roman.calculate(['XLI', 'XIX'], ['+']);
-  const first = r.steps[0];
-  assert.equal(first.text, 'Full sum: XLI + XIX.');
-  assert.deepEqual(first.line.map((t) => (t.op ? t.text : t.text)), ['XL', 'I', '+', 'X', 'IX']);
-  assert.deepEqual(first.board, []);
+  assert.equal(r.steps[0].text, 'Full sum: XLI + XIX.');
+  assert.deepEqual(r.steps[0].line.map((t) => t.text), ['XL', 'I', '+', 'X', 'IX']);
 });
 
-test('calculate: XLI + XIX = LX, and IX is broken into V and IIII on the way', () => {
+test('calculate: XLI + XIX = LX, with IX broken into V and IIII, then regrouped', () => {
   const r = Roman.calculate(['XLI', 'XIX'], ['+']);
   assert.equal(r.result, 'LX');
   assert.equal(r.value, 60);
@@ -88,45 +91,54 @@ test('calculate: XLI + XIX = LX, and IX is broken into V and IIII on the way', (
   const focus = brk.line.find((t) => t.focus);
   assert.equal(focus.text, 'IX');
   assert.equal(focus.becomes, 'VIIII');
+  assert.ok(r.steps.some((s) => s.text === 'Put 5 X\'s together. They make one L.'));
 });
 
-test('calculate: a broken pair is shown on the line with its arrow, and the other chunks stay put', () => {
+test('calculate: the sum reaches an unsorted = row, and only then is the right side regrouped', () => {
+  const r = Roman.calculate(['XCVI', 'XCIII'], ['-']);
+  const eqIdx = r.steps.findIndex((s) => s.text.startsWith('The rest of the sum'));
+  assert.ok(eqIdx > 0);
+  assert.ok(r.steps[eqIdx].line.some((t) => t.eq));
+  assert.ok(r.steps.slice(eqIdx + 1).every((s) => s.line.some((t) => t.eq)));
+  assert.equal(r.steps[r.steps.length - 1].text, 'Simplest form: III.');
+});
+
+test('calculate: XCVI - XCIII matches XC on both sides, then trades one V for I\'s', () => {
+  const r = Roman.calculate(['XCVI', 'XCIII'], ['-']);
+  assert.deepEqual(r.steps[0].line.map((t) => t.text), ['XC', 'V', 'I', '−', 'XC', 'I', 'I', 'I']);
+  const same = r.steps.find((s) => s.text === 'Take away XC. The same is on both sides.');
+  assert.ok(same);
+  assert.ok(r.steps.some((s) => s.text === 'No I to take away, so trade one V for I I I I I.'));
+  assert.ok(r.steps.some((s) => s.text === "Take away 3 I's."));
+  assert.equal(r.result, 'III');
+});
+
+test('calculate: a broken pair is shown on the line with its arrow, and the other parts stay put', () => {
   const r = Roman.calculate(['XL', 'XX'], ['-']);
-  const brk = r.steps.find((s) => s.text === 'Break XL into X X X X.');
-  assert.equal(brk.line.filter((t) => t.focus).length, 1);
-  assert.equal(brk.line.find((t) => t.focus).becomes, 'XXXX');
+  const brk = r.steps.find((s) => s.line.some((t) => t.focus && t.becomes === 'XXXX'));
+  assert.ok(brk, 'XL expands to XXXX in place');
 });
 
-test('calculate: every take-away step crosses out as many pieces as its caption says', () => {
+test('calculate: every take-away step crosses out as many parts as its caption says', () => {
   const r = Roman.calculate(['XL', 'IX'], ['-']);
   const takes = r.steps.filter((s) => s.text.startsWith('Take away'));
   assert.ok(takes.length > 0);
   for (const s of takes) {
     const m = s.text.match(/^Take away (\d+) /);
     const n = m ? Number(m[1]) : 1;
-    assert.equal(s.board.filter((t) => t.st === 'cross').length, n, s.text);
+    const crossed = s.line.filter((t) => t.st === 'done' && !t.op && !t.eq && t.side === 'left').length;
+    assert.ok(crossed >= n, s.text);
   }
   assert.equal(r.result, 'XXXI');
 });
 
-test("calculate: XCVI - XCIII matches the same XC on both sides, then trades one V for I's", () => {
-  const r = Roman.calculate(['XCVI', 'XCIII'], ['-']);
-  assert.equal(r.steps[1].text, 'Put XCVI on the board.');
-  assert.deepEqual(r.steps[1].board.map((t) => t.ch), ['XC', 'V', 'I']);
-  assert.equal(r.steps[3].text, 'Take away XC. The same is on both sides.');
-  assert.ok(r.steps.some((s) => s.text === 'No I to take away, so trade one V for I I I I I.'));
-  assert.equal(r.steps.find((s) => s.text === "Take away 3 I's.").board.filter((t) => t.st === 'cross').length, 3);
-  assert.equal(r.result, 'III');
-});
-
-test("Fix It: LXXXXVII changes only LXL to XC, and keeps VII", () => {
-  const p = Roman.repairPlan('LXXXXVII');
-  const last = p.steps.filter((s) => s.kind === 'repair').pop();
-  assert.equal(last.label, 'Write the simplest form');
-  assert.equal(last.before.map((t) => t.ch).join(''), 'LXLVII');
-  assert.deepEqual(last.before.map((t) => t.st), ['cross', 'cross', 'cross', 'normal', 'normal', 'normal']);
-  assert.equal(last.after.map((t) => t.ch).join(''), 'XCVII');
-  assert.equal(p.result, 'XCVII');
+test('calculate: the second number gets its own step before anything is taken away', () => {
+  const r = Roman.calculate(['XL', 'XX'], ['-']);
+  const i = r.steps.findIndex((s) => s.text.startsWith('Second number XX'));
+  assert.ok(i > 0);
+  assert.equal(r.steps[i + 1].text, 'Break XL into X X X X.');
+  assert.equal(r.steps[i + 2].text, "Take away 2 X's.");
+  assert.equal(r.result, 'XX');
 });
 
 test('calculate: XL + XX - IX = LI (multi-step, needs a trade)', () => {

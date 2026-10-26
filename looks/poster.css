@@ -1,0 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&display=swap');
+/* Poster: bold black and yellow, heavy serif numerals, a full-width tab bar stuck to the top. */
+:root, html {
+  --font: "Merriweather", Georgia, serif;
+  --font-head: "Merriweather", Georgia, serif;
+  --tile-font: "Merriweather", Georgia, serif;
+  --font-size: 19px;
+  --paper: #fffdf5;
+  --paper-image: none;
+  --card: #ffffff;
+  --card-ink: #111111;
+  --ink: #111111;
+  --ink-soft: #333333;
+  --edge: 4px;
+  --edge-style: solid;
+  --r-card: 0;
+  --r-btn: 0;
+  --r-tile: 0;
+  --r-tab: 0;
+  --shadow: 6px 6px 0 #111111;
+  --shadow-tile: 4px 4px 0 #111111;
+  --btn-h: 58px;
+  --btn-fs: 1.05rem;
+  --tile-w: 66px;
+  --tile-h: 74px;
+  --tile-fs: 2.1rem;
+  --tile-ink: #111111;
+  --t-I: #ffd400; --t-V: #ff7b54; --t-X: #2ec4b6; --t-L: #ff9f1c;
+  --t-C: #3a86ff; --t-D: #8338ec; --t-M: #fb5607;
+  --accent: #ffd400;
+  --good: #2ec4b6;
+  --bad: #ff7b54;
+  --mark-good: #1b9e5a;
+  --mark-bad: #e63946;
+  --link: #3a86ff;
+  --dots: #11111122;
+  --input-bg: #ffffff;
+  --filter: none;
+  --line-gap: 14px;
+  --gutter: 12px;
+}
+h1 { text-transform: uppercase; letter-spacing: 0.02em; font-weight: 900; font-size: 2.4em; }
+.top { padding-top: 12px; }
+.tabs { position: sticky; top: 0; z-index: 5; gap: 0; padding: 0; background: #111111; flex-wrap: nowrap; overflow-x: auto; }
+.tab-btn {
+  min-height: 62px;
+  padding: 0 18px;
+  color: #ffffff;
+  background: #111111;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+.tab-btn.active { background: #ffd400; color: #111111; transform: none; }
+.layout { gap: 20px; }
+.play, .ref, .rule-card { border-width: 4px; }
+.big-btn { text-transform: uppercase; letter-spacing: 0.04em; font-weight: 900; }

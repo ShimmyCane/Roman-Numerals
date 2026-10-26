@@ -124,190 +124,180 @@
   }
 
   // ---------- Add & Subtract ----------
-  // The sum is a line of chunks (XL, I, +, X, IX ...) and a board of loose pieces.
-  // Each recorded step does one thing: put a term on the board, break one pair, take away a group of pieces,
-  // trade one letter, merge one group, or rebuild. A step records the line, the board and a short caption.
-  //   line token: { text, op?, st: 'todo' | 'done', focus?, becomes?, res?, term? }
-  //   board tile: { ch, st: 'normal' | 'new' | 'cross', src? }   (src = line token a piece came from)
-  const tileValue = (t) => lenientValue(t.ch);
-  const tableValue = (tiles) => tiles.reduce((sum, t) => (t.st === 'cross' ? sum : sum + tileValue(t)), 0);
-  const byValueDesc = (a, b) => tileValue(b) - tileValue(a);
-
+  // The whole sum is one line of chunks (XL, I, +, X, IX ...). Parts are expanded in place (XL shows an arrow to XXXX),
+  // matching parts are crossed out on both sides, and what is left goes to the right of '=', unsorted.
+  // The right side is then regrouped one step at a time and written in simplest form.
+  //   token: { text, op?, eq?, term?, side: 'left' | 'right', st: 'todo' | 'new' | 'done', focus?, becomes? }
   function calculate(terms, ops) {
     const steps = [];
     const line = [];
-    let board = [];
 
     terms.forEach((term, k) => {
       if (k > 0) line.push({ op: true, text: ops[k - 1] === '+' ? '+' : '−' });
-      chunks(term).forEach((c) => line.push({ text: c.text, st: 'todo', term: k }));
+      chunks(term).forEach((c) => line.push({ text: c.text, st: 'todo', term: k, side: 'left' }));
     });
 
-    const copyLine = () => line.map((t) => ({ ...t }));
-    const copyBoard = () => board.map((t) => ({ ...t }));
-    const boardShown = () => (board.some((t) => t.st !== 'cross') ? tableValue(board) : null);
-
-    // Record one step, then clear the transient marks (focus, becomes) and the crosses for the next step.
-    const snap = (text) => {
-      steps.push({ text, line: copyLine(), board: copyBoard(), value: boardShown() });
-      line.forEach((t) => { delete t.focus; delete t.becomes; });
-      board = board.filter((t) => t.st !== 'cross').map((t) => ({ ch: t.ch, st: 'normal', src: t.src }));
+    // Record one step. Pieces that just appeared stop being new, so later steps do not replay their animation.
+    const snap = (text, value = null) => {
+      steps.push({ text, line: line.map((t) => ({ ...t })), value });
+      line.forEach((t) => {
+        delete t.focus;
+        delete t.becomes;
+        if (t.st === 'new') t.st = 'todo';
+      });
     };
 
-    // Break one pair on the board (XL becomes XXXX). The line token it came from is highlighted with the arrow.
-    const breakPair = (i) => {
-      const tile = board[i];
-      const pieces = PAIR_PIECES[tile.ch];
-      tile.st = 'cross';
-      board.splice(i + 1, 0, ...pieces.split('').map((ch) => ({ ch, st: 'new', src: tile.src })));
-      if (tile.src !== undefined) {
-        line[tile.src].focus = true;
-        line[tile.src].becomes = pieces;
+    // Live parts: not crossed out, and on the given side. Each comes with its index on the line.
+    const live = (side, pred = () => true) => line
+      .map((t, i) => ({ t, i }))
+      .filter(({ t }) => !t.op && !t.eq && t.side === side && t.st === 'todo' && pred(t));
+
+    const rightLive = () => line
+      .map((t, i) => ({ t, i }))
+      .filter(({ t }) => !t.op && !t.eq && t.side === 'right' && t.st !== 'done');
+    const rightValue = () => rightLive().reduce((sum, { t }) => sum + lenientValue(t.text), 0);
+
+    // Expand one left-side part in place. It stays on the line, crossed out, with an arrow to its pieces.
+    const expand = (i) => {
+      const t = line[i];
+      const pieces = PAIR_PIECES[t.text] || TRADE[t.text];
+      t.st = 'done';
+      t.focus = true;
+      t.becomes = pieces;
+      line.splice(i + 1, 0, ...pieces.split('').map((ch) => ({ text: ch, st: 'new', term: t.term, side: 'left' })));
+      return pieces;
+    };
+
+    // Make sure n live parts of this letter are on the left, from parts of the other numbers.
+    // If there are not enough, the smallest bigger part is expanded, one step at a time.
+    const ensure = (ch, n, skipTerm) => {
+      const count = () => live('left', (t) => t.text === ch && t.term !== skipTerm).length;
+      while (count() < n) {
+        const bigger = live('left', (t) => t.term !== skipTerm && lenientValue(t.text) > VALUE[ch]);
+        if (!bigger.length) throw new Error(`Not enough to take away ${ch}`);
+        const pick = bigger.reduce((a, b) => (lenientValue(b.t.text) < lenientValue(a.t.text) ? b : a));
+        const text = pick.t.text;
+        const pieces = expand(pick.i);
+        snap(PAIR_PIECES[text]
+          ? `Break ${text} into ${pieces.split('').join(' ')}.`
+          : `No ${ch} to take away, so trade one ${text} for ${pieces.split('').join(' ')}.`);
       }
-      snap(`Break ${tile.ch} into ${pieces.split('').join(' ')}.`);
-    };
-    const breakAll = () => {
-      for (let i = board.findIndex((t) => t.st !== 'cross' && PAIR_PIECES[t.ch]); i >= 0; i = board.findIndex((t) => t.st !== 'cross' && PAIR_PIECES[t.ch])) breakPair(i);
     };
 
-    // Regroup: pieces that join into one bigger letter, one group at a time.
-    const regroup = () => {
-      let merged = true;
-      while (merged) {
-        merged = false;
+    // Subtract the second number. Its parts are matched on the left and crossed out together.
+    const subtract = (k) => {
+      const isSecond = (t) => !t.op && !t.eq && t.term === k && t.side === 'left' && t.st === 'todo';
+      line.forEach((t) => { if (t.term === k && !t.op) t.focus = true; });
+      snap(`Second number ${terms[k]} = ${lenientValue(terms[k])}.`);
+      for (;;) {
+        const idx = line.findIndex(isSecond);
+        if (idx < 0) break;
+        const part = line[idx];
+        if (PAIR_PIECES[part.text]) {
+          const match = live('left', (t) => t.text === part.text && t.term !== k)[0];
+          if (match) {
+            part.st = 'done';
+            part.focus = true;
+            match.t.st = 'done';
+            match.t.focus = true;
+            snap(`Take away ${part.text}. The same is on both sides.`);
+          } else {
+            const pieces = expand(idx);
+            snap(`Break ${part.text} into ${pieces.split('').join(' ')}.`);
+          }
+          continue;
+        }
+        // A run of the same letter from the second number is taken away in one step.
+        const group = line.map((t, i) => ({ t, i })).filter(({ t }) => isSecond(t) && t.text === part.text);
+        ensure(part.text, group.length, k);
+        const takers = live('left', (t) => t.text === part.text && t.term !== k).slice(0, group.length);
+        const second = line.map((t, i) => ({ t, i })).filter(({ t }) => isSecond(t) && t.text === part.text);
+        takers.forEach(({ t }) => { t.st = 'done'; t.focus = true; });
+        second.forEach(({ t }) => { t.st = 'done'; t.focus = true; });
+        snap(second.length === 1 ? `Take away ${part.text}.` : `Take away ${second.length} ${part.text}'s.`);
+      }
+    };
+
+    // Replace each left-side pair with its pieces, so every letter can be grouped.
+    const breakLeftPairs = () => {
+      for (;;) {
+        const i = line.findIndex((t) => !t.op && !t.eq && t.side === 'left' && t.st === 'todo' && PAIR_PIECES[t.text]);
+        if (i < 0) break;
+        const text = line[i].text;
+        const pieces = expand(i);
+        snap(`Break ${text} into ${pieces.split('').join(' ')}.`);
+      }
+    };
+
+    // Regroup the right side one letter-group at a time, then write it in order and in simplest form.
+    const regroup = (value) => {
+      let grew = true;
+      while (grew) {
+        grew = false;
         for (const [from, to, n] of MERGE) {
-          const have = board.filter((t) => t.ch === from && t.st !== 'cross');
+          const have = rightLive().filter(({ t }) => t.text === from);
           if (have.length >= n) {
-            have.slice(0, n).forEach((t) => { t.st = 'cross'; });
-            board.push({ ch: to, st: 'new' });
-            snap(`Put ${n} ${from}'s together. They make one ${to}.`);
-            merged = true;
+            have.slice(0, n).forEach(({ t }) => { t.st = 'done'; t.focus = true; });
+            line.push({ text: to, st: 'new', side: 'right' });
+            snap(`Put ${n} ${from}'s together. They make one ${to}.`, value());
+            grew = true;
             break;
           }
         }
       }
     };
 
-    // How many uncrossed pieces of exactly this letter are on the board.
-    const countOf = (ch) => board.filter((t) => t.st !== 'cross' && t.ch === ch).length;
-
-    // Make sure the board holds at least n of this letter. If it does not, break or trade the smallest bigger piece, one at a time.
-    const ensure = (ch, n) => {
-      while (countOf(ch) < n) {
-        let j = -1;
-        board.forEach((t, i) => {
-          if (t.st !== 'cross' && tileValue(t) > VALUE[ch] && (j < 0 || tileValue(t) < tileValue(board[j]))) j = i;
-        });
-        if (j < 0) throw new Error(`Not enough to take away ${ch}`);
-        if (PAIR_PIECES[board[j].ch]) {
-          breakPair(j);
-        } else {
-          const big = board[j].ch;
-          board[j].st = 'cross';
-          board.splice(j + 1, 0, ...TRADE[big].split('').map((c) => ({ ch: c, st: 'new' })));
-          snap(`No ${ch} to take away, so trade one ${big} for ${TRADE[big].split('').join(' ')}.`);
-        }
-      }
-    };
-
-    // Pieces still to be taken away from each line token (a second number's pair has several pieces).
-    const remaining = {};
-
-    // A whole part of the second number that matches a part on the board: both are crossed out together.
-    const takeWhole = (item) => {
-      board.find((t) => t.st !== 'cross' && t.ch === item.text).st = 'cross';
-      remaining[item.src] = 0;
-      line[item.src].st = 'done';
-      line[item.src].focus = true;
-      snap(`Take away ${item.text}. The same is on both sides.`);
-    };
-
-    // A run of the same letter from the second number, taken away in one step.
-    const takeGroup = (group) => {
-      const ch = group[0].text;
-      ensure(ch, group.length);
-      let left = group.length;
-      board.forEach((t) => {
-        if (left && t.st !== 'cross' && t.ch === ch) {
-          t.st = 'cross';
-          left--;
-        }
-      });
-      group.forEach(({ src }) => {
-        remaining[src] -= 1;
-        line[src].focus = true;
-        if (remaining[src] === 0) line[src].st = 'done';
-      });
-      snap(group.length === 1 ? `Take away ${ch}.` : `Take away ${group.length} ${ch}'s.`);
+    const rewrite = (texts, caption, value) => {
+      rightLive().forEach(({ t }) => { t.st = 'done'; t.focus = true; });
+      texts.forEach((text) => line.push({ text, st: 'new', side: 'right' }));
+      snap(caption, value);
     };
 
     try {
       snap(`Full sum: ${terms.map((t, k) => (k ? `${ops[k - 1] === '+' ? '+' : '−'} ${t}` : t)).join(' ')}.`);
 
-      terms.forEach((term, k) => {
-        const tokens = line.map((t, i) => ({ t, i })).filter((x) => x.t.term === k);
-        if (k === 0 || ops[k - 1] === '+') {
-          tokens.forEach(({ t, i }) => {
-            t.st = 'done';
-            board.push({ ch: t.text, st: 'new', src: i });
-          });
-          snap(k === 0 ? `Put ${term} on the board.` : `Add ${term}. Put it on the board.`);
-          // A first number that is taken away from stays whole, so its parts can be matched first.
-          if (k > 0 || ops[0] !== '-') breakAll();
-          regroup();
+      for (let k = 1; k < terms.length; k++) {
+        if (ops[k - 1] === '+') {
+          line.forEach((t) => { if (t.term === k && !t.op) t.focus = true; });
+          snap(`Add ${terms[k]} = ${lenientValue(terms[k])}.`);
         } else {
-          // Subtract: the second number is shown whole first. Each part is matched against the board: the same part is
-          // crossed out together. A pair with no match is broken first, and a missing letter is traded for, one step at a time.
-          tokens.forEach(({ i }) => { line[i].focus = true; });
-          snap(`Second number ${term} = ${lenientValue(term)}.`);
-          tokens.forEach(({ t, i }) => { remaining[i] = (PAIR_PIECES[t.text] || t.text).length; });
-          const queue = tokens.map(({ t, i }) => ({ text: t.text, src: i }));
-          while (queue.length) {
-            const item = queue.shift();
-            const onBoard = board.some((t) => t.st !== 'cross' && t.ch === item.text);
-            if (PAIR_PIECES[item.text] && onBoard) {
-              takeWhole(item);
-            } else if (PAIR_PIECES[item.text]) {
-              line[item.src].focus = true;
-              line[item.src].becomes = PAIR_PIECES[item.text];
-              snap(`Break ${item.text} into ${PAIR_PIECES[item.text].split('').join(' ')}.`);
-              queue.unshift(...PAIR_PIECES[item.text].split('').map((ch) => ({ text: ch, src: item.src })));
-            } else {
-              const group = [item];
-              while (queue.length && queue[0].text === item.text) group.push(queue.shift());
-              takeGroup(group);
-            }
-          }
-          regroup();
+          subtract(k);
         }
-      });
+      }
+
+      breakLeftPairs();
+      const leftovers = live('left');
+      leftovers.forEach(({ t }) => { t.st = 'done'; t.focus = true; });
+      line.push({ op: true, eq: true, text: '=' });
+      leftovers.forEach(({ t }) => line.push({ text: t.text, st: 'new', side: 'right' }));
+      const value = rightValue();
+      if (value < 1 || value > MAX) {
+        const error = value < 1 ? 'Zero has no Roman numeral.' : `That is more than ${MAX}, the biggest this tool writes.`;
+        snap(error, value);
+        return { steps, value, result: null, error };
+      }
+      snap('The rest of the sum is the answer. It is not in order yet.', value);
+
+      regroup(rightValue);
+
+      const result = toRoman(rightValue());
+      const current = rightLive().map(({ t }) => t.text);
+      if (current.join('') === result) {
+        rightLive().forEach(({ t }) => { t.focus = true; });
+        snap(`Simplest form: ${result}.`, rightValue());
+      } else {
+        const ordered = current.slice().sort((a, b) => lenientValue(b) - lenientValue(a));
+        if (ordered.join('') !== current.join('')) {
+          rewrite(ordered, `Put the pieces in order: ${ordered.join(' ')}.`, rightValue());
+        }
+        rewrite(chunks(result).map((c) => c.text), `Build it back up: ${result}.`, rightValue());
+      }
+      return { steps, value: rightValue(), result, error: null };
     } catch (err) {
       const error = 'Romans had no negative numbers. Try a bigger first number.';
-      steps.push({ text: 'Stop here. There is not enough to take away, and Romans had no negative numbers.', line: copyLine(), board: copyBoard(), value: null });
+      snap('Stop here. There is not enough to take away, and Romans had no negative numbers.');
       return { steps, value: null, result: null, error };
     }
-
-    const value = tableValue(board);
-    if (value < 1 || value > MAX) {
-      const error = value < 1 ? 'Zero has no Roman numeral.' : `That is more than ${MAX}, the biggest this tool writes.`;
-      steps.push({ text: error, line: copyLine(), board: copyBoard(), value });
-      return { steps, value, result: null, error };
-    }
-
-    const result = toRoman(value);
-    board = board.filter((t) => t.st !== 'cross').sort(byValueDesc).map((t) => ({ ch: t.ch, st: 'normal' }));
-    const loose = board.map((t) => t.ch).join('');
-    line.push({ op: true, text: '=' }, { text: result, st: 'done', res: true });
-    if (loose !== result) {
-      snap(`Put the pieces in order: ${loose}.`);
-      board = chunks(result).map((c) => ({ ch: c.text, st: 'new' }));
-      line[line.length - 1].focus = true;
-      snap(`Build it back up: ${result}.`);
-    } else {
-      line[line.length - 1].focus = true;
-      snap(`Simplest form: ${result}.`);
-    }
-    return { steps, value, result, error: null };
   }
 
   // ---------- Fix It ----------
@@ -429,8 +419,7 @@
     return { numeral: disarrange(toRoman(value)), answer: toRoman(value), value };
   }
 
-  // True / False / Ambiguous statements for the quiz. "Ambiguous" marks numerals the rules leave open.
-  // Each statement uses at most three different letters.
+  // True / False statements for the quiz. Each statement uses at most three different letters.
   const TRUE_FALSE = [
     { prompt: 'IV means 4', answer: 'True' },
     { prompt: 'IX means 9', answer: 'True' },
@@ -450,9 +439,9 @@
     { prompt: 'IIV is right', answer: 'False', why: 'Rule 3: only one letter before a bigger one.' },
     { prompt: 'XXXX is right', answer: 'False', why: 'Rule 5: simplest form is XL.' },
     { prompt: 'IV means 6', answer: 'False', why: 'IV means 4.' },
-    { prompt: 'IL is right', answer: 'Ambiguous', why: 'Could be read two ways.' },
-    { prompt: 'IC is right', answer: 'Ambiguous', why: 'Could be read two ways.' },
-    { prompt: 'VIX is right', answer: 'Ambiguous', why: 'Could be read two ways.' },
+    { prompt: 'IL is right', answer: 'False', why: 'Not well written. Write it as XLIX.' },
+    { prompt: 'IC is right', answer: 'False', why: 'Not well written. Write it as XCIX.' },
+    { prompt: 'VIX is right', answer: 'False', why: 'Not well written. Write it as XIV.' },
   ];
 
   return {
