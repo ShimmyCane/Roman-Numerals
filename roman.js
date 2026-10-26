@@ -179,8 +179,8 @@
         const text = pick.t.text;
         const pieces = expand(pick.i);
         snap(PAIR_PIECES[text]
-          ? `Break ${text} into ${pieces.split('').join(' ')}.`
-          : `No ${ch} to take away, so trade one ${text} for ${pieces.split('').join(' ')}.`);
+          ? `${text} is ${lenientValue(text)}. Write it as ${pieces.split('').join(' + ')}.`
+          : `No ${ch} to take away. Trade one ${text} (${lenientValue(text)}) for ${pieces.split('').join(' + ')}, which is also ${lenientValue(text)}.`);
       }
     };
 
@@ -200,10 +200,10 @@
             part.focus = true;
             match.t.st = 'done';
             match.t.focus = true;
-            snap(`Take away ${part.text}. The same is on both sides.`);
+            snap(`Take away ${part.text}. Both sides have ${part.text}.`);
           } else {
             const pieces = expand(idx);
-            snap(`Break ${part.text} into ${pieces.split('').join(' ')}.`);
+            snap(`${part.text} is ${lenientValue(part.text)}. Write it as ${pieces.split('').join(' + ')}.`);
           }
           continue;
         }
@@ -225,7 +225,7 @@
         if (i < 0) break;
         const text = line[i].text;
         const pieces = expand(i);
-        snap(`Break ${text} into ${pieces.split('').join(' ')}.`);
+        snap(`${text} is ${lenientValue(text)}. Write it as ${pieces.split('').join(' + ')}.`);
       }
     };
 
@@ -276,7 +276,7 @@
         snap(error, value);
         return { steps, value, result: null, error };
       }
-      snap('The rest of the sum is the answer. It is not in order yet.', value);
+      snap('The = sign: the rest is the answer. It is not in order yet.', value);
 
       regroup(rightValue);
 

@@ -37,4 +37,6 @@
   --filter: url(#rough);
   --line-gap: 14px;
   --gutter: 16px;
+  --page-width: none;
+  --tile-font: "Merriweather", Georgia, serif;
 }

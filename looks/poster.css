@@ -4,6 +4,7 @@
   --font: "Merriweather", Georgia, serif;
   --font-head: "Merriweather", Georgia, serif;
   --tile-font: "Merriweather", Georgia, serif;
+  --page-width: none;
   --font-size: 19px;
   --paper: #fffdf5;
   --paper-image: none;
