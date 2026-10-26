@@ -178,8 +178,9 @@
   // so its tiles do not replay their animation when the user presses Play steps or Next.
   const steppers = {};
   const stepSpeed = () => Number($('#opt-speed').value) || 1600;
-  // showAll: a new set of steps appears whole, every row at once. Back, Next and Play still step through it.
-  function makeStepper(name, { renderRow, onShow, showAll = false }) {
+  // showAll (a function): when it returns true, a new set of steps appears whole, every row at once.
+  // Otherwise only the first step shows, and Next step reveals the rest. Back, Next and Play always step through it.
+  function makeStepper(name, { renderRow, onShow, showAll = () => false }) {
     const ledger = $(`#${name}-ledger`);
     const playBtn = $(`[data-play="${name}"]`);
     let steps = [];
@@ -211,7 +212,7 @@
       rows.forEach((r, i) => r.classList.toggle('current', i === shown - 1));
       ledger.scrollTop = ledger.scrollHeight;
       speak(steps[shown - 1].text);
-      if (onShow) onShow(steps.slice(0, shown));
+      if (onShow) onShow(steps.slice(0, shown), steps.length);
     }
 
     function stop() {
@@ -226,9 +227,9 @@
         clearRows();
         steps = newSteps;
         emptyText = message;
-        shown = steps.length ? (showAll ? steps.length : 1) : 0;
+        shown = steps.length ? (showAll() ? steps.length : 1) : 0;
         sync();
-        if (showAll) ledger.scrollTop = 0;
+        ledger.scrollTop = 0;
       },
       all() {
         if (!steps.length) return;
@@ -436,6 +437,11 @@
     steppers.addsub.load(steps, `${current} has nothing to add or take away.`);
   }
 
+  // The prompt under the Add & Subtract buttons: think first, then press Next step. It goes once every step is shown.
+  function showAddsubThink(shownSteps, total) {
+    $('#addsub-think').hidden = !total || shownSteps.length >= total;
+  }
+
   // ---------- Fix It: a bad numeral, one repair at a time ----------
   function fixRow(s, i) {
     const row = el('div', 'step-row');
@@ -536,10 +542,6 @@
       });
       return card;
     }));
-    const chain = $('#pattern-chain');
-    const bits = [tileEl({ ch: 'I', st: 'normal' })];
-    LADDER.forEach(([, n, to]) => bits.push(el('span', 'chain-step', `${Roman.words(n)} →`), tileEl({ ch: to, st: 'normal' })));
-    chain.replaceChildren(...bits);
     $('#short-forms').replaceChildren(...SHORTS.map(([long, short]) => {
       const row = el('div', 'example');
       row.append(el('span', 'strip', long), mark(false), el('span', 'arrow', '→'), el('span', 'strip', short), mark(true));
@@ -582,7 +584,7 @@
 
   // ---------- Random: each button makes a numeral or sum, then runs it like a typed one ----------
   const randomMakers = {
-    addsub: { entry: 'addsub', make: () => Roman.randomSum().text },
+    addsub: { entry: 'addsub', make: () => Roman.randomEquation().text },
     fixbad: { entry: 'fix', make: () => Roman.randomDisarranged().numeral },
     regroup: { entry: 'regroup', make: randomAddition },
   };
@@ -964,7 +966,7 @@
 
   function init() {
     window.addEventListener('resize', refitSoon);
-    steppers.addsub = makeStepper('addsub', { renderRow: addsubRow, showAll: true });
+    steppers.addsub = makeStepper('addsub', { renderRow: addsubRow, onShow: showAddsubThink, showAll: () => $('#opt-showall').checked });
     steppers.fix = makeStepper('fix', { renderRow: fixRow, onShow: showFixRules });
     steppers.regroup = makeStepper('regroup', { renderRow: fixRow });
     steppers.regroup.load([], 'Press Random, or type a sum like XXVII + XVIII.');
@@ -1057,6 +1059,8 @@
       refitSoon();
     });
     $('#opt-one').addEventListener('change', (e) => { document.documentElement.dataset.one = e.target.checked ? 'on' : ''; });
+    $('#opt-showall').addEventListener('change', (e) => { if (e.target.checked) steppers.addsub.all(); });
+    $('#opt-regroup-random').addEventListener('change', (e) => { $('#regroup-random').hidden = !e.target.checked; });
     setLook('sunny');
   }
 
