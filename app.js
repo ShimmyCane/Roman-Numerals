@@ -173,7 +173,7 @@
     if (p.error) {
       setError(p.error);
       steppers.addsub.load([]);
-      $('#addsub-caption').textContent = 'Try XL - XX, or XL + XX - IX.';
+      $('#addsub-caption').textContent = 'Press Random, or type a sum like XL + XX - IX.';
       return;
     }
     const wrong = p.terms.find((t) => !Roman.check(t).ok);
@@ -188,7 +188,7 @@
     steppers.addsub.load(out.steps);
   }
 
-  // ---------- Fix It ----------
+  // ---------- Fix It: check your own ----------
   function runFix(text) {
     const s = text.trim().toUpperCase();
     if (!s) return;
@@ -228,7 +228,20 @@
     steppers.fix.load(Roman.calculate([s], []).steps);
   }
 
-  // ---------- Letters and quiz ----------
+  // ---------- Random: each tab can make its own numeral or sum, then run it like a typed one ----------
+  const randomMakers = {
+    build: () => Roman.randomNumeral(),
+    addsub: () => Roman.randomSum().text,
+  };
+  function runRandom(name) {
+    const text = randomMakers[name]();
+    $(`form[data-entry="${name}"] input`).value = text;
+    remember(name, text);
+    runners[name](text);
+  }
+
+  // ---------- Quiz: letters and true / false / ambiguous ----------
+  // `mistakes` holds misses for the rest of this visit only. Refreshing the page clears them, and so does Forget my mistakes.
   const quiz = { round: 0, carry: [], batch: [], index: 0, correct: 0, current: null, answered: false, timer: null };
 
   function shuffle(list) {
@@ -240,7 +253,6 @@
     return a;
   }
 
-  // True / False / Ambiguous items. "Ambiguous" covers pairs the rules do not settle yet (see Rule 4 note).
   const TRUE_FALSE = Roman.TRUE_FALSE;
   const TF_OPTIONS = ['True', 'False', 'Ambiguous'];
 
@@ -251,13 +263,11 @@
       { kind: 'value', prompt: String(VALUE[ch]), answer: ch },
     ]);
     const tf = TRUE_FALSE.map((t) => ({ kind: 'tf', prompt: t.prompt, answer: t.answer, why: t.why }));
-    const convert = Roman.CONVERT.map((c) => ({ kind: 'convert', prompt: `Fix ${c.prompt}`, numeral: c.prompt, answer: c.answer, wrong: c.wrong }));
-    return letters.concat(tf, convert);
+    return letters.concat(tf);
   }
 
   // Two answers per question: the right one and one wrong one.
   function optionsFor(item) {
-    if (item.kind === 'convert') return shuffle([item.answer, item.wrong]);
     const pool = item.kind === 'tf' ? TF_OPTIONS : item.kind === 'letter' ? Object.values(VALUE).map(String) : LETTERS;
     const wrong = shuffle(pool.filter((x) => x !== item.answer))[0];
     return shuffle([item.answer, wrong]);
@@ -265,12 +275,6 @@
 
   // A missed question comes back as a similar question, not the same one.
   function similarItem(item) {
-    if (item.kind === 'convert') {
-      const others = Roman.CONVERT.filter((c) => c.answer === item.answer && c.prompt !== item.numeral);
-      if (!others.length) return item;
-      const pick = shuffle(others)[0];
-      return { kind: 'convert', prompt: `Fix ${pick.prompt}`, numeral: pick.prompt, answer: pick.answer, wrong: pick.wrong };
-    }
     if (item.kind === 'letter') return { kind: 'value', prompt: String(VALUE[item.prompt]), answer: item.prompt };
     if (item.kind === 'value') return { kind: 'letter', prompt: item.answer, answer: String(VALUE[item.answer]) };
     const others = TRUE_FALSE.filter((t) => t.answer === item.answer && t.prompt !== item.prompt);
@@ -280,7 +284,6 @@
   }
 
   function explain(item) {
-    if (item.kind === 'convert') return `${item.numeral} is ${item.answer}`;
     if (item.kind === 'tf') return item.why ? `${item.answer}. ${item.why}` : `${item.answer}`;
     return `${item.prompt} is ${item.answer}`;
   }
@@ -353,6 +356,59 @@
     next.hidden = false;
   }
 
+  // ---------- Fix It: quiz ----------
+  // Misses come back two questions later, so a miss is never asked again straight away.
+  const fixq = { count: 0, right: 0, item: null, answered: false, misses: [] };
+
+  function nextFixQuestion() {
+    fixq.count++;
+    const due = fixq.misses.findIndex((m) => m.due <= fixq.count);
+    fixq.item = due >= 0 ? fixq.misses.splice(due, 1)[0].item : Roman.randomDisarranged();
+    fixq.answered = false;
+    $('#fixq-prompt').textContent = fixq.item.numeral;
+    $('#fixq-count').textContent = `Question ${fixq.count}`;
+    $('#fixq-score').textContent = `${fixq.right} right`;
+    $('#fixq-feedback').textContent = '';
+    $('#fixq-input').value = '';
+    $('#fixq-input').disabled = false;
+    $('#fixq-check').hidden = false;
+    $('#fixq-next').hidden = true;
+    $('#fixq-input').focus();
+  }
+
+  function checkFixQuestion(e) {
+    e.preventDefault();
+    if (fixq.answered) return;
+    const typed = $('#fixq-input').value.trim().toUpperCase();
+    if (!typed) return;
+    const { numeral, answer } = fixq.item;
+    fixq.answered = true;
+    const feedback = $('#fixq-feedback');
+    if (typed === answer) {
+      fixq.right++;
+      sfx.good();
+      feedback.textContent = `✓ ${answer} is right.`;
+    } else {
+      fixq.misses.push({ item: fixq.item, due: fixq.count + 2 });
+      sfx.oops();
+      const why = Roman.check(typed).issues.find((i) => i.rule !== null);
+      feedback.textContent = `✗ ${numeral} is ${answer}, the simplest form.${why ? ` ${why.text}` : ''}`;
+    }
+    $('#fixq-score').textContent = `${fixq.right} right`;
+    $('#fixq-input').disabled = true;
+    $('#fixq-check').hidden = true;
+    $('#fixq-next').hidden = false;
+  }
+
+  // ---------- Settings: forget mistakes (quiz and Fix It) ----------
+  function forgetMistakes() {
+    quiz.carry = [];
+    fixq.misses = [];
+    if (!$('#quiz-next').hidden) $('#quiz-next').textContent = 'New round';
+    $('#forget-note').textContent = 'Mistakes forgotten.';
+  }
+
+  // ---------- Letters ----------
   function buildLetterRow() {
     const row = $('#letter-row');
     LETTERS.forEach((ch) => {
@@ -394,6 +450,8 @@
       });
     });
 
+    $$('[data-random]').forEach((b) => b.addEventListener('click', () => runRandom(b.dataset.random)));
+
     $$('[data-undo]').forEach((b) => b.addEventListener('click', () => {
       const name = b.dataset.undo;
       const prev = undoStack[name].pop();
@@ -413,12 +471,18 @@
     $('#quiz-next').addEventListener('click', startRound);
     startRound();
 
+    $('#fixq-form').addEventListener('submit', checkFixQuestion);
+    $('#fixq-next').addEventListener('click', nextFixQuestion);
+    nextFixQuestion();
+
     const drawer = $('#drawer');
     $('#gear').addEventListener('click', () => {
       drawer.hidden = !drawer.hidden;
       $('#gear').setAttribute('aria-expanded', String(!drawer.hidden));
+      $('#forget-note').textContent = '';
     });
     $('#drawer-close').addEventListener('click', () => { drawer.hidden = true; });
+    $('#forget').addEventListener('click', forgetMistakes);
     $('#opt-sound').addEventListener('change', (e) => { soundOn = e.target.checked; });
     $('#opt-errors').addEventListener('change', (e) => {
       showErrors = e.target.checked;

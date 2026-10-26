@@ -13,7 +13,7 @@
   const MAX = 3999;
   // Numerals a student types in have at most this many letters. Results from the calculator are not capped.
   const LETTER_LIMIT = 10;
-  // Quick check numerals use at most this many different letters (I, V, X and so on).
+  // Quiz numerals use at most this many different letters (I, V, X and so on).
   const QUIZ_MAX_TYPES = 3;
 
   // One letter broken into the next smaller letter's pieces, used when we need to trade.
@@ -220,7 +220,40 @@
     return { terms, ops };
   }
 
-  // True / False / Ambiguous statements for the quick check. "Ambiguous" marks numerals the rules leave open.
+  // Random practice. `rand` returns a number from 0 up to 1 (Math.random by default), so tests can pass a fixed sequence.
+  const randomInt = (lo, hi, rand) => lo + Math.floor(rand() * (hi - lo + 1));
+
+  // Build & Break: a random numeral in simplest form, from 4 to 499, keeping only those within the letter limit (388 has 11 letters, so it is left out).
+  const RANDOM_NUMERALS = [];
+  for (let n = 4; n <= 499; n++) if (toRoman(n).length <= LETTER_LIMIT) RANDOM_NUMERALS.push(toRoman(n));
+
+  function randomNumeral(rand = Math.random) {
+    return RANDOM_NUMERALS[randomInt(0, RANDOM_NUMERALS.length - 1, rand)];
+  }
+
+  // Add & Subtract: a random sum or difference of two numerals up to 99, ready to type in (e.g. "XL - XX").
+  // A difference is never below 1.
+  function randomSum(rand = Math.random) {
+    const adding = rand() < 0.5;
+    const a = randomInt(2, 99, rand);
+    const b = adding ? randomInt(1, 99, rand) : randomInt(1, a - 1, rand);
+    return { text: `${toRoman(a)} ${adding ? '+' : '-'} ${toRoman(b)}`, value: adding ? a + b : a - b };
+  }
+
+  // Fix It: a disarranged numeral made by writing each subtractive pair as its pieces (XL becomes XXXX).
+  // Only numbers with a pair are used, so the disarranged numeral is always wrong and the answer is always the simplest form.
+  function disarrange(s) {
+    return s.replace(/IV|IX|XL|XC|CD|CM/g, (pair) => PAIR_PIECES[pair]);
+  }
+  const DISARRANGEABLE = [];
+  for (let n = 2; n <= 99; n++) if (disarrange(toRoman(n)) !== toRoman(n)) DISARRANGEABLE.push(n);
+
+  function randomDisarranged(rand = Math.random) {
+    const value = DISARRANGEABLE[randomInt(0, DISARRANGEABLE.length - 1, rand)];
+    return { numeral: disarrange(toRoman(value)), answer: toRoman(value), value };
+  }
+
+  // True / False / Ambiguous statements for the quiz. "Ambiguous" marks numerals the rules leave open.
   // Each statement uses at most three different letters.
   const TRUE_FALSE = [
     { prompt: 'IV means 4', answer: 'True' },
@@ -246,16 +279,9 @@
     { prompt: 'VIX is right', answer: 'Ambiguous', why: 'Could be read two ways.' },
   ];
 
-  // Disarranged numerals the student converts to the correct form. Each answer is checked in the tests.
-  const CONVERT = [
-    { prompt: 'IIII', answer: 'IV', wrong: 'VI' },
-    { prompt: 'VIIII', answer: 'IX', wrong: 'XI' },
-    { prompt: 'XXXX', answer: 'XL', wrong: 'LX' },
-    { prompt: 'VV', answer: 'X', wrong: 'V' },
-    { prompt: 'CCCC', answer: 'CD', wrong: 'DC' },
-    { prompt: 'XIIII', answer: 'XIV', wrong: 'XVI' },
-    { prompt: 'IXV', answer: 'XIV', wrong: 'XVI' },
-  ];
-
-  return { VALUE, PAIR_PIECES, TRADE, MAX, LETTER_LIMIT, QUIZ_MAX_TYPES, TRUE_FALSE, CONVERT, lenientValue, toRoman, chunks, check, calculate, parse };
+  return {
+    VALUE, PAIR_PIECES, TRADE, MAX, LETTER_LIMIT, QUIZ_MAX_TYPES, TRUE_FALSE, DISARRANGEABLE,
+    lenientValue, toRoman, chunks, check, calculate, parse, disarrange,
+    randomNumeral, randomSum, randomDisarranged, RANDOM_NUMERALS,
+  };
 });

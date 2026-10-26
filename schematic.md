@@ -1,6 +1,6 @@
 # Roman Numerals — Schematic (draft for review)
 
-Status: **MVP built (tabs 1–6 below, Letters, Build & Break, Add & Subtract, Fix It, Rules, Long Ago).** Decisions from `convo/convo v0.1.md` are in `convo/convo v0.2.md`, with open questions. Problem Lab and Explain & Playback are not built yet.
+Status: **MVP revised after Jimmy's first look (`convo/convo v0.5.md`).** Tabs: Letters, Quiz, Build & Break, Add & Subtract, Fix It, Rules, Long Ago. Problem Lab and Explain & Playback are not built yet.
 
 ## 1. Purpose
 
@@ -32,10 +32,11 @@ Jimmy's model, restated:
 
 | # | Tab | MVP? | What it does |
 |---|---|---|---|
-| 1 | **Letters** | Yes | Learn and quiz I, V, X, L, C, D, M and their values. Match, tap, and say the value. |
-| 2 | **Build & Break** | Yes | Enter a number (1–3999 or agreed range). Watch it decompose into pieces, then recompose into a numeral. Shows which rule each step uses. |
-| 3 | **Add & Subtract** | Yes | Two numerals, one operation. Pieces move onto a tray, pairs cancel (for subtraction) or merge (for addition), then the result regroups and recomposes. Animated. |
-| 4 | **Fix It** | Yes | A malformed numeral (e.g., VV, IIIII, IC, XXXX). The tool names the broken rule, animates the repair, and lists any valid alternatives when more than one exists. |
+| 1 | **Letters** | Yes | Learn I, V, X, L, C, D, M and their values. Tap a letter to hear its value. Learn only, no quiz. |
+| 1b | **Quiz** | Yes | Letters both ways and true / false / ambiguous items. Misses come back as similar questions. Misses last until refresh or Forget my mistakes. |
+| 2 | **Build & Break** | Yes | Random numeral or typed numeral. Decomposes into pieces, then recomposes into the simplest form. Back / Play / Next steps. |
+| 3 | **Add & Subtract** | Yes | Random sum or typed sum. Pieces move onto a board, pairs cancel (subtract) or merge (add), then the result regroups and recomposes. |
+| 4 | **Fix It** | Yes | Quiz: a disarranged numeral (e.g., IIII), type the simplest form. Also check your own numeral and name the rule it breaks. |
 | 5 | **Rules** | Yes | Rules 1–5 as short picture cards with one worked example each. Wording from ORC. |
 | 6 | **Problem Lab** | Later | Child or teacher types a sample problem (e.g., XL − XX). Step-by-step guidance with "next step" hints and an optional check. Future tab per Jimmy. |
 | 7 | **Explain & Playback** | Later | Child records their explanation of a problem (voice, stays on the device), then plays it back to practice. Needs microphone permission, so hosted on GitHub Pages (not an Artifact). |
@@ -87,4 +88,5 @@ See `convo/convo v0.1.md`. Key ones: ORC Rules 1–5 wording, the number range, 
 
 - 2026-10-26: Schematic draft v0.1 created from the first conversation. Awaiting Jimmy's review.
 - 2026-10-26: Jimmy answered convo v0.1. MVP built: `roman.js` (logic), `app.js`, `index.html`, `styles.css`, `tests/roman.test.js` (14 tests pass). Browser smoke test: no page errors, phone width has no horizontal scroll.
+- 2026-10-26: Jimmy's first look (convo v0.5). Dark mode removed for legibility on iPads. Quiz split into its own tab, mistakes cleared by a settings button. Build & Break and Add & Subtract gained Random and type-your-own. Fix It became a quiz. Long Ago rewritten with sources. 21 logic tests pass.
 - 2026-10-26: Convo v0.2–v0.3 answers applied (convo v0.4). Pair rule (Rule 4) no longer named in messages. Range capped at MD (1500). Quick check gives two answers per question, shows the right answer at once, and repeats misses as similar questions. Quick mode dropped. Trades break only the piece needed.

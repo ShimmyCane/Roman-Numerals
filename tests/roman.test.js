@@ -40,25 +40,49 @@ test('typed numerals over 10 letters are flagged, but still read correctly', () 
   assert.equal(Roman.check('MMMDCCCLXXXVIII').ok, false);
 });
 
-test('every fix-it item: the prompt is wrong, the answer is right, the distractor is a different value', () => {
-  for (const c of Roman.CONVERT) {
-    assert.equal(Roman.check(c.prompt).ok, false, c.prompt);
-    assert.equal(Roman.check(c.answer).ok, true, c.answer);
-    assert.notEqual(Roman.lenientValue(c.wrong), Roman.lenientValue(c.answer), c.wrong);
-    assert.equal(Roman.lenientValue(c.prompt), Roman.lenientValue(c.answer), c.prompt);
-  }
-});
-
-test('quick check numerals use at most three different letters', () => {
+test('quiz numerals use at most three different letters', () => {
   assert.equal(Roman.QUIZ_MAX_TYPES, 3);
   for (const item of Roman.TRUE_FALSE) {
     const numeral = item.prompt.split(' ')[0];
     const types = new Set(numeral);
     assert.ok(types.size <= Roman.QUIZ_MAX_TYPES, `${item.prompt} uses ${types.size} letter types`);
   }
-  for (const c of Roman.CONVERT) {
-    assert.ok(new Set(c.prompt).size <= Roman.QUIZ_MAX_TYPES, c.prompt);
-    assert.ok(new Set(c.answer).size <= Roman.QUIZ_MAX_TYPES, c.answer);
+});
+
+test('Fix It: a disarranged numeral is wrong, its answer is the simplest form, and both have the same value', () => {
+  for (let i = 0; i < 300; i++) {
+    const d = Roman.randomDisarranged();
+    assert.equal(Roman.check(d.numeral).ok, false, d.numeral);
+    assert.equal(Roman.check(d.answer).ok, true, d.answer);
+    assert.equal(Roman.lenientValue(d.numeral), d.value, d.numeral);
+    assert.equal(Roman.toRoman(d.value), d.answer);
+  }
+});
+
+test('Fix It: a fixed sequence gives a known disarranged numeral (XIV becomes XIIII)', () => {
+  assert.equal(Roman.disarrange('XIV'), 'XIIII');
+  assert.equal(Roman.disarrange('XLIX'), 'XXXXVIIII');
+  assert.equal(Roman.randomDisarranged(() => 0).numeral, Roman.disarrange(Roman.toRoman(Roman.DISARRANGEABLE[0])));
+});
+
+test('Build & Break: random numerals are in simplest form and within the letter limit', () => {
+  for (let i = 0; i < 300; i++) {
+    const s = Roman.randomNumeral();
+    assert.equal(Roman.check(s).ok, true, s);
+  }
+  for (const s of Roman.RANDOM_NUMERALS) assert.ok(s.length <= Roman.LETTER_LIMIT, s);
+  assert.ok(!Roman.RANDOM_NUMERALS.includes('CCCLXXXVIII'));
+});
+
+test('Add & Subtract: random sums are readable, calculate to the stated value, and never go below 1', () => {
+  for (let i = 0; i < 300; i++) {
+    const s = Roman.randomSum();
+    const p = Roman.parse(s.text);
+    assert.ok(!p.error, s.text);
+    const r = Roman.calculate(p.terms, p.ops);
+    assert.equal(r.error, null, s.text);
+    assert.equal(r.value, s.value, s.text);
+    assert.ok(s.value >= 1, s.text);
   }
 });
 
