@@ -415,7 +415,7 @@
     { name: 'tens', one: 'X', five: 'L', max: 9, place: 10, color: '#27ae60' },
     { name: 'ones', one: 'I', five: 'V', max: 9, place: 1, color: '#8e44ad' },
   ];
-  let digits = [0, 0, 4, 7];
+  let digits = [0, 0, 0, 7]; // VII, inside the I to X start
 
   const valueOfDigits = () => digits.reduce((acc, d) => acc * 10 + d, 0);
   const rawOf = (rod, d) => (d >= 5 && rod.five ? rod.five : '') + rod.one.repeat(d % 5);
@@ -431,10 +431,24 @@
     target.replaceChildren(...(spans.length ? spans : [document.createTextNode('—')]));
   }
 
+  // Start with I to X: only the ones and tens rods, values 1 to 10. The "More places" setting opens the rest.
+  let moreRods = false;
+
+  // Keep the digits inside the chosen range. A change to tens or ones (index 2 or 3) decides which one stays.
+  function fitDigits(changed) {
+    if (moreRods) return;
+    digits[0] = 0;
+    digits[1] = 0;
+    if (digits[2] > 1) digits[2] = 1;
+    if (changed === 2 && digits[2] === 1) digits[3] = 0;
+    if (changed === 3 && digits[3] > 0) digits[2] = 0;
+  }
+
   function renderRods() {
     const rods = $('#rods');
     rods.replaceChildren();
     RODS.forEach((rod, i) => {
+      if (!moreRods && i < 2) return; // hundreds and thousands stay hidden until the setting is on
       const d = digits[i];
       const col = el('div', 'rod');
       if (rod.five) {
@@ -445,6 +459,7 @@
         heaven.setAttribute('aria-label', `${rod.name} five`);
         heaven.addEventListener('click', () => {
           digits[i] = d >= 5 ? d - 5 : d + 5;
+          fitDigits(i);
           renderRods();
         });
         col.appendChild(heaven);
@@ -464,6 +479,7 @@
         bead.addEventListener('click', () => {
           const fives = d >= 5 && rod.five ? 5 : 0;
           digits[i] = fives + (k < d % 5 ? k : k + 1);
+          fitDigits(i);
           renderRods();
         });
         col.appendChild(bead);
@@ -481,9 +497,14 @@
   }
 
   function randomRods() {
-    do {
-      digits = RODS.map((rod) => randomInt(0, rod.max));
-    } while (valueOfDigits() < 1);
+    if (!moreRods) {
+      const n = randomInt(1, 10);
+      digits = [0, 0, n === 10 ? 1 : 0, n === 10 ? 0 : n];
+    } else {
+      do {
+        digits = RODS.map((rod) => randomInt(0, rod.max));
+      } while (valueOfDigits() < 1);
+    }
     renderRods();
   }
 
@@ -696,36 +717,54 @@
     showPair('china', chinaN);
   }
 
-  // ---------- Double: halve on the left, double on the right; keep the rows with an odd left side ----------
+  // ---------- Double: halve on the left, double on the right. One row at a time, nothing plays on its own. ----------
+  // A kept row is one where the left number is odd. Its right number is one of the pieces to add.
   let doubleA = 13;
   let doubleB = 6;
+  let doubleStep = 0; // rows shown so far
 
-  function renderDouble() {
-    const sum = $('#double-sum');
-    sum.replaceChildren(el('div', 'counter-roman', `${toRoman(doubleA)} × ${toRoman(doubleB)}`), el('div', 'counter-arabic', `${doubleA} × ${doubleB}`));
-    const rows = $('#double-rows');
-    rows.replaceChildren();
+  function doubleRows() {
+    const out = [];
     let a = doubleA;
     let b = doubleB;
-    let total = 0;
     while (a >= 1) {
-      const keep = a % 2 === 1;
-      if (keep) total += b;
-      const row = el('div', `double-row${keep ? '' : ' crossed'}`);
-      // The light is on for a kept row: read from the bottom up, the lights are the binary number
-      const light = el('span', `light${keep ? ' on' : ''}`);
-      light.setAttribute('aria-label', keep ? 'kept' : 'crossed out');
-      const cell = (n) => {
-        const c = el('div', 'double-cell');
-        c.append(el('div', 'cell-roman', toRoman(n)), el('div', 'cell-arabic', String(n)));
-        return c;
-      };
-      row.append(light, cell(a), cell(b));
-      rows.appendChild(row);
+      out.push({ a, b, keep: a % 2 === 1 });
       a = Math.floor(a / 2);
       b *= 2;
     }
+    return out;
+  }
+
+  function renderDouble() {
+    const rows = doubleRows();
+    const shown = Math.min(doubleStep, rows.length);
+    $('#double-sum').replaceChildren(el('div', 'counter-roman', `${toRoman(doubleA)} × ${toRoman(doubleB)}`), el('div', 'counter-arabic', `${doubleA} × ${doubleB}`));
+    const box = $('#double-rows');
+    box.replaceChildren();
+    const cell = (n) => {
+      const c = el('div', 'double-cell');
+      c.append(el('div', 'cell-roman', toRoman(n)), el('div', 'cell-arabic', String(n)));
+      return c;
+    };
+    const kept = [];
+    rows.slice(0, shown).forEach((r, i) => {
+      if (r.keep) kept.push(r.b);
+      const row = el('div', `double-row${r.keep ? '' : ' crossed'}${i === shown - 1 ? ' now' : ''}`);
+      const light = el('span', `light${r.keep ? ' on' : ''}`);
+      light.setAttribute('aria-label', r.keep ? 'kept' : 'crossed out');
+      row.append(light, cell(r.a), cell(r.b));
+      box.appendChild(row);
+    });
+    const total = kept.reduce((x, y) => x + y, 0);
     showPair('double', total);
+
+    const cur = rows[shown - 1];
+    let note = 'Press ▶ to start.';
+    if (cur) note = cur.keep ? `${cur.a} is odd: keep ${cur.b}.` : `${cur.a} is even: cross out ${cur.b}.`;
+    if (shown === rows.length && kept.length) note = `Add the kept ones: ${kept.join(' + ')} = ${total}.`;
+    $('#double-note').textContent = note;
+    $('#double-back').disabled = shown <= 0;
+    $('#double-next').disabled = shown >= rows.length;
   }
 
   // ---------- wiring ----------
@@ -775,7 +814,10 @@
     $('#china-random').addEventListener('click', () => { chinaN = randomInt(1, MAX); renderChina(); });
 
     renderDouble();
-    $('#double-random').addEventListener('click', () => { doubleA = randomInt(3, 15); doubleB = randomInt(2, 12); renderDouble(); });
+    $('#double-random').addEventListener('click', () => { doubleA = randomInt(3, 15); doubleB = randomInt(2, 12); doubleStep = 0; renderDouble(); });
+    $('#double-next').addEventListener('click', () => { doubleStep += 1; renderDouble(); });
+    $('#double-back').addEventListener('click', () => { doubleStep = Math.max(0, doubleStep - 1); renderDouble(); });
+    $('#opt-more-rods').addEventListener('change', (e) => { moreRods = e.target.checked; fitDigits(); renderRods(); });
 
     const drawer = $('#drawer');
     $('#gear').addEventListener('click', () => {
