@@ -22,15 +22,22 @@
     return e;
   };
   // SVG attributes cannot read CSS variables, so colours from the look go in as inline styles.
-  const svgEl = (tag, attrs) => {
+  const svgEl = (tag, attrs = {}, text) => {
     const e = document.createElementNS(NS, tag);
     Object.entries(attrs).forEach(([k, v]) => {
       if (String(v).startsWith('var(')) e.style.setProperty(k, v);
       else e.setAttribute(k, v);
     });
+    if (text !== undefined) e.textContent = text;
     return e;
   };
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const randomInt = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+  // Roman on one line, Arabic on the line below
+  function showPair(prefix, n) {
+    $(`#${prefix}-roman`).textContent = n > 0 ? toRoman(n) : '—';
+    $(`#${prefix}-arabic`).textContent = String(n);
+  }
 
   // ---------- tabs ----------
   function showTab(name) {
@@ -38,20 +45,20 @@
     $$('.tab').forEach((s) => s.classList.toggle('active', s.id === `tab-${name}`));
   }
 
-  // ---------- Start: tap a letter to see its value, then the squares to scale ----------
+  // ---------- Start: the letters, their values on a row below, then the squares to scale ----------
   function buildLetterRow() {
     const row = $('#letter-row');
     LETTERS.forEach(({ letter, value }) => {
-      const b = el('button', `tile ${letter}`);
-      b.append(letter, el('span', 'arabic', String(value)));
+      const cell = el('div', 'letter-cell');
+      const b = el('button', `tile ${letter}`, letter);
       b.addEventListener('click', () => {
         $('#letter-hint').textContent = `${letter} is worth ${Roman.words(value)} (${value}).`;
       });
-      row.append(b);
+      cell.append(b, el('span', 'letter-num', String(value)));
+      row.append(cell);
     });
   }
 
-  // Squares to scale, the area is the value
   function renderTiles() {
     const row = $('#tile-row');
     row.replaceChildren();
@@ -63,82 +70,105 @@
       sq.style.width = `${side}px`;
       sq.style.height = `${side}px`;
       sq.setAttribute('aria-label', `${letter} is ${value}`);
-      cell.appendChild(sq);
-      cell.appendChild(el('div', 'tile-label', `${letter} ${value}`));
+      cell.append(sq, el('div', 'tile-label', letter), el('div', 'tile-num', String(value)));
       row.appendChild(cell);
     });
   }
 
-  // ---------- Spiral: one spiral from I onward. Each turn is times ten. V sits at the top. ----------
-  const CX = 200;
-  const CY = 200;
-  const BASE = 16;
-  const GROWTH = 50;
+  // ---------- Spiral: one spiral from I onward, one turn per times ten, V at the top ----------
+  const ZOOMS = [20, 50, 100, 500, 1000, MAX];
   const LOG5 = Math.log10(5);
-  const TMAX = Math.log10(MAX);
+  const SP = { cx: 200, cy: 200, base: 14, rmax: 160 };
+  let zoomIndex = 0;
   let spiralN = 1;
 
-  // Position of number n. Radius grows with log10(n); the angle is one turn per times ten, rotated so 5 is at the top.
-  function spiralAt(n, extra = 0) {
+  // The view always reaches a bit past the current number, so scrolling on zooms out gently.
+  const viewMax = () => Math.min(MAX, Math.max(ZOOMS[zoomIndex], Math.ceil(spiralN * 1.25)));
+
+  function spiralAt(n, vmax, extra = 0) {
     const t = Math.log10(n);
-    const r = BASE + GROWTH * t + extra;
+    const growth = (SP.rmax - SP.base) / Math.log10(vmax);
+    const r = SP.base + growth * t + extra;
     const angle = 2 * Math.PI * (t - LOG5) - Math.PI / 2;
-    return { x: CX + r * Math.cos(angle), y: CY + r * Math.sin(angle), angle };
+    return { x: SP.cx + r * Math.cos(angle), y: SP.cy + r * Math.sin(angle) };
   }
 
-  // The biggest letter in a numeral is the one to underline. Underline its first run: IX underlines the X.
-  function underlineSpans(text) {
-    const biggest = text.split('').reduce((a, c) => (VALUE[c] > VALUE[a] ? c : a), text[0]);
-    const start = text.indexOf(biggest);
+  // The biggest letter in a numeral is underlined: its first run. IX underlines the X.
+  function numeralText(svgText, numeral) {
+    const biggest = numeral.split('').reduce((a, c) => (VALUE[c] > VALUE[a] ? c : a), numeral[0]);
+    const start = numeral.indexOf(biggest);
     let end = start;
-    while (end < text.length && text[end] === biggest) end++;
-    return text.split('').map((ch, i) => ({ ch, underline: i >= start && i < end }));
+    while (end < numeral.length && numeral[end] === biggest) end++;
+    numeral.split('').forEach((ch, i) => {
+      svgText.appendChild(svgEl('tspan', i >= start && i < end ? { 'text-decoration': 'underline' } : {}, ch));
+    });
+    return svgText;
   }
 
-  function buildSpiralStatic() {
+  // Ahead numbers only while near the start (to XV), numbers behind only to XX. After that, just the number itself.
+  function spiralWindow() {
+    const list = [spiralN];
+    if (spiralN <= 15) for (let k = 1; k <= 4; k++) list.push(spiralN + k);
+    if (spiralN <= 20) for (let k = 1; k <= 4; k++) list.push(spiralN - k);
+    return list.filter((n) => n >= 1 && n <= MAX);
+  }
+
+  function renderSpiral() {
+    const vmax = viewMax();
     const svg = $('#spiral-svg');
     svg.replaceChildren();
+
     const path = [];
-    for (let i = 0; i <= 600; i++) {
-      const p = spiralAt(Math.pow(10, (TMAX * i) / 600));
+    for (let i = 0; i <= 300; i++) {
+      const p = spiralAt(Math.pow(vmax, i / 300), vmax);
       path.push(`${p.x.toFixed(1)},${p.y.toFixed(1)}`);
     }
-    svg.appendChild(svgEl('polyline', { points: path.join(' '), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: 0.45 }));
-    // Every number as a small dot on the spiral
-    for (let n = 1; n <= MAX; n++) {
-      const p = spiralAt(n);
-      svg.appendChild(svgEl('circle', { cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: 1.8, fill: 'var(--ink)' }));
-    }
-    svg.appendChild(svgEl('g', { id: 'spiral-window' }));
-  }
+    svg.appendChild(svgEl('polyline', { points: path.join(' '), fill: 'none', stroke: 'var(--ink)', 'stroke-width': 3, 'stroke-linecap': 'round', opacity: 0.4 }));
 
-  // The numbers around the current one, with their numerals. The biggest letter is underlined.
-  function renderSpiralWindow() {
-    const group = $('#spiral-window');
-    group.replaceChildren();
-    for (let n = spiralN - 5; n <= spiralN + 5; n++) {
-      if (n < 1 || n > MAX) continue;
-      const current = n === spiralN;
-      const p = spiralAt(n, current ? 16 : 0);
-      const lp = spiralAt(n, current ? 40 : 30);
-      group.appendChild(svgEl('circle', { cx: p.x.toFixed(1), cy: p.y.toFixed(1), r: current ? 7 : 3.5, fill: current ? 'var(--t-M)' : 'var(--card)', stroke: 'var(--ink)', 'stroke-width': 2 }));
-      const label = svgEl('text', {
-        x: lp.x.toFixed(1), y: (lp.y + 6).toFixed(1), 'text-anchor': 'middle', 'font-size': current ? 26 : 16,
-        'font-weight': 900, fill: 'var(--ink)', stroke: 'var(--card)', 'stroke-width': 5, 'paint-order': 'stroke',
-      });
-      underlineSpans(toRoman(n)).forEach(({ ch, underline }) => {
-        const span = svgEl('tspan', underline ? { 'text-decoration': 'underline' } : {});
-        span.textContent = ch;
-        label.appendChild(span);
-      });
-      group.appendChild(label);
+    // Every number as a small dot, all in one path so long spirals stay quick
+    const r = vmax > 200 ? 1.1 : 2.4;
+    let dots = '';
+    for (let n = 1; n <= vmax; n++) {
+      const p = spiralAt(n, vmax);
+      dots += `M${(p.x - r).toFixed(1)} ${p.y.toFixed(1)}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0`;
     }
+    svg.appendChild(svgEl('path', { d: dots, fill: 'var(--ink)' }));
+
+    // The seven letters as headings on the spiral: letter, and its value on the line below
+    LETTERS.filter(({ value }) => value <= vmax).forEach(({ letter, value }) => {
+      const p = spiralAt(value, vmax);
+      const lp = spiralAt(value, vmax, 30);
+      svg.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: 9, fill: `var(--t-${letter})`, stroke: 'var(--ink)', 'stroke-width': 2.5 }));
+      const halo = { stroke: 'var(--card)', 'stroke-width': 5, 'paint-order': 'stroke', fill: 'var(--ink)', 'text-anchor': 'middle', 'font-weight': 900 };
+      svg.appendChild(svgEl('text', { ...halo, x: lp.x, y: lp.y - 2, 'font-size': 20 }, letter));
+      svg.appendChild(svgEl('text', { ...halo, x: lp.x, y: lp.y + 14, 'font-size': 12 }, String(value)));
+    });
+
+    // The current number, and its neighbours near the start
+    const letterValues = LETTERS.map((x) => x.value);
+    spiralWindow().forEach((n) => {
+      const current = n === spiralN;
+      const p = spiralAt(n, vmax);
+      svg.appendChild(svgEl('circle', { cx: p.x, cy: p.y, r: current ? 8 : 4, fill: current ? 'var(--t-M)' : 'var(--card)', stroke: 'var(--ink)', 'stroke-width': 2 }));
+      if (letterValues.includes(n) && !current) return; // the heading already names it
+      const lp = spiralAt(n, vmax, current ? -26 : -20);
+      const label = svgEl('text', {
+        x: lp.x, y: lp.y + 5, 'text-anchor': 'middle', 'font-size': current ? 20 : 14, 'font-weight': 900,
+        fill: 'var(--ink)', stroke: 'var(--card)', 'stroke-width': 4, 'paint-order': 'stroke',
+      });
+      svg.appendChild(numeralText(label, toRoman(n)));
+    });
+
+    $('#spiral-roman').textContent = toRoman(spiralN);
+    $('#spiral-arabic').textContent = String(spiralN);
     $('#spiral-box').setAttribute('aria-valuenow', String(spiralN));
+    $('#zoom-in').disabled = zoomIndex === 0;
+    $('#zoom-out').disabled = zoomIndex === ZOOMS.length - 1;
   }
 
   function moveSpiral(step) {
     spiralN = clamp(spiralN + step, 1, MAX);
-    renderSpiralWindow();
+    renderSpiral();
   }
 
   function wireSpiral() {
@@ -159,107 +189,108 @@
       if (lastY === null) return;
       carry += lastY - e.clientY;
       lastY = e.clientY;
-      const steps = Math.trunc(carry / 12);
+      const steps = Math.trunc(carry / 14);
       if (steps) {
-        carry -= steps * 12;
+        carry -= steps * 14;
         moveSpiral(steps);
       }
     });
     const endDrag = () => { lastY = null; };
     box.addEventListener('pointerup', endDrag);
     box.addEventListener('pointercancel', endDrag);
-
     box.addEventListener('keydown', (e) => {
-      const keys = { ArrowUp: 1, ArrowDown: -1, PageUp: 10, PageDown: -10 };
+      const keys = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1, PageUp: 10, PageDown: -10 };
       if (!(e.key in keys)) return;
       e.preventDefault();
       moveSpiral(keys[e.key]);
     });
+    $('#spiral-next').addEventListener('click', () => moveSpiral(1));
+    $('#spiral-back').addEventListener('click', () => moveSpiral(-1));
+    $('#zoom-in').addEventListener('click', () => { zoomIndex = Math.max(0, zoomIndex - 1); renderSpiral(); });
+    $('#zoom-out').addEventListener('click', () => { zoomIndex = Math.min(ZOOMS.length - 1, zoomIndex + 1); renderSpiral(); });
   }
 
-  // ---------- Steps: a staircase with the times-five and times-two steps marked (to be rethought) ----------
-  function renderStairs(n) {
-    const box = $('#stairs');
-    box.replaceChildren();
-    LETTERS.slice(0, n).forEach(({ letter, value }, i) => {
-      if (i > 0) {
-        const ratio = value / LETTERS[i - 1].value;
-        box.appendChild(el('div', 'stair-step', `×${ratio}`));
-      }
-      const col = el('div', 'stair-col');
-      col.style.height = `${40 + 40 * Math.log10(value)}px`;
-      col.appendChild(el('div', `tile ${letter}`, letter));
-      box.appendChild(col);
+  // ---------- Steps: the staircase is sketched first, then a block climbs onto each step ----------
+  const ST = { x0: 12, base: 290, w: 48, rise: 32, block: 44 };
+  let stepsShown = 1;
+
+  function renderStairs() {
+    const svg = $('#stairs-svg');
+    svg.replaceChildren();
+    const { x0, base, w, rise, block } = ST;
+    // The sketch of all seven steps
+    const pts = [[x0, base]];
+    LETTERS.forEach((_, i) => {
+      pts.push([x0 + i * w, base - (i + 1) * rise], [x0 + (i + 1) * w, base - (i + 1) * rise]);
     });
-    const cur = LETTERS[n - 1];
-    $('#steps-caption').textContent = `${cur.letter} ${cur.value}`;
+    pts.push([x0 + LETTERS.length * w, base]);
+    svg.appendChild(svgEl('polygon', { points: pts.map((p) => p.join(',')).join(' '), fill: 'var(--card)', stroke: 'var(--ink)', 'stroke-width': 2.5, 'stroke-dasharray': '7 5', 'stroke-linejoin': 'round' }));
+
+    LETTERS.forEach(({ letter, value }, i) => {
+      const tread = base - (i + 1) * rise;
+      // What this step multiplies by, written inside the stair below the tread
+      if (i > 0) {
+        svg.appendChild(svgEl('text', { x: x0 + i * w + w / 2, y: tread + 22, 'text-anchor': 'middle', 'font-size': 14, 'font-weight': 900, fill: 'var(--link)' }, `×${value / LETTERS[i - 1].value}`));
+      }
+      if (i >= stepsShown) return;
+      const g = svgEl('g', { class: i === stepsShown - 1 ? 'block-new' : '' });
+      g.appendChild(svgEl('rect', { x: x0 + i * w + 2, y: tread - block, width: w - 4, height: block, rx: 6, fill: `var(--t-${letter})`, stroke: 'var(--ink)', 'stroke-width': i === stepsShown - 1 ? 3.5 : 2 }));
+      g.appendChild(svgEl('text', { x: x0 + i * w + w / 2, y: tread - block / 2 + 1, 'text-anchor': 'middle', 'font-size': 19, 'font-weight': 900, fill: '#2b2540' }, letter));
+      g.appendChild(svgEl('text', { x: x0 + i * w + w / 2, y: tread - 7, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: '#2b2540' }, String(value)));
+      svg.appendChild(g);
+    });
+    $('#steps-back').disabled = stepsShown <= 1;
+    $('#steps-next').disabled = stepsShown >= LETTERS.length;
   }
 
-  // ---------- Shake: a random number of stones falls into a bucket ----------
-  const bucket = $('#bucket');
-  const STONE = 6;
-  const PITCH = STONE + 1;
-  let pourFrame = 0;
+  // ---------- Shake: pick a number, then its pieces pour into the bucket, biggest first ----------
+  let shakeN = 1;
 
-  function drawBucketOutline(ctx, W, H) {
-    ctx.beginPath();
-    ctx.moveTo(8, 8);
-    ctx.lineTo(W - 8, 8);
-    ctx.lineTo(W - 30, H - 8);
-    ctx.lineTo(30, H - 8);
-    ctx.closePath();
-    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim() || '#2b2540';
-    ctx.lineWidth = 3;
-    ctx.stroke();
+  function pickShake() {
+    shakeN = randomInt(1, 999);
+    showPair('shake', shakeN);
+    $$('#bucket-box .token').forEach((t) => t.remove());
   }
 
   function pour() {
-    const n = 1 + Math.floor(Math.random() * 999);
-    const dpr = window.devicePixelRatio || 1;
-    const W = bucket.clientWidth;
-    const H = bucket.clientHeight;
-    bucket.width = W * dpr;
-    bucket.height = H * dpr;
-    const ctx = bucket.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const box = $('#bucket-box');
+    $$('#bucket-box .token').forEach((t) => t.remove());
+    const W = box.clientWidth;
+    const H = box.clientHeight;
+    // The pieces of the numeral, each a square whose size grows with its value. XL and IV come as one piece.
+    const pieces = Roman.chunks(toRoman(shakeN))
+      .map((c) => ({ text: c.text, value: Roman.lenientValue(c.text), side: clamp(5 * Math.sqrt(Roman.lenientValue(c.text)), 30, 140) }))
+      .sort((a, b) => b.side - a.side);
 
-    const css = getComputedStyle(document.documentElement);
-    const fill = css.getPropertyValue('--t-X').trim() || '#a7dbff';
-    const ink = css.getPropertyValue('--ink').trim() || '#2b2540';
-
-    // Stones settle in rows from the bottom of the bucket, one per number
-    const cols = Math.max(1, Math.floor((W - 72) / PITCH));
-    const stones = Array.from({ length: n }, (_, i) => {
-      const row = Math.floor(i / cols);
-      const col = i % cols;
-      return {
-        x: 36 + col * PITCH,
-        y: H - 14 - row * PITCH - STONE,
-        delay: i * 2,
-      };
+    // Stack them in rows from the bottom of the bucket
+    const left = W * 0.13;
+    const right = W * 0.87;
+    let x = left;
+    let rowBottom = H - H * 0.03 - 4;
+    let rowHeight = 0;
+    pieces.forEach((p, i) => {
+      if (x + p.side > right && x > left) {
+        rowBottom -= rowHeight + 4;
+        x = left;
+        rowHeight = 0;
+      }
+      const token = el('div', `token tile-sq ${p.text[p.text.length - 1]}`, p.text);
+      token.style.width = `${p.side}px`;
+      token.style.height = `${p.side}px`;
+      token.style.fontSize = `${Math.min(28, p.side * 0.42)}px`;
+      // Each piece starts at the spout in the top right corner
+      token.style.left = `${W - p.side - 6}px`;
+      token.style.top = `${-p.side - 10}px`;
+      token.style.transitionDelay = `${i * 220}ms`;
+      box.appendChild(token);
+      const target = { left: x, top: rowBottom - p.side };
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        token.style.left = `${target.left}px`;
+        token.style.top = `${target.top}px`;
+      }));
+      x += p.side + 4;
+      rowHeight = Math.max(rowHeight, p.side);
     });
-
-    $('#bucket-caption').textContent = toRoman(n);
-    cancelAnimationFrame(pourFrame);
-    const t0 = performance.now();
-    const FALL = 450;
-    const frame = (now) => {
-      ctx.clearRect(0, 0, W, H);
-      drawBucketOutline(ctx, W, H);
-      let done = true;
-      ctx.fillStyle = fill;
-      ctx.strokeStyle = ink;
-      ctx.lineWidth = 1.5;
-      stones.forEach((s) => {
-        const p = clamp((now - t0 - s.delay) / FALL, 0, 1);
-        if (p < 1) done = false;
-        const y = -STONE + (s.y + STONE) * p * p;
-        ctx.fillRect(s.x, y, STONE, STONE);
-        ctx.strokeRect(s.x, y, STONE, STONE);
-      });
-      if (!done) pourFrame = requestAnimationFrame(frame);
-    };
-    pourFrame = requestAnimationFrame(frame);
   }
 
   // Shaking the phone pours. iPhones ask permission first, so the button asks for it.
@@ -291,23 +322,27 @@
   }
 
   // ---------- Rods: tap the beads. Raw = the beads as letters. Organized = the numeral. ----------
+  // Each column has its own colour, under its beads and under its letters in both rows.
   const RODS = [
-    { name: 'thousands', one: 'M', five: null, max: 3 },
-    { name: 'hundreds', one: 'C', five: 'D', max: 9 },
-    { name: 'tens', one: 'X', five: 'L', max: 9 },
-    { name: 'ones', one: 'I', five: 'V', max: 9 },
+    { name: 'thousands', one: 'M', five: null, max: 3, place: 1000, color: '#c0392b' },
+    { name: 'hundreds', one: 'C', five: 'D', max: 9, place: 100, color: '#2e86c1' },
+    { name: 'tens', one: 'X', five: 'L', max: 9, place: 10, color: '#27ae60' },
+    { name: 'ones', one: 'I', five: 'V', max: 9, place: 1, color: '#8e44ad' },
   ];
   let digits = [0, 0, 4, 7];
 
-  function valueOfDigits() {
-    return digits.reduce((acc, d) => acc * 10 + d, 0);
-  }
+  const valueOfDigits = () => digits.reduce((acc, d) => acc * 10 + d, 0);
+  const rawOf = (rod, d) => (d >= 5 && rod.five ? rod.five : '') + rod.one.repeat(d % 5);
 
-  function rawLetters() {
-    return RODS.map((rod, i) => {
+  function groupLine(target, textOf) {
+    const spans = RODS.map((rod, i) => {
       const d = digits[i];
-      return (d >= 5 && rod.five ? rod.five : '') + rod.one.repeat(d % 5);
-    }).join('');
+      if (!d) return null;
+      const span = el('span', 'grp', textOf(rod, d));
+      span.style.borderBottomColor = rod.color;
+      return span;
+    }).filter(Boolean);
+    target.replaceChildren(...(spans.length ? spans : [document.createTextNode('—')]));
   }
 
   function renderRods() {
@@ -319,64 +354,318 @@
       if (rod.five) {
         const heaven = el('button', 'bead five', rod.five);
         heaven.type = 'button';
-        heaven.setAttribute('aria-pressed', String(d >= 5));
         heaven.classList.toggle('on', d >= 5);
+        heaven.setAttribute('aria-pressed', String(d >= 5));
         heaven.setAttribute('aria-label', `${rod.name} five`);
         heaven.addEventListener('click', () => {
           digits[i] = d >= 5 ? d - 5 : d + 5;
           renderRods();
         });
         col.appendChild(heaven);
+      } else {
+        col.appendChild(el('div', 'bead placeholder')); // keeps the bars in one line
       }
       col.appendChild(el('div', 'rod-bar'));
-      const earthCount = rod.max === 3 ? 3 : 4;
-      for (let k = 0; k < earthCount; k++) {
+      for (let k = 0; k < 4; k++) {
+        if (k >= rod.max) {
+          col.appendChild(el('div', 'bead placeholder'));
+          continue;
+        }
         const bead = el('button', 'bead one', rod.one);
         bead.type = 'button';
         bead.classList.toggle('on', k < d % 5);
         bead.setAttribute('aria-label', `${rod.name} ${k + 1}`);
         bead.addEventListener('click', () => {
           const fives = d >= 5 && rod.five ? 5 : 0;
-          const count = k < d % 5 ? k : k + 1;
-          digits[i] = fives + count;
+          digits[i] = fives + (k < d % 5 ? k : k + 1);
           renderRods();
         });
         col.appendChild(bead);
       }
-      col.appendChild(el('div', 'rod-name', rod.name));
+      const amount = el('div', 'rod-amount', String(d * rod.place));
+      amount.style.borderBottomColor = rod.color;
+      col.appendChild(amount);
       rods.appendChild(col);
     });
 
     const n = valueOfDigits();
-    $('#rods-raw').textContent = n > 0 ? rawLetters() : '—';
-    $('#rods-organized').textContent = n > 0 ? toRoman(n) : '—';
+    groupLine($('#rods-raw'), rawOf);
+    groupLine($('#rods-organized'), (rod, d) => toRoman(d * rod.place));
+    $('#rods-arabic').textContent = String(n);
   }
 
   function randomRods() {
-    let n = 0;
-    while (n < 1) {
-      digits = RODS.map((rod) => Math.floor(Math.random() * (rod.max + 1)));
-      n = valueOfDigits();
-    }
+    do {
+      digits = RODS.map((rod) => randomInt(0, rod.max));
+    } while (valueOfDigits() < 1);
     renderRods();
+  }
+
+  // ---------- Board: lines are I X C M, spaces are V L D. Five on a line, or two in a space, trade up. ----------
+  const BOARD = [
+    { letter: 'M', value: 1000, line: true },
+    { letter: 'D', value: 500, line: false },
+    { letter: 'C', value: 100, line: true },
+    { letter: 'L', value: 50, line: false },
+    { letter: 'X', value: 10, line: true },
+    { letter: 'V', value: 5, line: false },
+    { letter: 'I', value: 1, line: true },
+  ];
+  const ROW_H = 46;
+  let pebbles = BOARD.map(() => 0);
+  let traded = new Set();
+
+  const boardValue = () => pebbles.reduce((sum, c, r) => sum + c * BOARD[r].value, 0);
+
+  // Trade from the bottom up until nothing is left to trade
+  function tradeUp() {
+    traded = new Set();
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (let r = BOARD.length - 1; r > 0; r--) {
+        const need = BOARD[r].line ? 5 : 2;
+        if (pebbles[r] >= need) {
+          pebbles[r] -= need;
+          pebbles[r - 1] += 1;
+          traded.add(r - 1);
+          changed = true;
+        }
+      }
+    }
+  }
+
+  function addPebble(r) {
+    if (boardValue() + BOARD[r].value > MAX) return;
+    pebbles[r] += 1;
+    tradeUp();
+    renderBoard();
+  }
+
+  function setBoard(n) {
+    let rest = n;
+    pebbles = BOARD.map(({ value }) => {
+      const c = Math.floor(rest / value);
+      rest -= c * value;
+      return c;
+    });
+    traded = new Set();
+    renderBoard();
+  }
+
+  function renderBoard() {
+    const svg = $('#board-svg');
+    svg.replaceChildren();
+    BOARD.forEach(({ letter, value, line }, r) => {
+      const top = 10 + r * ROW_H;
+      const mid = top + ROW_H / 2;
+      if (line) svg.appendChild(svgEl('line', { x1: 60, y1: mid, x2: 350, y2: mid, stroke: 'var(--ink)', 'stroke-width': 3, 'stroke-linecap': 'round' }));
+      svg.appendChild(svgEl('text', { x: 26, y: mid - 1, 'text-anchor': 'middle', 'font-size': 18, 'font-weight': 900, fill: 'var(--ink)' }, letter));
+      svg.appendChild(svgEl('text', { x: 26, y: mid + 13, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: 'var(--ink)' }, String(value)));
+      for (let k = 0; k < pebbles[r]; k++) {
+        svg.appendChild(svgEl('circle', { class: traded.has(r) && k === pebbles[r] - 1 ? 'pebble-new' : '', cx: 84 + k * 26, cy: mid, r: 10, fill: '#e9dcc0', stroke: 'var(--ink)', 'stroke-width': 2.5 }));
+      }
+      const hit = svgEl('rect', { x: 0, y: top, width: 360, height: ROW_H, fill: 'transparent', class: 'board-hit', role: 'button', 'aria-label': `Add a pebble: ${letter}` });
+      hit.addEventListener('click', () => addPebble(r));
+      svg.appendChild(hit);
+    });
+    showPair('board', boardValue());
+  }
+
+  // ---------- Clock: the minutes move in fives; IIII or IV for four ----------
+  let clockMinutes = 8 * 60 + 45;
+  let fourStyle = 'IIII';
+
+  const hourNumeral = (h) => (h === 4 ? fourStyle : toRoman(h));
+
+  function renderClock() {
+    const svg = $('#clock-svg');
+    svg.replaceChildren();
+    const c = 180;
+    svg.appendChild(svgEl('circle', { cx: c, cy: c, r: 165, fill: 'var(--card)', stroke: 'var(--ink)', 'stroke-width': 4 }));
+    for (let m = 0; m < 60; m++) {
+      const a = (m * 6 - 90) * Math.PI / 180;
+      const long = m % 5 === 0;
+      const r1 = long ? 140 : 150;
+      svg.appendChild(svgEl('line', { x1: c + r1 * Math.cos(a), y1: c + r1 * Math.sin(a), x2: c + 160 * Math.cos(a), y2: c + 160 * Math.sin(a), stroke: 'var(--ink)', 'stroke-width': long ? 4 : 1.5 }));
+    }
+    for (let h = 1; h <= 12; h++) {
+      const a = (h * 30 - 90) * Math.PI / 180;
+      svg.appendChild(svgEl('text', { x: c + 115 * Math.cos(a), y: c + 115 * Math.sin(a) + 8, 'text-anchor': 'middle', 'font-size': 22, 'font-weight': 900, fill: h === 4 ? 'var(--link)' : 'var(--ink)' }, hourNumeral(h)));
+    }
+    const hours = Math.floor(clockMinutes / 60) % 12;
+    const mins = clockMinutes % 60;
+    const hand = (deg, len, width) => {
+      const a = (deg - 90) * Math.PI / 180;
+      svg.appendChild(svgEl('line', { x1: c, y1: c, x2: c + len * Math.cos(a), y2: c + len * Math.sin(a), stroke: 'var(--ink)', 'stroke-width': width, 'stroke-linecap': 'round' }));
+    };
+    hand((hours + mins / 60) * 30, 80, 8);
+    hand(mins * 6, 128, 5);
+    svg.appendChild(svgEl('circle', { cx: c, cy: c, r: 8, fill: 'var(--ink)' }));
+
+    const h12 = hours === 0 ? 12 : hours;
+    $('#clock-roman').textContent = mins ? `${hourNumeral(h12)} : ${toRoman(mins)}` : hourNumeral(h12);
+    $('#clock-arabic').textContent = `${h12}:${String(mins).padStart(2, '0')}`;
+    $('#clock-four').textContent = fourStyle;
+  }
+
+  function moveClock(step) {
+    clockMinutes = (clockMinutes + step + 720) % 720;
+    renderClock();
+  }
+
+  // ---------- Maya: dot is one, bar is five, each place up is times twenty ----------
+  let mayaN = 13;
+
+  function drawMayaDigit(svg, d, boxTop) {
+    const boxBottom = boxTop + 110;
+    svg.appendChild(svgEl('rect', { x: 10, y: boxTop, width: 120, height: 110, rx: 10, fill: 'none', stroke: 'var(--dots)', 'stroke-width': 2, 'stroke-dasharray': '5 5' }));
+    if (d === 0) {
+      // A shell for zero
+      svg.appendChild(svgEl('ellipse', { cx: 70, cy: boxBottom - 40, rx: 34, ry: 15, fill: '#f5ecd7', stroke: 'var(--ink)', 'stroke-width': 2.5 }));
+      svg.appendChild(svgEl('path', { d: `M44 ${boxBottom - 40} Q70 ${boxBottom - 52} 96 ${boxBottom - 40} M50 ${boxBottom - 34} Q70 ${boxBottom - 44} 90 ${boxBottom - 34}`, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 2 }));
+      return;
+    }
+    const bars = Math.floor(d / 5);
+    const dots = d % 5;
+    for (let k = 0; k < bars; k++) {
+      svg.appendChild(svgEl('rect', { x: 25, y: boxBottom - 22 - k * 18, width: 90, height: 12, rx: 6, fill: 'var(--ink)' }));
+    }
+    const dotY = boxBottom - 22 - bars * 18 - 4;
+    for (let k = 0; k < dots; k++) {
+      svg.appendChild(svgEl('circle', { cx: 70 + (k - (dots - 1) / 2) * 20, cy: dotY, r: 7, fill: 'var(--ink)' }));
+    }
+  }
+
+  function renderMaya() {
+    const svg = $('#maya-svg');
+    svg.replaceChildren();
+    // The twenties sit on top, the ones at the bottom
+    if (mayaN >= 20) drawMayaDigit(svg, Math.floor(mayaN / 20), 10);
+    drawMayaDigit(svg, mayaN % 20, 140);
+    showPair('maya', mayaN);
+  }
+
+  // ---------- China: counting rods, standing for ones and hundreds, lying for tens and thousands ----------
+  let chinaN = 47;
+
+  function drawRodDigit(svg, d, cx, standing) {
+    const rod = (x1, y1, x2, y2) => svg.appendChild(svgEl('line', { x1, y1, x2, y2, stroke: 'var(--ink)', 'stroke-width': 6, 'stroke-linecap': 'round' }));
+    const top = 30;
+    const bottom = 110;
+    const ones = d > 5 ? d - 5 : d;
+    const five = d > 5;
+    if (standing) {
+      // Standing rods for one each; a lying rod across the top for five
+      const startY = five ? top + 18 : top;
+      for (let k = 0; k < ones; k++) {
+        const x = cx + (k - (ones - 1) / 2) * 12;
+        rod(x, startY, x, bottom);
+      }
+      if (five) rod(cx - 30, top, cx + 30, top);
+    } else {
+      // Lying rods for one each; a standing rod on top for five
+      const startY = five ? 60 : 40;
+      for (let k = 0; k < ones; k++) {
+        const y = startY + k * 12;
+        rod(cx - 30, y, cx + 30, y);
+      }
+      if (five) rod(cx, top, cx, startY - 10);
+    }
+  }
+
+  function renderChina() {
+    const svg = $('#china-svg');
+    svg.replaceChildren();
+    const digitsOf = [Math.floor(chinaN / 1000), Math.floor((chinaN % 1000) / 100), Math.floor((chinaN % 100) / 10), chinaN % 10];
+    digitsOf.forEach((d, i) => {
+      const cx = 50 + i * 87;
+      svg.appendChild(svgEl('rect', { x: cx - 40, y: 18, width: 80, height: 104, rx: 8, fill: 'none', stroke: 'var(--dots)', 'stroke-width': 2, 'stroke-dasharray': '5 5' }));
+      // A blank place is zero; the leading empty places stay blank too
+      if (d) drawRodDigit(svg, d, cx, i % 2 === 1); // hundreds and ones stand; thousands and tens lie
+    });
+    showPair('china', chinaN);
+  }
+
+  // ---------- Double: halve on the left, double on the right; keep the rows with an odd left side ----------
+  let doubleA = 13;
+  let doubleB = 6;
+
+  function renderDouble() {
+    const sum = $('#double-sum');
+    sum.replaceChildren(el('div', 'counter-roman', `${toRoman(doubleA)} × ${toRoman(doubleB)}`), el('div', 'counter-arabic', `${doubleA} × ${doubleB}`));
+    const rows = $('#double-rows');
+    rows.replaceChildren();
+    let a = doubleA;
+    let b = doubleB;
+    let total = 0;
+    while (a >= 1) {
+      const keep = a % 2 === 1;
+      if (keep) total += b;
+      const row = el('div', `double-row${keep ? '' : ' crossed'}`);
+      // The light is on for a kept row: read from the bottom up, the lights are the binary number
+      const light = el('span', `light${keep ? ' on' : ''}`);
+      light.setAttribute('aria-label', keep ? 'kept' : 'crossed out');
+      const cell = (n) => {
+        const c = el('div', 'double-cell');
+        c.append(el('div', 'cell-roman', toRoman(n)), el('div', 'cell-arabic', String(n)));
+        return c;
+      };
+      row.append(light, cell(a), cell(b));
+      rows.appendChild(row);
+      a = Math.floor(a / 2);
+      b *= 2;
+    }
+    showPair('double', total);
   }
 
   // ---------- wiring ----------
   function init() {
+    // Tabs first, so a failure in one feature can never leave the tabs dead
     $$('.tab-btn').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
 
     buildLetterRow();
     renderTiles();
-    buildSpiralStatic();
-    renderSpiralWindow();
     wireSpiral();
-    renderStairs(7);
-    wireShake();
-    renderRods();
+    renderSpiral();
 
-    $('#steps-n').addEventListener('input', (e) => renderStairs(Number(e.target.value)));
+    renderStairs();
+    $('#steps-next').addEventListener('click', () => { stepsShown = Math.min(LETTERS.length, stepsShown + 1); renderStairs(); });
+    $('#steps-back').addEventListener('click', () => { stepsShown = Math.max(1, stepsShown - 1); renderStairs(); });
+
+    pickShake();
+    wireShake();
+    $('#shake-random').addEventListener('click', pickShake);
     $('#pour').addEventListener('click', pour);
+
+    renderRods();
     $('#rods-random').addEventListener('click', randomRods);
+
+    renderBoard();
+    $('#board-clear').addEventListener('click', () => setBoard(0));
+    $('#board-random').addEventListener('click', () => setBoard(randomInt(1, 399)));
+
+    renderClock();
+    $('#clock-next').addEventListener('click', () => moveClock(5));
+    $('#clock-back').addEventListener('click', () => moveClock(-5));
+    $('#clock-four').addEventListener('click', () => {
+      fourStyle = fourStyle === 'IIII' ? 'IV' : 'IIII';
+      $('#clock-four').setAttribute('aria-pressed', String(fourStyle === 'IIII'));
+      renderClock();
+    });
+
+    renderMaya();
+    $('#maya-next').addEventListener('click', () => { mayaN = Math.min(399, mayaN + 1); renderMaya(); });
+    $('#maya-back').addEventListener('click', () => { mayaN = Math.max(1, mayaN - 1); renderMaya(); });
+    $('#maya-random').addEventListener('click', () => { mayaN = randomInt(1, 399); renderMaya(); });
+
+    renderChina();
+    $('#china-next').addEventListener('click', () => { chinaN = Math.min(MAX, chinaN + 1); renderChina(); });
+    $('#china-back').addEventListener('click', () => { chinaN = Math.max(1, chinaN - 1); renderChina(); });
+    $('#china-random').addEventListener('click', () => { chinaN = randomInt(1, MAX); renderChina(); });
+
+    renderDouble();
+    $('#double-random').addEventListener('click', () => { doubleA = randomInt(3, 15); doubleB = randomInt(2, 12); renderDouble(); });
 
     const drawer = $('#drawer');
     $('#gear').addEventListener('click', () => {

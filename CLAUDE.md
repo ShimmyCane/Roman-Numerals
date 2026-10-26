@@ -1,6 +1,6 @@
 # Roman Numerals — Claude Code pointer
 
-Purpose: a visual, kid-friendly web tool for the ORCUCLA Roman numerals unit. Decompose numerals into their parts, add and subtract, repair malformed numerals, and review letters and rules I–M.
+Purpose: a visual, kid-friendly web tool for the ORMC Roman numerals unit. Decompose numerals into their parts, add and subtract, repair malformed numerals, and review letters and rules I–M.
 
 - Design: `schematic.md` (draft v0.1, awaiting review)
 - Questions and answers: `convo/` (current: `convo v0.1.md`). Never compact an old convo; start a new version.
