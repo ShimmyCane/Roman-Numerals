@@ -86,6 +86,7 @@ See `convo/convo v0.1.md`. Key ones: ORC Rules 1–5 wording, the number range, 
 
 ## 9. Status log
 
+- 2026-10-26: Felix's page added (felix.html, felix.js): reached by the F button next to the gear, returns by the A button. Tabs: Purpose (the story: ×5 and ×2 steps, a clock comparison, the road to decimal and binary), Spiral (one full turn per times ten), Steps (staircase with the ×5/×2 steps), Tiles (squares to scale by area), Rods (counting board: parts first, then the numeral). Look is kept in shared.js and carries across pages (localStorage, look name only). Pictures to find (assets.html, from Settings): a planning list of files to drop into an assets/ folder, with no placeholders in the pages yet. 38 logic tests pass.
 - 2026-10-26: Schematic draft v0.1 created from the first conversation. Awaiting Jimmy's review.
 - 2026-10-26: Jimmy answered convo v0.1. MVP built: `roman.js` (logic), `app.js`, `index.html`, `styles.css`, `tests/roman.test.js` (14 tests pass). Browser smoke test: no page errors, phone width has no horizontal scroll.
 - 2026-10-26: Arabic numerals rule clarified: none in how-to explanations (captions, how-to text, practice, Fix It, Add & Subtract, Quiz, Purpose); allowed on Regroup, Rules, Letters and Long Ago. Letters tab gets a note on Roman numbers and variables (serifs). Long Ago gets a multiplication tidbit card (convo v0.17). Draft for review.
