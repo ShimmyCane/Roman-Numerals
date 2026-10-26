@@ -5,6 +5,7 @@
   --font-head: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
   --font-size: 22px;
   --tile-font: "Merriweather", Georgia, serif;
+  --page-width: 90%;
   --paper: #ffe9f5;
   --paper-image: radial-gradient(circle, #ff8fc044 4px, transparent 5px);
   --card: #ffffff;

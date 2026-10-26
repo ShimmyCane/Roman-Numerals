@@ -78,6 +78,13 @@
     return board;
   }
 
+  // ---------- read aloud (a setting; uses the browser's speech if it has any) ----------
+  function speak(text) {
+    if (!$('#opt-aloud').checked || !('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+  }
+
   // ---------- ledger steppers ----------
   // Rows are added and removed at the end only. A row that is already on screen is never rebuilt,
   // so its tiles do not replay their animation when the user presses Play steps or Next.
@@ -113,6 +120,7 @@
       while (rows.length > shown) rows.pop().remove();
       rows.forEach((r, i) => r.classList.toggle('current', i === shown - 1));
       ledger.scrollTop = ledger.scrollHeight;
+      speak(steps[shown - 1].text);
       if (onShow) onShow(steps.slice(0, shown));
     }
 
@@ -186,7 +194,11 @@
       } else if (t.op) {
         line.append(el('span', 'eq-op', t.text));
       } else if (t.focus && t.becomes) {
-        line.append(partEl(t), el('span', 'eq-arrow', '→'), el('span', 'tok became', t.becomes));
+        line.append(partEl(t), el('span', 'eq-arrow', '→'));
+        t.becomes.split('').forEach((ch, k) => {
+          if (k) line.append(el('span', 'eq-plus', '+'));
+          line.append(el('span', 'tok became', ch));
+        });
       } else {
         line.append(partEl(t));
       }
@@ -197,7 +209,10 @@
   function addsubRow(s, i) {
     const row = el('div', 'step-row');
     const inner = el('div');
-    inner.append(el('p', 'caption', s.text), eqLine(s.line));
+    // The caption sits outside. The sum sits in its own working window, so the two never blend.
+    const work = el('div', 'work');
+    work.append(eqLine(s.line));
+    inner.append(el('p', 'caption', s.text), work);
     if (s.value !== null) inner.append(el('p', 'value', `Worth ${s.value}`));
     row.append(el('div', 'step-num', String(i + 1)), inner);
     return row;
@@ -425,15 +440,14 @@
   }
 
   // ---------- Look: each look is a whole stylesheet in looks/, swapped by the settings buttons ----------
-  const LOOKS = ['sunny', 'chalk', 'candy', 'poster', 'folder', 'garden'];
+  const LOOKS = ['sunny', 'candy', 'folder', 'garden', 'poster'];
   function setLook(name) {
     if (!LOOKS.includes(name)) name = 'sunny';
     $('#look-css').href = `looks/${name}.css`;
     $$('[data-look]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.look === name)));
   }
 
-  // ---------- Letters: tap a letter to see its pairs, then the pairs that never exist ----------
-  let pairLetter = 'I';
+  // ---------- Letters: the pairs straight away; More shows pairs that never exist ----------
   let pairMore = false;
 
   const pairChip = (p) => {
@@ -443,33 +457,37 @@
   };
   const neverChip = (p) => {
     const chip = el('div', 'pair-chip never');
-    chip.append(mark(false), el('b', '', p), el('span', '', 'never'));
+    chip.append(mark(false), el('b', '', p));
     return chip;
   };
 
-  // Pairs that exist for a letter: the subtractive pairs it belongs to.
-  function existingPairs(x) {
-    return PAIRS.filter((p) => p.includes(x));
+  // Group a list of pairs by the small letter that comes first, so each group reads as one line.
+  function groupPairs(list, chipFn) {
+    const groups = {};
+    list.forEach((p) => { (groups[p[0]] = groups[p[0]] || []).push(p); });
+    return Object.keys(groups).map((first) => {
+      const row = el('div', 'pair-group');
+      row.append(el('span', 'pair-first', first), ...groups[first].map(chipFn));
+      return row;
+    });
   }
-  // Pairs that never exist for a letter: the smaller letter goes first, and the rules do not allow it.
-  function neverPairs(x) {
-    const after = LETTERS.filter((y) => VALUE[y] > VALUE[x] && !PAIRS.includes(x + y)).map((y) => x + y);
-    const before = LETTERS.filter((y) => VALUE[y] < VALUE[x] && !PAIRS.includes(y + x)).map((y) => y + x);
-    return [...after, ...before];
+
+  // Pairs that never exist: the smaller letter goes first and the pair is not one of the six.
+  function neverPairs() {
+    const after = LETTERS.flatMap((x) => LETTERS.filter((y) => VALUE[y] > VALUE[x] && !PAIRS.includes(x + y)).map((y) => x + y));
+    const seen = new Set();
+    return after.filter((p) => (seen.has(p) ? false : seen.add(p)));
   }
 
   function renderPairs() {
-    const x = pairLetter;
-    $$('.letter-row button').forEach((b) => b.classList.toggle('picked', b.textContent === x));
     const list = $('#pair-list');
     if (!pairMore) {
-      $('#pair-title').textContent = `${x} pairs that exist`;
-      const ex = existingPairs(x);
-      list.replaceChildren(...(ex.length ? ex.map(pairChip) : [el('p', 'note', `${x} does not pair. It stands alone.`)]));
+      $('#pair-title').textContent = 'Pairs that exist (a smaller letter in front of a bigger one)';
+      list.replaceChildren(...groupPairs(PAIRS, pairChip));
       $('#pair-more').textContent = 'Show pairs that never exist';
     } else {
-      $('#pair-title').textContent = `${x} pairs that never exist`;
-      list.replaceChildren(...neverPairs(x).map(neverChip));
+      $('#pair-title').textContent = 'Pairs that never exist';
+      list.replaceChildren(...groupPairs(neverPairs(), neverChip));
       $('#pair-more').textContent = 'Back to pairs that exist';
     }
   }
@@ -479,53 +497,45 @@
     LETTERS.forEach((ch) => {
       const b = el('button', `tile ${ch}`, ch);
       b.addEventListener('click', () => {
-        pairLetter = ch;
-        pairMore = false;
         $('#letter-hint').textContent = `${ch} is worth ${VALUE[ch]}.`;
         beep([VALUE[ch] > 100 ? 392 : 523 + VALUE[ch] / 10]);
-        renderPairs();
       });
       row.append(b);
     });
   }
 
-  function buildExtendedBox() {
-    // Overlined letters stand for thousands. They are shown for reference only: the checker does not use them.
-    const list = $('#extended-list');
-    list.replaceChildren(...LETTERS.map((ch) => {
-      const row = el('div', 'ext-row');
-      row.append(el('span', 'ext-letter', `${ch}̅`), el('span', '', `${VALUE[ch] * 1000}`));
-      return row;
-    }));
-  }
-
   // ---------- Rules: five rules on the left (in full), examples on the right ----------
   const ok = (numeral, note) => ({ good: true, numeral, note });
   const bad = (numeral, fix, note) => ({ good: false, numeral, fix, note });
-  // The wording is from Jimmy's notes (convo v0.1). Rule 4 is left for later.
+  // The full wording is from Jimmy's notes (convo v0.1). The short name on the left is only a label.
   const RULES = {
     1: {
       title: 'Rule 1',
+      short: 'Same letters in a row',
       text: 'If there are a few equal basic Roman numerals in a row, add them. No more than three equal basic numerals in a row are allowed.',
       examples: [ok('III', '= 3'), ok('XXX', '= 30'), bad('IIII', 'IV'), bad('XXXX', 'XL')],
     },
     2: {
       title: 'Rule 2',
+      short: 'Smaller letters after a bigger one',
       text: 'If one or a few equal smaller basic Roman numerals are to the right of a greater one, we add them. No more than three smaller equal basic numerals are allowed.',
       examples: [ok('VI', '= 6'), ok('XVIII', '= 18'), bad('VIIII', 'IX')],
     },
     3: {
       title: 'Rule 3',
+      short: 'Smaller letter before a bigger one',
       text: 'If a smaller basic Roman numeral is to the left of a greater one, we subtract it. It is not allowed to put a few smaller equal basic numerals to the left of a greater one.',
       examples: [ok('IV', '= 4'), ok('XL', '= 40'), ok('CM', '= 900'), bad('IIX', 'X', 'only one I before the X')],
     },
     4: {
       title: 'Rule 4',
+      short: 'Coming later',
       text: 'Coming later. We will come back to this rule.',
       examples: [],
     },
     5: {
       title: 'Rule 5',
+      short: 'Simplest form',
       text: 'Subject to all other rules, one should write a Roman numeral in the simplest possible form.',
       examples: [bad('VV', 'X'), bad('LL', 'C'), bad('IIII', 'IV')],
     },
@@ -537,7 +547,7 @@
       const b = el('button', 'rule-btn');
       b.dataset.rule = n;
       b.setAttribute('aria-pressed', 'false');
-      b.append(el('b', '', n), ` ${RULES[n].text}`);
+      b.append(el('b', '', n), ` ${RULES[n].short}`);
       b.addEventListener('click', () => showRule(Number(n)));
       return b;
     }));
@@ -583,39 +593,85 @@
       + '<text x="90" y="218">10s</text><text x="210" y="218">1s</text></g></svg>';
   }
 
+  // Each demo is a list of stages. The slider moves through them. Pebbles that come in drop down into place,
+  // pebbles that go out fade. The picture only changes when the slider is moved.
   const DEMOS = {
     'add-simple': [
-      { text: '23 is 2 tens and 3 ones. Put it on the board.', tens: 2, ones: 3 },
-      { text: 'Add 14: 1 more ten and 4 more ones. Tens: 3. Ones: 7.', tens: 3, ones: 7 },
-      { text: '37, which is XXXVII.', tens: 3, ones: 7 },
+      { text: '23 is 2 tens and 3 ones. This is the board before we add.', tens: 2, ones: 3 },
+      { text: 'Add 14: 1 ten and 4 ones come down onto the board.', tens: 3, ones: 7 },
+      { text: 'Count the whole board: 3 tens and 7 ones make 37, which is XXXVII.', tens: 3, ones: 7 },
     ],
     'add-carry': [
       { text: '27 is 2 tens and 7 ones.', tens: 2, ones: 7 },
-      { text: 'Add 18: 1 more ten and 8 more ones. 7 + 8 makes 15 ones. Swap 10 ones for 1 ten: 4 tens and 5 ones.', tens: 4, ones: 5 },
+      { text: 'Add 18: 1 ten and 8 ones come down. The ones make 15.', tens: 3, ones: 15 },
+      { text: '10 ones trade for 1 ten. Now there are 4 tens and 5 ones.', tens: 4, ones: 5 },
       { text: '45, which is XLV.', tens: 4, ones: 5 },
     ],
     subtract: [
       { text: '40 is 4 tens and no ones.', tens: 4, ones: 0 },
-      { text: 'Take away 18. There are no ones to take from, so trade 1 ten for 10 ones: 3 tens and 10 ones.', tens: 3, ones: 10 },
-      { text: 'Take away 1 ten and 8 ones: 2 tens and 2 ones, which is 22, or XXII.', tens: 2, ones: 2 },
+      { text: 'There are no ones to take from, so trade 1 ten for 10 ones.', tens: 3, ones: 10 },
+      { text: 'Take away 18: 1 ten and 8 ones leave. 22 is left, which is XXII.', tens: 2, ones: 2 },
     ],
   };
 
+  // The picture for slider position t (0 to 1).
+  function scrubSVG(stages, t) {
+    const pos = Math.min(stages.length - 1, Math.max(0, t * (stages.length - 1)));
+    const i = Math.max(0, Math.min(stages.length - 2, Math.floor(pos)));
+    const from = stages[i];
+    const to = stages[i + 1] || stages[i];
+    const p = stages.length === 1 ? 1 : pos - i;
+    const column = (key, x) => {
+      const a = from[key];
+      const b = to[key];
+      const n = Math.max(a, b);
+      const gap = n > 10 ? 12 : 18;
+      const r = n > 10 ? 6 : 8;
+      let out = '';
+      for (let k = 0; k < n; k++) {
+        const y = 190 - gap * k;
+        let dy = 0;
+        let opacity = 1;
+        if (k >= Math.min(a, b)) {
+          if (b > a) { dy = -70 * (1 - p); opacity = p; } else { opacity = 1 - p; }
+        }
+        out += `<circle cx="${x}" cy="${y + dy}" r="${r}" fill="#ffe9a6" stroke="#2b2540" stroke-width="2.5" opacity="${opacity.toFixed(2)}"/>`;
+      }
+      return out;
+    };
+    return `<svg class="board-art" viewBox="0 0 300 220" role="img" aria-label="Counting board">`
+      + '<g stroke="#2b2540" stroke-width="3" stroke-linecap="round">'
+      + '<line x1="90" y1="16" x2="90" y2="200"/><line x1="210" y1="16" x2="210" y2="200"/><line x1="40" y1="204" x2="260" y2="204"/></g>'
+      + column('tens', 90) + column('ones', 210)
+      + '<g font-family="Georgia, serif" font-size="17" font-weight="bold" fill="#2b2540" text-anchor="middle">'
+      + '<text x="90" y="218">10s</text><text x="210" y="218">1s</text></g></svg>';
+  }
+
   function renderDemos() {
     $$('[data-demo]').forEach((box) => {
-      const steps = DEMOS[box.dataset.demo] || [];
-      box.replaceChildren(...steps.map((s) => {
-        const step = el('div', 'step');
-        step.append(el('p', '', s.text));
-        const wrap = el('div');
-        wrap.innerHTML = countingBoardSVG(s.tens, s.ones);
-        step.append(wrap);
-        return step;
-      }));
+      const stages = DEMOS[box.dataset.demo] || [];
+      box.classList.add('scrub-box');
+      const picture = el('div', 'scrub-picture');
+      const caption = el('p', 'scrub-caption');
+      const slider = el('input', 'scrub-slider');
+      slider.type = 'range';
+      slider.min = '0';
+      slider.max = '100';
+      slider.value = '0';
+      slider.setAttribute('aria-label', 'Move through the steps');
+      const draw = () => {
+        const t = Number(slider.value) / 100;
+        picture.innerHTML = scrubSVG(stages, t);
+        const pos = Math.round(t * (stages.length - 1));
+        caption.textContent = stages[pos] ? stages[pos].text : '';
+      };
+      slider.addEventListener('input', draw);
+      box.replaceChildren(picture, slider, caption, el('p', 'note', 'Drag the slider to move through the steps.'));
+      draw();
     });
     $$('[data-figure]').forEach((box) => {
       const [tens, ones] = box.dataset.figure.split(',').map(Number);
-      box.innerHTML = countingBoardSVG(tens, ones);
+      box.innerHTML = scrubSVG([{ text: '', tens, ones }], 0);
     });
   }
 
@@ -632,7 +688,6 @@
     steppers.addsub.load([], 'Press Random, or type a sum like XLI + XIX.');
     steppers.fix.load([], 'Press Random bad numeral, or type your own.');
     buildLetterRow();
-    buildExtendedBox();
     renderPairs();
     renderDemos();
     renderRuleList();
@@ -704,7 +759,8 @@
     });
     $('#opt-size').addEventListener('change', (e) => { document.documentElement.dataset.size = e.target.value; });
     $('#opt-calm').addEventListener('change', (e) => { document.documentElement.dataset.calm = e.target.checked ? 'on' : ''; });
-    $('#opt-extended').addEventListener('change', (e) => { $('#extended-box').hidden = !e.target.checked; });
+    $('#opt-bigtiles').addEventListener('change', (e) => { document.documentElement.dataset.tiles = e.target.checked ? 'big' : ''; });
+    $('#opt-one').addEventListener('change', (e) => { document.documentElement.dataset.one = e.target.checked ? 'on' : ''; });
     setLook('sunny');
   }
 

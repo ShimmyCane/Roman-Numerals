@@ -1,9 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@700;900&family=Nunito:wght@400;700;900&display=swap');
 /* Garden: soft green, round tiles and buttons, a narrow centred column with bigger type. */
 :root, html {
   --font: "Nunito", system-ui, sans-serif;
   --font-head: "Nunito", system-ui, sans-serif;
-  --tile-font: "Nunito", system-ui, sans-serif;
+  --tile-font: "Merriweather", Georgia, serif;
+  --page-width: 920px;
   --font-size: 22px;
   --paper: #eef7e8;
   --paper-image: radial-gradient(circle, #9ccf8a33 3px, transparent 4px);
@@ -39,9 +40,9 @@
   --line-gap: 16px;
   --gutter: 16px;
 }
-main, .top { max-width: 920px; margin-left: auto; margin-right: auto; }
 .top { text-align: center; }
-.tabs { justify-content: center; max-width: 920px; margin: 0 auto; }
+.tile { font-weight: 900; }
+.tabs { justify-content: center; }
 .tab-btn { min-height: 58px; }
 .play, .ref, .rule-card { margin-left: 8px; margin-right: 8px; }
 .ledger { max-height: 58vh; }

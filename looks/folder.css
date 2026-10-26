@@ -4,6 +4,7 @@
   --font: "Lora", Georgia, serif;
   --font-head: "Lora", Georgia, serif;
   --tile-font: "Lora", Georgia, serif;
+  --page-width: 80%;
   --font-size: 18px;
   --paper: #e8d6b3;
   --paper-image: repeating-linear-gradient(90deg, transparent 0 46px, #3b2a1a0d 46px 47px);

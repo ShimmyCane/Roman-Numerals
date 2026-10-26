@@ -86,7 +86,7 @@ test('calculate: XLI + XIX = LX, with IX broken into V and IIII, then regrouped'
   const r = Roman.calculate(['XLI', 'XIX'], ['+']);
   assert.equal(r.result, 'LX');
   assert.equal(r.value, 60);
-  const brk = r.steps.find((s) => s.text === 'Break IX into V I I I I.');
+  const brk = r.steps.find((s) => s.text === 'IX is 9. Write it as V + I + I + I + I.');
   assert.ok(brk, 'IX break step');
   const focus = brk.line.find((t) => t.focus);
   assert.equal(focus.text, 'IX');
@@ -96,7 +96,7 @@ test('calculate: XLI + XIX = LX, with IX broken into V and IIII, then regrouped'
 
 test('calculate: the sum reaches an unsorted = row, and only then is the right side regrouped', () => {
   const r = Roman.calculate(['XCVI', 'XCIII'], ['-']);
-  const eqIdx = r.steps.findIndex((s) => s.text.startsWith('The rest of the sum'));
+  const eqIdx = r.steps.findIndex((s) => s.text.startsWith('The = sign'));
   assert.ok(eqIdx > 0);
   assert.ok(r.steps[eqIdx].line.some((t) => t.eq));
   assert.ok(r.steps.slice(eqIdx + 1).every((s) => s.line.some((t) => t.eq)));
@@ -106,9 +106,9 @@ test('calculate: the sum reaches an unsorted = row, and only then is the right s
 test('calculate: XCVI - XCIII matches XC on both sides, then trades one V for I\'s', () => {
   const r = Roman.calculate(['XCVI', 'XCIII'], ['-']);
   assert.deepEqual(r.steps[0].line.map((t) => t.text), ['XC', 'V', 'I', '−', 'XC', 'I', 'I', 'I']);
-  const same = r.steps.find((s) => s.text === 'Take away XC. The same is on both sides.');
+  const same = r.steps.find((s) => s.text === 'Take away XC. Both sides have XC.');
   assert.ok(same);
-  assert.ok(r.steps.some((s) => s.text === 'No I to take away, so trade one V for I I I I I.'));
+  assert.ok(r.steps.some((s) => s.text === 'No I to take away. Trade one V (5) for I + I + I + I + I, which is also 5.'));
   assert.ok(r.steps.some((s) => s.text === "Take away 3 I's."));
   assert.equal(r.result, 'III');
 });
@@ -136,7 +136,7 @@ test('calculate: the second number gets its own step before anything is taken aw
   const r = Roman.calculate(['XL', 'XX'], ['-']);
   const i = r.steps.findIndex((s) => s.text.startsWith('Second number XX'));
   assert.ok(i > 0);
-  assert.equal(r.steps[i + 1].text, 'Break XL into X X X X.');
+  assert.equal(r.steps[i + 1].text, 'XL is 40. Write it as X + X + X + X.');
   assert.equal(r.steps[i + 2].text, "Take away 2 X's.");
   assert.equal(r.result, 'XX');
 });
@@ -145,7 +145,7 @@ test('calculate: XL + XX - IX = LI (multi-step, needs a trade)', () => {
   const r = Roman.calculate(['XL', 'XX', 'IX'], ['+', '-']);
   assert.equal(r.result, 'LI');
   assert.equal(r.value, 51);
-  assert.ok(r.steps.some((s) => s.text.includes('trade')));
+  assert.ok(r.steps.some((s) => /trade/i.test(s.text)));
 });
 
 test('calculate: negative results are reported, not shown as numerals', () => {
