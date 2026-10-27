@@ -388,4 +388,14 @@ test('Add many at once: three or more numerals are put together and regrouped on
   }
 });
 
+test('Mixed sums: the last pair goes first when it keeps every number positive, so XC + X − V becomes XC + V', () => {
+  assert.equal(Roman.pairToWork(['XC', 'X', 'V'], ['+', '-']), 1);
+  assert.equal(Roman.pairToWork(['I', 'X', 'V'], ['+', '-']), 1);
+  assert.equal(Roman.pairToWork(['X', 'V', 'I'], ['-', '+']), 0, 'X − (V + I) would take away the I, so the first pair goes first');
+  assert.equal(Roman.pairToWork(['X', 'I', 'V'], ['-', '-']), 0, 'X − (I − V) would flip a sign, so the first pair goes first');
+  assert.equal(Roman.pairToWork(['I', 'V', 'X'], ['+', '-']), 0, 'V − X is negative, so the first pair goes first');
+  assert.equal(Roman.takeAwayEquation('X', 'V').result, 'V');
+  assert.equal(Roman.addEquation(['XC', 'V']).result, 'XCV');
+});
+
 console.log(`\n${passed} tests passed`);
