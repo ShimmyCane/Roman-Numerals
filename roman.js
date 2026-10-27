@@ -669,6 +669,19 @@
     return { steps: w.steps, result, ok, value: total };
   }
 
+  // Mixed sums: which pair to work next, as the index of its first term. The last pair goes first when that keeps every
+  // number positive: X − V is V, so XC + X − V becomes XC + V. Otherwise the first pair goes first.
+  // Working the last pair first only keeps the signs when it is added to the sum before it: a + (b − c) is a + b − c,
+  // but a − (b − c) is not a − b + c.
+  function pairToWork(terms, ops) {
+    const n = terms.length - 1;
+    if (n < 2) return 0;
+    const last = ops[n - 1];
+    const added = ops[n - 2] === '+';
+    const positive = last === '+' || lenientValue(terms[n - 1]) > lenientValue(terms[n]);
+    return added && positive ? n - 1 : 0;
+  }
+
   // Read "XL + XX - IX" into terms and operators.
   function parse(text) {
     const parts = text.trim().toUpperCase().split(/\s*([+\-−])\s*/).filter(Boolean);
@@ -764,7 +777,7 @@
 
   return {
     VALUE, PAIR_PIECES, TRADE, MAX, LETTER_LIMIT, QUIZ_MAX_TYPES, TRUE_FALSE, DISARRANGEABLE, RANDOM_NUMERALS,
-    lenientValue, eqOf, toRoman, words, chunks, check, calculate, repairPlan, regroupPlan, addEquation, takeAwayEquation, firstRepair, parse, disarrange,
+    lenientValue, eqOf, toRoman, words, chunks, check, calculate, repairPlan, regroupPlan, addEquation, takeAwayEquation, pairToWork, firstRepair, parse, disarrange,
     randomNumeral, randomSum, randomEquation, randomDisarranged,
   };
 });

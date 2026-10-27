@@ -375,4 +375,27 @@ test('Chili on Fix It: harder numerals break two or more pairs, and still fix to
   }
 });
 
+test('Add many at once: three or more numerals are put together and regrouped once, to the simplest form', () => {
+  const plan = Roman.addEquation(['XL', 'XX', 'IX']);
+  assert.equal(plan.result, 'LXIX');
+  assert.equal(plan.ok, true);
+  assert.equal(plan.steps.filter((s) => s.label.startsWith('Put all the letters together')).length, 1);
+  for (let i = 0; i < 1000; i += 1) {
+    const terms = [Roman.toRoman(1 + (i % 150)), Roman.toRoman(1 + ((i * 7) % 150)), Roman.toRoman(1 + ((i * 13) % 150))];
+    const sum = terms.reduce((s, t) => s + Roman.lenientValue(t), 0);
+    if (sum > 388) continue;
+    assert.equal(Roman.addEquation(terms).result, Roman.toRoman(sum), terms.join(' + '));
+  }
+});
+
+test('Mixed sums: the last pair goes first when it keeps every number positive, so XC + X − V becomes XC + V', () => {
+  assert.equal(Roman.pairToWork(['XC', 'X', 'V'], ['+', '-']), 1);
+  assert.equal(Roman.pairToWork(['I', 'X', 'V'], ['+', '-']), 1);
+  assert.equal(Roman.pairToWork(['X', 'V', 'I'], ['-', '+']), 0, 'X − (V + I) would take away the I, so the first pair goes first');
+  assert.equal(Roman.pairToWork(['X', 'I', 'V'], ['-', '-']), 0, 'X − (I − V) would flip a sign, so the first pair goes first');
+  assert.equal(Roman.pairToWork(['I', 'V', 'X'], ['+', '-']), 0, 'V − X is negative, so the first pair goes first');
+  assert.equal(Roman.takeAwayEquation('X', 'V').result, 'V');
+  assert.equal(Roman.addEquation(['XC', 'V']).result, 'XCV');
+});
+
 console.log(`\n${passed} tests passed`);

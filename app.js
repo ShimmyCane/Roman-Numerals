@@ -409,33 +409,48 @@
       steppers.addsub.load(out.steps);
       return;
     }
-    // Regrouping: one pair at a time, left to right, each on its own equation line.
-    let current = p.terms[0];
-    let steps = [];
-    if (p.terms.length > 2) {
-      const full = Roman.eqOf(p.terms, p.ops);
-      steps.push({ kind: 'eq', label: `Work two numbers at a time. First: ${p.terms[0]} ${p.ops[0] === '+' ? '+' : '−'} ${p.terms[1]}.`, eq: { ...full, right: 'ask', focus: 'left' } });
+    // Only additions: put every letter together and regroup once, the same as two numbers.
+    if (p.ops.every((op) => op === '+')) {
+      const total = p.terms.reduce((sum, t) => sum + Roman.lenientValue(t), 0);
+      if (total > Roman.MAX) return steppers.addsub.load([], `That is more than ${Roman.toRoman(Roman.MAX)}, the biggest this tool writes.`);
+      const plan = Roman.addEquation(p.terms);
+      setError('');
+      return steppers.addsub.load(plan.steps, `${plan.result} has nothing to add or take away.`);
     }
-    for (let k = 1; k < p.terms.length; k++) {
-      const term = p.terms[k];
-      const op = p.ops[k - 1];
-      const total = op === '+' ? Roman.lenientValue(current) + Roman.lenientValue(term) : Roman.lenientValue(current) - Roman.lenientValue(term);
-      if (total < 0) return steppers.addsub.load(steps, `${current} is less than ${term}. You cannot take away more than you have. Romans had no negative numbers.`);
+    // Mixed sums: one pair at a time, the pair that is easiest first (Roman.pairToWork). Its answer goes back into the sum,
+    // so XC + X − V becomes XC + V. Each pair gets its own equation line.
+    const sign = (op) => (op === '+' ? '+' : '−');
+    const ts = p.terms.slice();
+    const os = p.ops.slice();
+    let steps = [];
+    if (ts.length > 2) {
+      const first = Roman.pairToWork(ts, os);
+      const full = Roman.eqOf(p.terms, p.ops);
+      steps.push({ kind: 'eq', label: `Work two numbers at a time. First: ${ts[first]} ${sign(os[first])} ${ts[first + 1]}.`, eq: { ...full, right: 'ask', focus: 'left' } });
+    }
+    while (ts.length > 1) {
+      const k = Roman.pairToWork(ts, os);
+      const a = ts[k];
+      const b = ts[k + 1];
+      const op = os[k];
+      const total = op === '+' ? Roman.lenientValue(a) + Roman.lenientValue(b) : Roman.lenientValue(a) - Roman.lenientValue(b);
+      if (total < 0) return steppers.addsub.load(steps, `${a} is less than ${b}. You cannot take away more than you have. Romans had no negative numbers.`);
       if (total === 0) return steppers.addsub.load(steps, 'Nothing is left. Romans had no zero.');
       if (total > Roman.MAX) return steppers.addsub.load(steps, `That is more than ${Roman.toRoman(Roman.MAX)}, the biggest this tool writes.`);
-      const plan = op === '+' ? Roman.addEquation([current, term]) : Roman.takeAwayEquation(current, term);
+      const plan = op === '+' ? Roman.addEquation([a, b]) : Roman.takeAwayEquation(a, b);
       const done = plan.steps[plan.steps.length - 1];
+      ts.splice(k, 2, plan.result);
+      os.splice(k, 1);
       // The last row of the whole sum shows the whole sum with its answer. Earlier pairs say what comes next.
-      if (k === p.terms.length - 1) {
+      if (ts.length === 1) {
         if (p.terms.length > 2) done.eq = Roman.eqOf(p.terms, p.ops, plan.result);
       } else {
-        done.label = `${done.label} Next: ${plan.result} ${p.ops[k] === '+' ? '+' : '−'} ${p.terms[k + 1]}.`;
+        done.label = `${done.label} Next: ${ts.map((t, i) => (i ? ` ${sign(os[i - 1])} ${t}` : t)).join('')}.`;
       }
       steps = steps.concat(plan.steps);
-      current = plan.result;
     }
     setError('');
-    steppers.addsub.load(steps, `${current} has nothing to add or take away.`);
+    steppers.addsub.load(steps, `${ts[0]} has nothing to add or take away.`);
   }
 
   // The prompt under the Add & Subtract buttons: think first, then press Next step. It goes once every step is shown.
