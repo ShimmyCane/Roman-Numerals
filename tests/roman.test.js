@@ -375,4 +375,17 @@ test('Chili on Fix It: harder numerals break two or more pairs, and still fix to
   }
 });
 
+test('Add many at once: three or more numerals are put together and regrouped once, to the simplest form', () => {
+  const plan = Roman.addEquation(['XL', 'XX', 'IX']);
+  assert.equal(plan.result, 'LXIX');
+  assert.equal(plan.ok, true);
+  assert.equal(plan.steps.filter((s) => s.label.startsWith('Put all the letters together')).length, 1);
+  for (let i = 0; i < 1000; i += 1) {
+    const terms = [Roman.toRoman(1 + (i % 150)), Roman.toRoman(1 + ((i * 7) % 150)), Roman.toRoman(1 + ((i * 13) % 150))];
+    const sum = terms.reduce((s, t) => s + Roman.lenientValue(t), 0);
+    if (sum > 388) continue;
+    assert.equal(Roman.addEquation(terms).result, Roman.toRoman(sum), terms.join(' + '));
+  }
+});
+
 console.log(`\n${passed} tests passed`);

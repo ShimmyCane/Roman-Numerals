@@ -409,7 +409,15 @@
       steppers.addsub.load(out.steps);
       return;
     }
-    // Regrouping: one pair at a time, left to right, each on its own equation line.
+    // Only additions: put every letter together and regroup once, the same as two numbers.
+    if (p.ops.every((op) => op === '+')) {
+      const total = p.terms.reduce((sum, t) => sum + Roman.lenientValue(t), 0);
+      if (total > Roman.MAX) return steppers.addsub.load([], `That is more than ${Roman.toRoman(Roman.MAX)}, the biggest this tool writes.`);
+      const plan = Roman.addEquation(p.terms);
+      setError('');
+      return steppers.addsub.load(plan.steps, `${plan.result} has nothing to add or take away.`);
+    }
+    // Regrouping with a take-away: one pair at a time, left to right, each on its own equation line.
     let current = p.terms[0];
     let steps = [];
     if (p.terms.length > 2) {
