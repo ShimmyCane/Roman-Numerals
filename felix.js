@@ -40,9 +40,32 @@
   }
 
   // ---------- tabs ----------
+  // A short tone when moving between tabs. Off by default; the Settings toggle turns it on.
+  let tabSound = false;
+  let audio = null;
+  function tabTone() {
+    if (!tabSound) return;
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      const t0 = audio.currentTime;
+      const osc = audio.createOscillator();
+      const gain = audio.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = 660;
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.18, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.17);
+      osc.connect(gain).connect(audio.destination);
+      osc.start(t0);
+      osc.stop(t0 + 0.2);
+    } catch (e) {
+      // No audio available: the page still works.
+    }
+  }
   function showTab(name) {
     $$('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
     $$('.tab').forEach((s) => s.classList.toggle('active', s.id === `tab-${name}`));
+    tabTone();
   }
 
   // ---------- Start: the letters, their values on a row below, then the squares to scale ----------
@@ -849,6 +872,7 @@
     $('#double-random').addEventListener('click', () => { doubleA = randomInt(3, 15); doubleB = randomInt(2, 12); doubleStep = 0; renderDouble(); });
     $('#double-next').addEventListener('click', () => { doubleStep += 1; renderDouble(); });
     $('#double-back').addEventListener('click', () => { doubleStep = Math.max(0, doubleStep - 1); renderDouble(); });
+    $('#opt-tab-sound').addEventListener('change', (e) => { tabSound = e.target.checked; });
     $('#opt-more-rods').addEventListener('change', (e) => { moreRods = e.target.checked; fitDigits(); renderRods(); });
 
     const drawer = $('#drawer');

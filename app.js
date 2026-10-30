@@ -5,7 +5,7 @@
   const LETTERS = ['I', 'V', 'X', 'L', 'C', 'D', 'M'];
   const PAIRS = Object.keys(Roman.PAIR_PIECES);
 
-  let soundOn = true;
+  let soundOn = false;
   let showErrors = false;
   let currentError = '';
 
@@ -1045,7 +1045,6 @@
   function showTab(name) {
     $$('.tab-btn').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
     $$('.tab').forEach((s) => s.classList.toggle('active', s.id === `tab-${name}`));
-    sfx.tap();
     refitSoon();
   }
 
