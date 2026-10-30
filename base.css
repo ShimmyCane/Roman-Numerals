@@ -386,7 +386,8 @@ main { padding: 0 var(--gutter, 16px); }
 }
 .corner-btn:focus-visible { outline: 4px solid var(--link); outline-offset: 3px; }
 /* Triple-line menu: opens the tab panel, sits left of F */
-.menu-btn { right: 178px; }
+.page-f { right: 178px; }
+.menu-btn { right: 96px; }
 .menu-btn .bars {
   display: block;
   width: 30px;
