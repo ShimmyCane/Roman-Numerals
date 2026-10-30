@@ -457,6 +457,15 @@
     return { steps, change, finish, get cur() { return cur; }, set cur(v) { cur = v; } };
   }
 
+  // The right-most short form in a numeral, as { index, 0: pair }, or null.
+  function lastPair(text) {
+    for (let i = text.length - 2; i >= 0; i--) {
+      const two = text.slice(i, i + 2);
+      if (['IV', 'IX', 'XL', 'XC', 'CD', 'CM'].includes(two)) return { index: i, 0: two };
+    }
+    return null;
+  }
+
   function regroupPlan(terms) {
     const total = terms.reduce((sum, t) => sum + lenientValue(t), 0);
     const parts = terms.slice();
@@ -464,8 +473,8 @@
     const r = regroupSteps(parts.join(''), `Write the letters of ${terms.join(' and ')} side by side.`, () => copyEq(eq));
 
     // Open short forms, one number at a time, so a pair is never read across two numbers.
-    parts.forEach((part, k) => {
-      for (let m = /IV|IX|XL|XC|CD|CM/.exec(parts[k]); m; m = /IV|IX|XL|XC|CD|CM/.exec(parts[k])) {
+    parts.map((_, k) => k).reverse().forEach((k) => {
+      for (let m = lastPair(parts[k]); m; m = lastPair(parts[k])) {
         const offset = parts.slice(0, k).join('').length + m.index;
         const open = PAIR_PIECES[m[0]];
         parts[k] = parts[k].slice(0, m.index) + open + parts[k].slice(m.index + 2);
@@ -543,7 +552,7 @@
       const right = state.right;
       const joined = () => right.map((t) => t.ch).join('');
       if (joined() !== toRoman(total)) {
-        for (let i = right.findIndex((t) => PAIR_PIECES[t.ch]); i >= 0; i = right.findIndex((t) => isOpen(t) && PAIR_PIECES[t.ch])) {
+        for (let i = right.findLastIndex((t) => PAIR_PIECES[t.ch]); i >= 0; i = right.findLastIndex((t) => isOpen(t) && PAIR_PIECES[t.ch])) {
           const pair = right[i].ch;
           replace(right, i, i + 1, PAIR_PIECES[pair].split(''));
           snap(`${pair} is a short way to write ${PAIR_PIECES[pair]}. Write it the long way.`);
@@ -609,7 +618,7 @@
         first = false;
         continue;
       }
-      const big = need.reduce((m, t) => (lenientValue(t.ch) > lenientValue(m.ch) ? t : m));
+      const big = need.reduce((m, t) => (lenientValue(t.ch) < lenientValue(m.ch) ? t : m));
       if (PAIR_PIECES[big.ch]) {
         const i = B.indexOf(big);
         w.replace(B, i, i + 1, PAIR_PIECES[big.ch].split(''));
@@ -652,8 +661,8 @@
     const byBig = (x, y) => lenientValue(y.ch) - lenientValue(x.ch);
     const slotted = sides.flat().slice().sort(byBig);
     if (slotted.map((t) => t.ch).join('') !== toRoman(total)) {
-      sides.forEach((list) => {
-        for (let i = list.findIndex((t) => PAIR_PIECES[t.ch]); i >= 0; i = list.findIndex((t) => isOpen(t) && PAIR_PIECES[t.ch])) {
+      sides.slice().reverse().forEach((list) => {
+        for (let i = list.findLastIndex((t) => PAIR_PIECES[t.ch]); i >= 0; i = list.findLastIndex((t) => isOpen(t) && PAIR_PIECES[t.ch])) {
           const pair = list[i].ch;
           w.replace(list, i, i + 1, PAIR_PIECES[pair].split(''));
           w.snap(`${pair} is a short way to write ${PAIR_PIECES[pair]}. Write it the long way.`);

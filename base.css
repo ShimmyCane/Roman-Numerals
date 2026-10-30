@@ -737,12 +737,17 @@ html[data-tiles="big"] { --big: 1.25; }
 /* Settings: less-used options sit under a disclosure, so the first groups stay short */
 .big-btn[hidden] { display: none; }
 
+/* Settings: less-used options sit under a disclosure, so the first groups stay short */
+.more-options { margin: 10px 0 6px; }
+.more-options > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: bold; }
+
 /* Purpose tab: lists and headings for the lesson, the learner's questions and the parents' note */
 #tab-purpose h2 { margin: 0 0 8px; font-size: 1.25em; }
 #tab-purpose .purpose-list, #tab-purpose .think-list { padding-left: 1.4em; margin: 8px 0; }
 #tab-purpose .purpose-list li, #tab-purpose .think-list li { margin: 6px 0; font-size: 1.05em; }
 #tab-purpose .all-tabs h3 { margin: 16px 0 4px; font-size: 1.05em; }
 #tab-purpose .all-tabs p { margin: 0 0 6px; }
+#tab-purpose .all-tabs h2 { margin: 0 0 8px; font-size: 1.25em; }
 
 /* Add & Subtract: the dice (easy) and the chili (harder), side by side */
 .random-pair { display: flex; gap: 10px; align-items: stretch; }
