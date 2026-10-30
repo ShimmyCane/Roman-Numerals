@@ -867,3 +867,14 @@ button.bead:focus-visible { outline: 4px solid var(--link); outline-offset: 3px;
 .legend .sw.roman { border-color: #2e86c1; }
 .legend .sw.arabic { border-color: #27ae60; }
 .legend .sw.binary { border-color: #8e44ad; }
+
+/* Wide screens (iPad landscape and larger): the tabs show across the top, the menu button goes,
+   and F and the gear sit where they were */
+@media (min-width: 1024px) {
+  .tabs.drawer { position: static; width: auto; max-width: var(--page-width, none); max-height: none; overflow: visible; margin: 0 auto; padding: 8px var(--gutter, 16px) 14px; background: none; border: 0; box-shadow: none; z-index: auto; }
+  #tabs[hidden] { display: flex; }
+  .corner-row .menu-btn { display: none; }
+  .corner-row { display: contents; }
+  .corner-row .corner-btn { position: fixed; right: 96px; bottom: 14px; }
+  .corner-row .gear { position: fixed; right: 14px; bottom: 14px; }
+}
