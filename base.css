@@ -385,6 +385,15 @@ main { padding: 0 var(--gutter, 16px); }
   z-index: 6;
 }
 .corner-btn:focus-visible { outline: 4px solid var(--link); outline-offset: 3px; }
+/* Triple-line menu: opens the tab panel, sits left of F */
+.menu-btn { right: 178px; }
+.menu-btn .bars {
+  display: block;
+  width: 30px;
+  height: 22px;
+  background: linear-gradient(to bottom, var(--ink) 0 4px, transparent 4px 9px, var(--ink) 9px 13px, transparent 13px 18px, var(--ink) 18px 22px);
+}
+.tabs.drawer { margin: 0; max-width: none; }
 .drawer {
   position: fixed;
   right: 14px;
