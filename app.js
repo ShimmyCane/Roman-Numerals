@@ -1064,7 +1064,21 @@
     renderRuleList();
     showRule(1);
 
-    $$('.tab-btn').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+    const tabMenu = $('#tabs');
+    const menuBtn = $('#menu-btn');
+    const setTabMenu = (open) => {
+      tabMenu.hidden = !open;
+      menuBtn.setAttribute('aria-expanded', String(open));
+    };
+    menuBtn.addEventListener('click', () => {
+      drawer.hidden = true;
+      $('#gear').setAttribute('aria-expanded', 'false');
+      setTabMenu(tabMenu.hidden);
+    });
+    $$('.tab-btn').forEach((b) => b.addEventListener('click', () => {
+      showTab(b.dataset.tab);
+      setTabMenu(false);
+    }));
     $('#pair-more').addEventListener('click', () => {
       pairMore = !pairMore;
       renderPairs();
@@ -1118,6 +1132,7 @@
     const drawer = $('#drawer');
     $('#gear').addEventListener('click', () => {
       drawer.hidden = !drawer.hidden;
+      if (!drawer.hidden) setTabMenu(false);
       $('#gear').setAttribute('aria-expanded', String(!drawer.hidden));
       $('#forget-note').textContent = '';
     });

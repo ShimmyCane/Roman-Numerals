@@ -21,7 +21,7 @@
     <p class="sub">Break numbers apart, put them together, fix them.</p>
   </header>
 
-  <nav class="tabs" role="tablist">
+  <nav class="tabs drawer" id="tabs" role="tablist" aria-label="Tabs" hidden>
     <button class="tab-btn active" role="tab" data-tab="letters">Letters</button>
     <button class="tab-btn" role="tab" data-tab="rules">Rules</button>
     <button class="tab-btn" role="tab" data-tab="regroup">Regroup</button>
@@ -426,6 +426,7 @@
     <span id="errors-text"></span>
   </div>
 
+  <button class="corner-btn menu-btn" id="menu-btn" type="button" aria-label="Show tabs" aria-expanded="false" aria-controls="tabs"><span class="bars" aria-hidden="true"></span></button>
   <a class="corner-btn page-f" id="to-felix" href="felix.html" aria-label="F: go to the Felix page">F</a>
   <button class="gear" id="gear" aria-label="Settings" aria-expanded="false">⚙️</button>
   <div class="drawer" id="drawer" hidden>
