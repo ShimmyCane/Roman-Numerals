@@ -385,15 +385,19 @@ main { padding: 0 var(--gutter, 16px); }
   z-index: 6;
 }
 .corner-btn:focus-visible { outline: 4px solid var(--link); outline-offset: 3px; }
-/* Triple-line menu: opens the tab panel, sits left of F */
-.page-f { right: 178px; }
-.menu-btn { right: 96px; }
-.menu-btn .bars {
-  display: block;
-  width: 30px;
-  height: 22px;
-  background: linear-gradient(to bottom, var(--ink) 0 4px, transparent 4px 9px, var(--ink) 9px 13px, transparent 13px 18px, var(--ink) 18px 22px);
+/* F, the triple-line menu and the gear share one fixed row in the lower right */
+.corner-row {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 6;
+  display: flex;
+  gap: 10px;
+  transform: translateZ(0);
 }
+.corner-row .corner-btn, .corner-row .gear { position: static; }
+.corner-row .corner-btn { display: grid; }
+.menu-btn svg { width: 30px; height: 22px; fill: currentColor; }
 .tabs.drawer { margin: 0; max-width: none; }
 .drawer {
   position: fixed;
