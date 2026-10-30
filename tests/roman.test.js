@@ -40,7 +40,7 @@ test('typed numerals over 10 letters are flagged, but still read correctly', () 
 
 test('quiz statements are True or False only, and none is Ambiguous', () => {
   for (const item of Roman.TRUE_FALSE) assert.ok(['True', 'False'].includes(item.answer), item.prompt);
-  assert.equal(Roman.TRUE_FALSE.find((t) => t.prompt === 'IL is right').answer, 'False');
+  assert.equal(Roman.TRUE_FALSE.find((t) => t.prompt === 'IL is a well formed Roman numeral').answer, 'False');
 });
 
 test('quiz numerals use at most three different letters', () => {

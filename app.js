@@ -709,6 +709,7 @@
 
   // Two answers per question: the right one and one wrong one.
   function optionsFor(item) {
+    if (item.kind === 'tf') return TF_OPTIONS.slice();
     const pool = item.kind === 'tf' ? TF_OPTIONS : item.kind === 'letter' ? Object.values(VALUE).map(Roman.words) : LETTERS;
     const wrong = shuffle(pool.filter((x) => x !== item.answer))[0];
     return shuffle([item.answer, wrong]);
