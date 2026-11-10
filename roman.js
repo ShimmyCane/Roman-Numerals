@@ -514,14 +514,17 @@
 
   function equationSteps(sides, ops) {
     const steps = [];
-    const state = { right: 'ask', focus: 'left' };
-    const snap = (label) => {
+    // stage is the phase of the letters that are not crossed out: 'break' (break apart, or put together),
+    // 'take' (take away) or 'make' (correct form). Crossed-out letters are always 'take'.
+    const state = { right: 'ask', focus: 'left', stage: 'break' };
+    const snap = (label, stage = state.stage) => {
+      const phased = (list) => copyTiles(list).map((t) => ({ ...t, ph: t.st === 'cross' ? 'take' : stage }));
       const items = [];
       sides.forEach((tiles, k) => {
         if (k) items.push({ kind: 'op', text: signOf(ops[k - 1]) });
-        items.push({ kind: 'num', tiles: copyTiles(tiles) });
+        items.push({ kind: 'num', tiles: phased(tiles) });
       });
-      steps.push({ kind: 'eq', label, eq: { items, right: state.right === 'ask' ? 'ask' : copyTiles(state.right), focus: state.focus } });
+      steps.push({ kind: 'eq', label, eq: { items, right: state.right === 'ask' ? 'ask' : phased(state.right), focus: state.focus } });
       // After a step is shown, replaced letters leave and new letters become plain.
       [...sides, ...(Array.isArray(state.right) ? [state.right] : [])].forEach((list) => {
         for (let i = list.length - 1; i >= 0; i--) {
@@ -549,6 +552,7 @@
     // Regroup the right side one trade at a time, then write the short forms. A short form left among other
     // letters (V and IV) is opened first, and the letters put in order, so the trades can be seen.
     const regroupRight = (total) => {
+      state.stage = 'make';
       const right = state.right;
       const joined = () => right.map((t) => t.ch).join('');
       if (joined() !== toRoman(total)) {
@@ -614,7 +618,7 @@
         pairs.forEach(([x, y]) => { x.st = 'cross'; y.st = 'cross'; });
         const list = listOf(pairs.map(([, y]) => y.ch));
         const them = pairs.length > 1 ? 'them' : 'it';
-        w.snap(first ? `Both numbers have ${list}. Take ${them} away: cross ${them} out on both sides.` : `Now take away ${list}: cross ${them} out on both sides.`);
+        w.snap(first ? `Both numbers have ${list}. Take ${them} away: cross ${them} out on both sides.` : `Now take away ${list}: cross ${them} out on both sides.`, 'take');
         first = false;
         continue;
       }
@@ -644,7 +648,7 @@
     // The left side is done. What is left goes after the = sign, in order, and is regrouped there.
     w.state.right = A.filter(isOpen).map((t) => tile(t.ch, 'new')).sort((x, y) => lenientValue(y.ch) - lenientValue(x.ch));
     w.state.focus = 'right';
-    w.snap(`All of ${b} is taken away. Write what is left after the = sign.`);
+    w.snap(`All of ${b} is taken away. Write what is left after the = sign.`, 'take');
     const result = w.regroupRight(total);
     const ok = result === toRoman(total);
     w.steps.push({ kind: 'eq', label: ok ? `Right form: ${result}.` : `Simplest form: ${result}.`, ok, result, eq: eqOf([a, b], ['-'], result) });

@@ -332,7 +332,7 @@
   // screen. A numeral never breaks.
   const numEl = (tiles, pile = false) => {
     const num = el('span', pile ? 'eq-num pile' : 'eq-num');
-    num.append(...piecesOf(tiles, (t) => el('span', `tok${TOK_STATE[t.st] || ''}`, t.ch)));
+    num.append(...piecesOf(tiles, (t) => el('span', `tok${TOK_STATE[t.st] || ''}${t.ph ? ` ph-${t.ph}` : ''}`, t.ch)));
     return num;
   };
   // The equation's right side (after =) is ? until the left side is done; then the side being worked is in focus.
@@ -342,7 +342,7 @@
     // A number already being worked on (letters crossed out or traded) is a pile too; one as written is not.
     eq.items.forEach((it) => left.append(it.kind === 'op' ? el('span', 'eq-op', it.text) : numEl(it.tiles, it.tiles.some((t) => t.st !== 'normal'))));
     if (left !== line) line.append(left);
-    if (eq.result) line.append(el('span', 'eq-op', '='), el('span', 'tok res', eq.result));
+    if (eq.result) line.append(el('span', 'eq-op', '='), el('span', 'tok res ph-make', eq.result));
     else if (eq.right) {
       line.append(el('span', 'eq-op', '='));
       const right = el('span', `side${eq.focus === 'right' ? ' on' : ''}`);
@@ -472,11 +472,16 @@
     } else if (s.kind === 'repair') {
       inner.append(caption(s.label));
       const pair = el('div', 'repair-pair');
-      pair.append(boardEl(s.before), el('span', 'arrow', '→'), boardEl(s.after));
+      // Fix It has one colour for the work: every repaired numeral is being moved to its correct form.
+      const after = boardEl(s.after);
+      after.classList.add('ph-make-board');
+      pair.append(boardEl(s.before), el('span', 'arrow', '→'), after);
       work.append(pair);
     } else {
       inner.append(caption(s.ok ? `Right form: ${s.result}.` : `Simplest form: ${s.result}.`));
-      work.append(boardEl(s.tiles));
+      const done = boardEl(s.tiles);
+      done.classList.add('ph-make-board');
+      work.append(done);
     }
     if (work !== inner) inner.append(work);
     if (s.kind === 'done') {
@@ -1151,7 +1156,11 @@
       document.documentElement.dataset.size = e.target.value;
       refitSoon();
     });
+    // The colour key belongs to the equation method only; the counting board has no phases.
+    const syncPhaseKey = () => { $('#phase-key').hidden = $('#opt-method').value !== 'regroup'; };
+    syncPhaseKey();
     $('#opt-method').addEventListener('change', () => {
+      syncPhaseKey();
       if (lastRun.addsub !== undefined) runAddSub(lastRun.addsub);
     });
     $('#opt-calm').addEventListener('change', (e) => { document.documentElement.dataset.calm = e.target.checked ? 'on' : ''; });
