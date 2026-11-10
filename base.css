@@ -879,14 +879,14 @@ button.bead:focus-visible { outline: 4px solid var(--link); outline-offset: 3px;
   .corner-row .gear { position: fixed; right: 14px; bottom: 14px; }
 }
 
-/* Phases of the working (Add & Subtract, Fix It). The same colours in every look, so they mean the same thing everywhere.
-   Orange: break apart, or put together. Pink: take away. Blue: the correct form. First and last contrast strongly. */
+/* Parts of the working (Add & Subtract, Fix It). Each part is one wrapper holding all of its steps; the wrapper's colour
+   is the part's colour and the boxes inside keep their normal look. Part i: orange, part ii: pink, part iii: blue. */
 :root { --ph-break: #ff9f1c; --ph-take: #ff4d8d; --ph-make: #2ec4ff; }
-.tok.ph-break, .eq-full .tok.ph-break { background: var(--ph-break); }
-.tok.ph-take, .eq-full .tok.ph-take { background: var(--ph-take); }
-.tok.done.ph-take, .eq-full .tok.done.ph-take { opacity: 0.65; }
-.tok.ph-make, .eq-full .tok.ph-make, .tok.res.ph-make { background: var(--ph-make); }
-.board.ph-make-board .tile { background: var(--ph-make); }
+.part-group { margin: 0 0 14px; padding: 10px 12px 6px; border: var(--edge) var(--edge-style) var(--ink); border-radius: 18px; color: var(--ink); }
+.part-group.part-i { background-color: var(--ph-break); }
+.part-group.part-ii { background-color: var(--ph-take); }
+.part-group.part-iii { background-color: var(--ph-make); }
+.part-group > .part-name { margin: 0 0 6px; font-weight: 900; color: var(--ink); }
 .phase-key { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0 0 12px; padding: 0; list-style: none; font-size: 0.95em; color: var(--ink); }
 .phase-key li { display: flex; align-items: center; gap: 8px; }
 .phase-key .sw { display: inline-block; width: 22px; height: 22px; border: 2px solid var(--ink); border-radius: 6px; }

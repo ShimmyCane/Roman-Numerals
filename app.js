@@ -180,7 +180,7 @@
   const stepSpeed = () => Number($('#opt-speed').value) || 1600;
   // showAll (a function): when it returns true, a new set of steps appears whole, every row at once.
   // Otherwise only the first step shows, and Next step reveals the rest. Back, Next and Play always step through it.
-  function makeStepper(name, { renderRow, onShow, showAll = () => false }) {
+  function makeStepper(name, { renderRow, onShow, showAll = () => false, prepare = (s) => s, place = null }) {
     const ledger = $(`#${name}-ledger`);
     const playBtn = $(`[data-play="${name}"]`);
     let steps = [];
@@ -192,6 +192,7 @@
     function clearRows() {
       rows.splice(0).forEach((r) => r.remove());
       ledger.querySelectorAll('.empty').forEach((e) => e.remove());
+      ledger.querySelectorAll('.part-group').forEach((g) => g.remove());
     }
 
     function sync() {
@@ -205,9 +206,12 @@
       while (rows.length < shown) {
         const row = renderRow(steps[rows.length], rows.length);
         rows.push(row);
-        ledger.append(row);
+        if (place) place(row, steps[rows.length - 1]);
+        else ledger.append(row);
       }
       while (rows.length > shown) rows.pop().remove();
+      // A part whose rows have all been taken back goes too.
+      ledger.querySelectorAll('.part-group').forEach((g) => { if (!g.querySelector('.step-row')) g.remove(); });
       fitAll(ledger);
       rows.forEach((r, i) => r.classList.toggle('current', i === shown - 1));
       ledger.scrollTop = ledger.scrollHeight;
@@ -225,7 +229,7 @@
       load(newSteps, message = '') {
         stop();
         clearRows();
-        steps = newSteps;
+        steps = prepare(newSteps);
         emptyText = message;
         shown = steps.length ? (showAll() ? steps.length : 1) : 0;
         sync();
@@ -332,7 +336,7 @@
   // screen. A numeral never breaks.
   const numEl = (tiles, pile = false) => {
     const num = el('span', pile ? 'eq-num pile' : 'eq-num');
-    num.append(...piecesOf(tiles, (t) => el('span', `tok${TOK_STATE[t.st] || ''}${t.ph ? ` ph-${t.ph}` : ''}`, t.ch)));
+    num.append(...piecesOf(tiles, (t) => el('span', `tok${TOK_STATE[t.st] || ''}`, t.ch)));
     return num;
   };
   // The equation's right side (after =) is ? until the left side is done; then the side being worked is in focus.
@@ -342,7 +346,7 @@
     // A number already being worked on (letters crossed out or traded) is a pile too; one as written is not.
     eq.items.forEach((it) => left.append(it.kind === 'op' ? el('span', 'eq-op', it.text) : numEl(it.tiles, it.tiles.some((t) => t.st !== 'normal'))));
     if (left !== line) line.append(left);
-    if (eq.result) line.append(el('span', 'eq-op', '='), el('span', 'tok res ph-make', eq.result));
+    if (eq.result) line.append(el('span', 'eq-op', '='), el('span', 'tok res', eq.result));
     else if (eq.right) {
       line.append(el('span', 'eq-op', '='));
       const right = el('span', `side${eq.focus === 'right' ? ' on' : ''}`);
@@ -357,6 +361,24 @@
     const cap = el('div', 'caption');
     text.split(/(?<=\.)\s+(?=[A-Z])/).forEach((line) => cap.append(el('p', '', line)));
     return cap;
+  }
+
+  // Each equation step says which part of the working it is in. The first row of a part gets its name above it.
+  const partClass = (p) => `part-${Roman.toRoman(p).toLowerCase()}`;
+  function markParts(steps) {
+    steps.forEach((s) => { if (s.kind === 'eq') s.part = s.part || 1; });
+    return steps;
+  }
+  // Each part is one wrapper that holds all of its rows. The wrapper's colour is the part's colour; the rows inside keep their own look.
+  function groupRow(ledger, row, part, name) {
+    let group = ledger.lastElementChild;
+    if (!group || !group.classList.contains('part-group') || group.dataset.part !== String(part)) {
+      group = el('section', `part-group ${partClass(part)}`);
+      group.dataset.part = String(part);
+      if (name) group.append(el('p', 'part-name', `Part ${Roman.toRoman(part).toLowerCase()}: ${name}`));
+      ledger.append(group);
+    }
+    group.append(row);
   }
 
   function addsubRow(s, i) {
@@ -472,16 +494,11 @@
     } else if (s.kind === 'repair') {
       inner.append(caption(s.label));
       const pair = el('div', 'repair-pair');
-      // Fix It has one colour for the work: every repaired numeral is being moved to its correct form.
-      const after = boardEl(s.after);
-      after.classList.add('ph-make-board');
-      pair.append(boardEl(s.before), el('span', 'arrow', '→'), after);
+      pair.append(boardEl(s.before), el('span', 'arrow', '→'), boardEl(s.after));
       work.append(pair);
     } else {
       inner.append(caption(s.ok ? `Right form: ${s.result}.` : `Simplest form: ${s.result}.`));
-      const done = boardEl(s.tiles);
-      done.classList.add('ph-make-board');
-      work.append(done);
+      work.append(boardEl(s.tiles));
     }
     if (work !== inner) inner.append(work);
     if (s.kind === 'done') {
@@ -1056,8 +1073,12 @@
 
   function init() {
     window.addEventListener('resize', refitSoon);
-    steppers.addsub = makeStepper('addsub', { renderRow: addsubRow, onShow: showAddsubThink, showAll: () => $('#opt-showall').checked });
-    steppers.fix = makeStepper('fix', { renderRow: fixRow, onShow: showFixRules });
+    steppers.addsub = makeStepper('addsub', {
+      renderRow: addsubRow, onShow: showAddsubThink, showAll: () => $('#opt-showall').checked, prepare: markParts,
+      place: (row, s) => groupRow($('#addsub-ledger'), row, s.part, s.partName),
+    });
+    // Fix It is one part, the correct form, so all of its rows sit in one wrapper.
+    steppers.fix = makeStepper('fix', { renderRow: fixRow, onShow: showFixRules, place: (row) => groupRow($('#fix-ledger'), row, 3, 'Correct form') });
     steppers.regroup = makeStepper('regroup', { renderRow: fixRow });
     steppers.regroup.load([], 'Press Random, or type a sum like XXVII + XVIII.');
     buildLadder();

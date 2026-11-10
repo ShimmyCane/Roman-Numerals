@@ -398,27 +398,39 @@ test('Mixed sums: the last pair goes first when it keeps every number positive, 
   assert.equal(Roman.addEquation(['XC', 'V']).result, 'XCV');
 });
 
-test('phases: break apart, take away and correct form are tagged on the letters', () => {
-  // C - IX: the C is broken apart (break), the I's that go are crossed out (take), and the answer is regrouped (make).
-  // XL - XX: the XL is broken apart (break), the X's that go are crossed out (take), and what is left is regrouped (make).
-  const sub = Roman.takeAwayEquation('XL', 'XX').steps;
-  const regrouping = Roman.takeAwayEquation('C', 'IX').steps; // ends by regrouping LXXXX to XC
-  const letters = (step) => step.eq.items.filter((it) => it.tiles).flatMap((it) => it.tiles);
-  assert.ok(letters(sub[0]).every((t) => t.ph === 'break'), 'before any cross-out, every letter is break');
-  const cross = sub.find((s) => /take them away|Now take away/i.test(s.label));
-  assert.ok(cross, 'there is a cross-out step');
-  const crossed = letters(cross).filter((t) => t.st === 'cross');
-  assert.ok(crossed.length > 0 && crossed.every((t) => t.ph === 'take'), 'crossed-out letters are take');
-  const leftover = sub.find((s) => /what is left/.test(s.label));
-  assert.ok(leftover.eq.right.every((t) => t.ph === 'take'), 'what is left after = is take until it is regrouped');
-  const made = regrouping.find((s) => /short way is/.test(s.label));
-  assert.ok(made.eq.right.every((t) => t.ph === 'make'), 'regrouping after = is make, the correct form');
-  // XL + XX (addition): putting together is one phase (break), then regrouping is the correct form (make).
+test('parts: every subtraction up to 300 goes through part i, part ii and part iii, in that order', () => {
+  for (let a = 2; a <= 300; a++) {
+    for (let b = 1; b < a; b++) {
+      const r = Roman.takeAwayEquation(Roman.toRoman(a), Roman.toRoman(b));
+      const seq = r.steps.map((s) => s.part).filter((p, i, all) => i === 0 || p !== all[i - 1]);
+      assert.deepEqual(seq, [1, 2, 3], `${Roman.toRoman(a)} - ${Roman.toRoman(b)}`);
+      assert.equal(r.result, Roman.toRoman(a - b));
+    }
+  }
+});
+
+test('parts: part i prepares the left side, part ii subtracts, part iii is the correct form', () => {
+  // C - IX regroups at the end, so it has all three parts; XL - XX has no regrouping, so it has parts i and ii.
+  const sub = Roman.takeAwayEquation('C', 'IX').steps;
+  assert.equal(sub[0].part, 1, 'the first row is part i');
+  assert.equal(sub[0].partName, 'Preparing the left side');
+  const firstCross = sub.findIndex((s) => /take .*away|Take .* away/i.test(s.label) && /cross/.test(s.label));
+  assert.ok(firstCross > 0, 'there is a cross-out step');
+  assert.equal(sub[firstCross].part, 2, 'the first cross-out starts part ii');
+  assert.equal(sub[firstCross].partName, 'Subtracting');
+  // Trades that happen while subtracting stay in part ii, and part iii only starts with the regroup.
+  const regroupAt = sub.findIndex((s) => /short way is/.test(s.label));
+  assert.ok(regroupAt > firstCross, 'the regroup comes after the subtraction');
+  assert.ok(sub.slice(firstCross, regroupAt).every((s) => s.part === 2), 'parts stay in order while subtracting');
+  assert.equal(sub[regroupAt].part, 3, 'regrouping is part iii');
+  assert.equal(sub[regroupAt].partName, 'Correct form');
+  assert.equal(sub[sub.length - 1].part, 3, 'the last row is the correct form');
+  // Addition: putting the numbers together is one part, then the correct form.
   const add = Roman.addEquation(['XL', 'XX']).steps;
   const together = add.find((s) => s.label.startsWith('Put all the letters together'));
-  assert.ok(together.eq.right.every((t) => t.ph === 'break'), 'addition: putting together is a single phase');
-  const regroup = add.find((s) => /make one/.test(s.label));
-  assert.ok(regroup.eq.right.every((t) => t.ph === 'make'), 'addition: regrouping is the correct form');
+  assert.equal(together.part, 1);
+  assert.equal(together.partName, 'Putting the numbers together');
+  assert.equal(add.find((s) => /make one/.test(s.label)).part, 3);
 });
 
 console.log(`\n${passed} tests passed`);
