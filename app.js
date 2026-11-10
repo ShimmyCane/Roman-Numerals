@@ -180,7 +180,7 @@
   const stepSpeed = () => Number($('#opt-speed').value) || 1600;
   // showAll (a function): when it returns true, a new set of steps appears whole, every row at once.
   // Otherwise only the first step shows, and Next step reveals the rest. Back, Next and Play always step through it.
-  function makeStepper(name, { renderRow, onShow, showAll = () => false, prepare = (s) => s }) {
+  function makeStepper(name, { renderRow, onShow, showAll = () => false, prepare = (s) => s, place = null }) {
     const ledger = $(`#${name}-ledger`);
     const playBtn = $(`[data-play="${name}"]`);
     let steps = [];
@@ -192,6 +192,7 @@
     function clearRows() {
       rows.splice(0).forEach((r) => r.remove());
       ledger.querySelectorAll('.empty').forEach((e) => e.remove());
+      ledger.querySelectorAll('.part-group').forEach((g) => g.remove());
     }
 
     function sync() {
@@ -205,9 +206,12 @@
       while (rows.length < shown) {
         const row = renderRow(steps[rows.length], rows.length);
         rows.push(row);
-        ledger.append(row);
+        if (place) place(row, steps[rows.length - 1]);
+        else ledger.append(row);
       }
       while (rows.length > shown) rows.pop().remove();
+      // A part whose rows have all been taken back goes too.
+      ledger.querySelectorAll('.part-group').forEach((g) => { if (!g.querySelector('.step-row')) g.remove(); });
       fitAll(ledger);
       rows.forEach((r, i) => r.classList.toggle('current', i === shown - 1));
       ledger.scrollTop = ledger.scrollHeight;
@@ -362,14 +366,19 @@
   // Each equation step says which part of the working it is in. The first row of a part gets its name above it.
   const partClass = (p) => `part-${Roman.toRoman(p).toLowerCase()}`;
   function markParts(steps) {
-    let prev = 0;
-    steps.forEach((s) => {
-      if (s.kind !== 'eq') return;
-      s.part = s.part || 1;
-      s.partStart = s.part !== prev;
-      prev = s.part;
-    });
+    steps.forEach((s) => { if (s.kind === 'eq') s.part = s.part || 1; });
     return steps;
+  }
+  // Each part is one wrapper that holds all of its rows. The wrapper's colour is the part's colour; the rows inside keep their own look.
+  function groupRow(ledger, row, part, name) {
+    let group = ledger.lastElementChild;
+    if (!group || !group.classList.contains('part-group') || group.dataset.part !== String(part)) {
+      group = el('section', `part-group ${partClass(part)}`);
+      group.dataset.part = String(part);
+      if (name) group.append(el('p', 'part-name', `Part ${Roman.toRoman(part).toLowerCase()}: ${name}`));
+      ledger.append(group);
+    }
+    group.append(row);
   }
 
   function addsubRow(s, i) {
@@ -378,9 +387,8 @@
       // Regrouping: everything happens on the one equation line.
       const row = el('div', 'step-row');
       const inner = el('div');
-      const work = el('div', `work ${partClass(s.part)}`);
+      const work = el('div', 'work');
       work.append(eqEl(s.eq));
-      if (s.partStart) inner.append(el('p', 'part-name', `Part ${Roman.toRoman(s.part).toLowerCase()}: ${s.partName}`));
       inner.append(captionEl(s.label), work);
       if (s.ok !== undefined) {
         const status = el('p', 'value');
@@ -477,8 +485,7 @@
     const row = el('div', 'step-row');
     const inner = el('div');
     // With an equation (Add & Subtract), the equation sits on top and the working goes under it in one window.
-    // The whole of Fix It is one part: the correct form.
-    const work = el('div', 'work part-iii');
+    const work = s.eq ? el('div', 'work') : inner;
     const caption = (text) => (s.eq ? captionEl(text) : el('p', 'caption', text));
     if (s.eq) work.append(eqEl(s.eq));
     if (s.kind === 'start') {
@@ -1066,8 +1073,12 @@
 
   function init() {
     window.addEventListener('resize', refitSoon);
-    steppers.addsub = makeStepper('addsub', { renderRow: addsubRow, onShow: showAddsubThink, showAll: () => $('#opt-showall').checked, prepare: markParts });
-    steppers.fix = makeStepper('fix', { renderRow: fixRow, onShow: showFixRules });
+    steppers.addsub = makeStepper('addsub', {
+      renderRow: addsubRow, onShow: showAddsubThink, showAll: () => $('#opt-showall').checked, prepare: markParts,
+      place: (row, s) => groupRow($('#addsub-ledger'), row, s.part, s.partName),
+    });
+    // Fix It is one part, the correct form, so all of its rows sit in one wrapper.
+    steppers.fix = makeStepper('fix', { renderRow: fixRow, onShow: showFixRules, place: (row) => groupRow($('#fix-ledger'), row, 3, 'Correct form') });
     steppers.regroup = makeStepper('regroup', { renderRow: fixRow });
     steppers.regroup.load([], 'Press Random, or type a sum like XXVII + XVIII.');
     buildLadder();
