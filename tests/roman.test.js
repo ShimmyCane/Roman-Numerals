@@ -398,6 +398,17 @@ test('Mixed sums: the last pair goes first when it keeps every number positive, 
   assert.equal(Roman.addEquation(['XC', 'V']).result, 'XCV');
 });
 
+test('parts: every subtraction up to 300 goes through part i, part ii and part iii, in that order', () => {
+  for (let a = 2; a <= 300; a++) {
+    for (let b = 1; b < a; b++) {
+      const r = Roman.takeAwayEquation(Roman.toRoman(a), Roman.toRoman(b));
+      const seq = r.steps.map((s) => s.part).filter((p, i, all) => i === 0 || p !== all[i - 1]);
+      assert.deepEqual(seq, [1, 2, 3], `${Roman.toRoman(a)} - ${Roman.toRoman(b)}`);
+      assert.equal(r.result, Roman.toRoman(a - b));
+    }
+  }
+});
+
 test('parts: part i prepares the left side, part ii subtracts, part iii is the correct form', () => {
   // C - IX regroups at the end, so it has all three parts; XL - XX has no regrouping, so it has parts i and ii.
   const sub = Roman.takeAwayEquation('C', 'IX').steps;
