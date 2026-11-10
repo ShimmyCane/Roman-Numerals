@@ -512,19 +512,22 @@
     return parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0];
   }
 
-  function equationSteps(sides, ops) {
+  // The parts of the working. Part i prepares the left side (or puts the numbers together), part ii subtracts,
+  // and part iii is the correct form. Each step records its part and the part's name, and the page colours the background by part.
+  const SUB_PARTS = { 1: 'Preparing the left side', 2: 'Subtracting', 3: 'Correct form' };
+  const ADD_PARTS = { 1: 'Putting the numbers together', 3: 'Correct form' };
+
+  function equationSteps(sides, ops, names) {
     const steps = [];
-    // stage is the phase of the letters that are not crossed out: 'break' (break apart, or put together),
-    // 'take' (take away) or 'make' (correct form). Crossed-out letters are always 'take'.
-    const state = { right: 'ask', focus: 'left', stage: 'break' };
-    const snap = (label, stage = state.stage) => {
-      const phased = (list) => copyTiles(list).map((t) => ({ ...t, ph: t.st === 'cross' ? 'take' : stage }));
+    // part is the part of the working now: 1 until the first letter is crossed out, 2 while subtracting, 3 for the correct form.
+    const state = { right: 'ask', focus: 'left', part: 1 };
+    const snap = (label, part = state.part) => {
       const items = [];
       sides.forEach((tiles, k) => {
         if (k) items.push({ kind: 'op', text: signOf(ops[k - 1]) });
-        items.push({ kind: 'num', tiles: phased(tiles) });
+        items.push({ kind: 'num', tiles: copyTiles(tiles) });
       });
-      steps.push({ kind: 'eq', label, eq: { items, right: state.right === 'ask' ? 'ask' : phased(state.right), focus: state.focus } });
+      steps.push({ kind: 'eq', label, part, partName: names[part], eq: { items, right: state.right === 'ask' ? 'ask' : copyTiles(state.right), focus: state.focus } });
       // After a step is shown, replaced letters leave and new letters become plain.
       [...sides, ...(Array.isArray(state.right) ? [state.right] : [])].forEach((list) => {
         for (let i = list.length - 1; i >= 0; i--) {
@@ -552,7 +555,7 @@
     // Regroup the right side one trade at a time, then write the short forms. A short form left among other
     // letters (V and IV) is opened first, and the letters put in order, so the trades can be seen.
     const regroupRight = (total) => {
-      state.stage = 'make';
+      state.part = 3;
       const right = state.right;
       const joined = () => right.map((t) => t.ch).join('');
       if (joined() !== toRoman(total)) {
@@ -598,7 +601,7 @@
     if (total < 1) return { steps: [], result: null, ok: false, value: total };
     const A = chunks(a).map((c) => tile(c.text));
     const B = chunks(b).map((c) => tile(c.text));
-    const w = equationSteps([A, B], ['-']);
+    const w = equationSteps([A, B], ['-'], SUB_PARTS);
     w.snap(`Start with ${a}. Take away ${b}.`);
     let first = true;
     for (let guard = 0; guard < 60; guard++) {
@@ -618,7 +621,8 @@
         pairs.forEach(([x, y]) => { x.st = 'cross'; y.st = 'cross'; });
         const list = listOf(pairs.map(([, y]) => y.ch));
         const them = pairs.length > 1 ? 'them' : 'it';
-        w.snap(first ? `Both numbers have ${list}. Take ${them} away: cross ${them} out on both sides.` : `Now take away ${list}: cross ${them} out on both sides.`, 'take');
+        w.state.part = 2;
+        w.snap(first ? `Both numbers have ${list}. Take ${them} away: cross ${them} out on both sides.` : `Now take away ${list}: cross ${them} out on both sides.`);
         first = false;
         continue;
       }
@@ -648,10 +652,11 @@
     // The left side is done. What is left goes after the = sign, in order, and is regrouped there.
     w.state.right = A.filter(isOpen).map((t) => tile(t.ch, 'new')).sort((x, y) => lenientValue(y.ch) - lenientValue(x.ch));
     w.state.focus = 'right';
-    w.snap(`All of ${b} is taken away. Write what is left after the = sign.`, 'take');
+    w.state.part = 2;
+    w.snap(`All of ${b} is taken away. Write what is left after the = sign.`);
     const result = w.regroupRight(total);
     const ok = result === toRoman(total);
-    w.steps.push({ kind: 'eq', label: ok ? `Right form: ${result}.` : `Simplest form: ${result}.`, ok, result, eq: eqOf([a, b], ['-'], result) });
+    w.steps.push({ kind: 'eq', label: ok ? `Right form: ${result}.` : `Simplest form: ${result}.`, ok, result, part: 3, partName: SUB_PARTS[3], eq: eqOf([a, b], ['-'], result) });
     return { steps: w.steps, result, ok, value: total };
   }
 
@@ -660,7 +665,7 @@
   function addEquation(terms) {
     const total = terms.reduce((sum, t) => sum + lenientValue(t), 0);
     const sides = terms.map((t) => chunks(t).map((c) => tile(c.text)));
-    const w = equationSteps(sides, terms.slice(1).map(() => '+'));
+    const w = equationSteps(sides, terms.slice(1).map(() => '+'), ADD_PARTS);
     w.snap(`Add ${terms.join(' and ')}.`);
     const byBig = (x, y) => lenientValue(y.ch) - lenientValue(x.ch);
     const slotted = sides.flat().slice().sort(byBig);
@@ -678,7 +683,7 @@
     w.snap('Put all the letters together after the = sign, biggest first.');
     const result = w.regroupRight(total);
     const ok = total <= MAX && result === toRoman(total);
-    w.steps.push({ kind: 'eq', label: ok ? `Right form: ${result}.` : `Simplest form: ${result}.`, ok, result, eq: eqOf(terms, terms.slice(1).map(() => '+'), result) });
+    w.steps.push({ kind: 'eq', label: ok ? `Right form: ${result}.` : `Simplest form: ${result}.`, ok, result, part: 3, partName: ADD_PARTS[3], eq: eqOf(terms, terms.slice(1).map(() => '+'), result) });
     return { steps: w.steps, result, ok, value: total };
   }
 

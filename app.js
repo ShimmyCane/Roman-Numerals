@@ -180,7 +180,7 @@
   const stepSpeed = () => Number($('#opt-speed').value) || 1600;
   // showAll (a function): when it returns true, a new set of steps appears whole, every row at once.
   // Otherwise only the first step shows, and Next step reveals the rest. Back, Next and Play always step through it.
-  function makeStepper(name, { renderRow, onShow, showAll = () => false }) {
+  function makeStepper(name, { renderRow, onShow, showAll = () => false, prepare = (s) => s }) {
     const ledger = $(`#${name}-ledger`);
     const playBtn = $(`[data-play="${name}"]`);
     let steps = [];
@@ -225,7 +225,7 @@
       load(newSteps, message = '') {
         stop();
         clearRows();
-        steps = newSteps;
+        steps = prepare(newSteps);
         emptyText = message;
         shown = steps.length ? (showAll() ? steps.length : 1) : 0;
         sync();
@@ -332,7 +332,7 @@
   // screen. A numeral never breaks.
   const numEl = (tiles, pile = false) => {
     const num = el('span', pile ? 'eq-num pile' : 'eq-num');
-    num.append(...piecesOf(tiles, (t) => el('span', `tok${TOK_STATE[t.st] || ''}${t.ph ? ` ph-${t.ph}` : ''}`, t.ch)));
+    num.append(...piecesOf(tiles, (t) => el('span', `tok${TOK_STATE[t.st] || ''}`, t.ch)));
     return num;
   };
   // The equation's right side (after =) is ? until the left side is done; then the side being worked is in focus.
@@ -342,7 +342,7 @@
     // A number already being worked on (letters crossed out or traded) is a pile too; one as written is not.
     eq.items.forEach((it) => left.append(it.kind === 'op' ? el('span', 'eq-op', it.text) : numEl(it.tiles, it.tiles.some((t) => t.st !== 'normal'))));
     if (left !== line) line.append(left);
-    if (eq.result) line.append(el('span', 'eq-op', '='), el('span', 'tok res ph-make', eq.result));
+    if (eq.result) line.append(el('span', 'eq-op', '='), el('span', 'tok res', eq.result));
     else if (eq.right) {
       line.append(el('span', 'eq-op', '='));
       const right = el('span', `side${eq.focus === 'right' ? ' on' : ''}`);
@@ -359,14 +359,28 @@
     return cap;
   }
 
+  // Each equation step says which part of the working it is in. The first row of a part gets its name above it.
+  const partClass = (p) => `part-${Roman.toRoman(p).toLowerCase()}`;
+  function markParts(steps) {
+    let prev = 0;
+    steps.forEach((s) => {
+      if (s.kind !== 'eq') return;
+      s.part = s.part || 1;
+      s.partStart = s.part !== prev;
+      prev = s.part;
+    });
+    return steps;
+  }
+
   function addsubRow(s, i) {
     if (s.kind === 'start' || s.kind === 'repair' || s.kind === 'done') return fixRow(s, i);
     if (s.kind === 'eq') {
       // Regrouping: everything happens on the one equation line.
       const row = el('div', 'step-row');
       const inner = el('div');
-      const work = el('div', 'work');
+      const work = el('div', `work ${partClass(s.part)}`);
       work.append(eqEl(s.eq));
+      if (s.partStart) inner.append(el('p', 'part-name', `Part ${Roman.toRoman(s.part).toLowerCase()}: ${s.partName}`));
       inner.append(captionEl(s.label), work);
       if (s.ok !== undefined) {
         const status = el('p', 'value');
@@ -463,7 +477,8 @@
     const row = el('div', 'step-row');
     const inner = el('div');
     // With an equation (Add & Subtract), the equation sits on top and the working goes under it in one window.
-    const work = s.eq ? el('div', 'work') : inner;
+    // The whole of Fix It is one part: the correct form.
+    const work = el('div', 'work part-iii');
     const caption = (text) => (s.eq ? captionEl(text) : el('p', 'caption', text));
     if (s.eq) work.append(eqEl(s.eq));
     if (s.kind === 'start') {
@@ -472,16 +487,11 @@
     } else if (s.kind === 'repair') {
       inner.append(caption(s.label));
       const pair = el('div', 'repair-pair');
-      // Fix It has one colour for the work: every repaired numeral is being moved to its correct form.
-      const after = boardEl(s.after);
-      after.classList.add('ph-make-board');
-      pair.append(boardEl(s.before), el('span', 'arrow', '→'), after);
+      pair.append(boardEl(s.before), el('span', 'arrow', '→'), boardEl(s.after));
       work.append(pair);
     } else {
       inner.append(caption(s.ok ? `Right form: ${s.result}.` : `Simplest form: ${s.result}.`));
-      const done = boardEl(s.tiles);
-      done.classList.add('ph-make-board');
-      work.append(done);
+      work.append(boardEl(s.tiles));
     }
     if (work !== inner) inner.append(work);
     if (s.kind === 'done') {
@@ -1056,7 +1066,7 @@
 
   function init() {
     window.addEventListener('resize', refitSoon);
-    steppers.addsub = makeStepper('addsub', { renderRow: addsubRow, onShow: showAddsubThink, showAll: () => $('#opt-showall').checked });
+    steppers.addsub = makeStepper('addsub', { renderRow: addsubRow, onShow: showAddsubThink, showAll: () => $('#opt-showall').checked, prepare: markParts });
     steppers.fix = makeStepper('fix', { renderRow: fixRow, onShow: showFixRules });
     steppers.regroup = makeStepper('regroup', { renderRow: fixRow });
     steppers.regroup.load([], 'Press Random, or type a sum like XXVII + XVIII.');
