@@ -86,6 +86,7 @@ See `convo/convo v0.1.md`. Key ones: ORC Rules 1–5 wording, the number range, 
 
 ## 9. Status log
 
+- 2026-11-10: Add & Subtract colours show three phases of the working: orange to break apart (or, in addition, to put together), pink to take away, blue for the correct form. A key sits above the working (equation method only). Fix It repairs use the single blue colour for the correct form. Colours are the same in every look. 42 logic tests pass.
 - 2026-10-26: Felix's page round eight. Rods go to 99 by default; More places still opens hundreds and thousands. Stairs: binary steps are 2 to 256 in bits, with the bit pattern under each; decimal shows 1, 10, 100, 1000 only; all three systems are shown (the others dashed, with a legend); the Arabic numbers of the steps shown sit in the lower right. 39 logic tests pass.
 - 2026-10-26: Felix's page round seven. Maya and China: controls above the picture (random, +, −). Halve and double: one row per ◀ ▶ press, with a note for each step and the kept numbers added at the end. Rods: start with I to X (ones and tens); "More places" in Settings opens hundreds and thousands. 39 logic tests pass.
 - 2026-10-26: Felix's page round six. Steps: three staircases on one log scale (Roman letters, Arabic decimal ×10, binary ×2), with the Roman line dashed in colour behind the other two. 39 logic tests pass.
